@@ -10,7 +10,7 @@ on:
     - cron: '17 4 * * 1'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   keep-signing-key-alive:
@@ -58,11 +58,21 @@ jobs:
               -keysize 3072 \
               -validity 10000
           fi
-          echo "Stable signing key ready."
-          keytool -list -v \
+
+      - name: Verify Pitlane signing identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af"
+          ACTUAL=$(keytool -list -v \
             -keystore "$HOME/.android/debug.keystore" \
             -storepass android \
-            -alias androiddebugkey | grep 'SHA256:' | head -1
+            -alias androiddebugkey | awk -F'SHA256: ' '/SHA256:/{gsub(":","",$2); print tolower($2); exit}')
+          echo "Pitlane signer SHA-256: $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Pitlane signing identity changed. Refusing to build an incompatible update."
+            exit 1
+          fi
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -72,8 +82,28 @@ jobs:
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
 
-      - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk Afileon-Pitlane.apk
+      - name: Prepare APK and automatic update manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp app/build/outputs/apk/debug/app-debug.apk Afileon-Pitlane.apk
+          VERSION_CODE=$(sed -n 's/.*versionCode \([0-9][0-9]*\).*/\1/p' app/build.gradle | head -1)
+          VERSION_NAME=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" app/build.gradle | head -1)
+          APK_SHA=$(sha256sum Afileon-Pitlane.apk | awk '{print $1}')
+          mkdir -p dist
+          cp Afileon-Pitlane.apk dist/Afileon-Pitlane.apk
+          cat > dist/pitlane-update.json <<EOF
+          {
+            "versionCode": $VERSION_CODE,
+            "versionName": "$VERSION_NAME",
+            "mandatory": false,
+            "apkUrl": "https://raw.githubusercontent.com/phillipafileon/Afil-on-pitlane/main/dist/Afileon-Pitlane.apk",
+            "sha256": "$APK_SHA",
+            "signerSha256": "3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af",
+            "notes": "A newer Afiléon Pitlane build is available. Pitlane will verify the APK before asking Android to install it."
+          }
+          EOF
+          cat dist/pitlane-update.json
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -81,3 +111,24 @@ jobs:
           name: Afileon-Pitlane-APK
           path: Afileon-Pitlane.apk
           if-no-files-found: error
+
+      - name: Publish automatic updater files to main
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          REMOTE_HEAD=$(git ls-remote origin refs/heads/main | awk '{print $1}')
+          if [ "$REMOTE_HEAD" != "$GITHUB_SHA" ]; then
+            echo "main moved while this build was running; skipping updater publication to avoid publishing a stale APK."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/Afileon-Pitlane.apk dist/pitlane-update.json
+          if git diff --cached --quiet; then
+            echo "Updater files are already current."
+            exit 0
+          fi
+          VERSION_NAME=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" app/build.gradle | head -1)
+          git commit -m "Publish Pitlane ${VERSION_NAME} updater files [skip ci]"
+          git push origin HEAD:main

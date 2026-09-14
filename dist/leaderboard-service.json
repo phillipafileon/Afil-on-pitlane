@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "endpoints": [],
+  "notes": "Pitlane falls back to local GPS personal bests until a shared leaderboard backend endpoint is configured."
+}

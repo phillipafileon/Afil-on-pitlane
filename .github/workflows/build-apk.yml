@@ -3,10 +3,28 @@ name: Build Afileon Pitlane APK
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'dist/**'
   workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
 
 jobs:
+  keep-signing-key-alive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep Pitlane signing cache active
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: afileon-pitlane-stable-signing-v1
+
   build:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,6 +35,34 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Restore stable Pitlane signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: afileon-pitlane-stable-signing-v1
+
+      - name: Ensure stable Pitlane signing key exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -noprompt \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -dname "CN=Afileon Pitlane, OU=Pitlane, O=Afileon Motorsport, C=GB" \
+              -keyalg RSA \
+              -keysize 3072 \
+              -validity 10000
+          fi
+          echo "Stable signing key ready."
+          keytool -list -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey | grep 'SHA256:' | head -1
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4

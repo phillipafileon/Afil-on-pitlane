@@ -23,6 +23,39 @@ function displayNameCheck(raw){
   return {ok:true,name};
 }
 
+// Global fallback safety floors for layouts where an exact verified circuit record
+// has not yet been entered. They are deliberately permissive: the shortest known
+// reference is used so legitimate users are not rejected simply because the
+// circuit-specific database is incomplete.
+// Short / Indy: Brands Hatch Indy outright record, 38.032 s.
+// Grand Prix / long: Red Bull Ring 2020 F1 qualifying best, 1:02.939.
+const FALLBACK_FLOORS = {
+  short: {
+    class_name:'Short / Indy',
+    record_ms:38032,
+    record_holder:'Scott Mansell',
+    record_vehicle:'Benetton B197',
+    record_source:'Brands Hatch official circuit record',
+    source_url:'https://www.brandshatch.co.uk/about/circuit-map'
+  },
+  gp: {
+    class_name:'Grand Prix / long',
+    record_ms:62939,
+    record_holder:'Valtteri Bottas',
+    record_vehicle:'Mercedes F1 W11',
+    record_source:'Formula 1 2020 Austrian GP qualifying',
+    source_url:'https://www.formula1.com/en/results/2020/races/1045/ausria/qualifying'
+  }
+};
+function layoutClass(layout){
+  const s=String(layout||'').toLowerCase();
+  return /(grand\s*prix|\bgp\b|international|nordschleife|combined)/i.test(s) ? 'gp' : 'short';
+}
+function fallbackFor(layout){
+  const cls=layoutClass(layout), f=FALLBACK_FLOORS[cls];
+  return {...f, fallback:true, layout_class:cls};
+}
+
 async function recordFor(env,track,layout){
   return await env.DB.prepare(`
     SELECT track, layout, record_ms, record_holder, record_vehicle, record_source, source_url, verified_at, updated_at
@@ -33,54 +66,24 @@ async function recordFor(env,track,layout){
 }
 
 async function validateAgainstRecord(env,track,layout,lap_ms){
-  const ref=await recordFor(env,track,layout);
-  if(!ref) return {ok:false,status:422,error:'reference_record_required'};
+  const exact=await recordFor(env,track,layout);
+  const ref=exact ? {...exact,fallback:false,layout_class:layoutClass(layout)} : fallbackFor(layout);
   if(Number(lap_ms)<Number(ref.record_ms)){
-    return {ok:false,status:422,error:'faster_than_reference_record',reference:ref};
+    return {ok:false,status:422,error:exact?'faster_than_reference_record':'faster_than_fallback_floor',reference:ref,mode:exact?'exact':'fallback'};
   }
-  return {ok:true,reference:ref};
+  return {ok:true,reference:ref,mode:exact?'exact':'fallback'};
 }
 
 async function top10(env){
-  const {results=[]}=await env.DB.prepare(`
-    SELECT le.id, le.display_name, le.country, le.track, le.layout, le.lap_ms, le.source, le.verified, le.created_at,
-           tr.record_ms, tr.record_holder, tr.record_vehicle, tr.record_source, tr.source_url, tr.verified_at
-    FROM leaderboard_entries le
-    JOIN track_records tr
-      ON le.track = tr.track COLLATE NOCASE
-     AND le.layout = tr.layout COLLATE NOCASE
-    WHERE le.approved=1
-      AND le.source='pitlane-gps'
-      AND le.lap_ms >= tr.record_ms
-    ORDER BY le.track COLLATE NOCASE, le.layout COLLATE NOCASE, le.lap_ms ASC, le.created_at ASC
-  `).all();
-  const tracks={}, references={};
-  for(const r of results){
-    if(!displayNameCheck(r.display_name).ok) continue;
-    tracks[r.track] ||= {};
-    tracks[r.track][r.layout] ||= [];
-    references[r.track] ||= {};
-    references[r.track][r.layout] ||= {
-      record_ms:r.record_ms,
-      record_holder:r.record_holder,
-      record_vehicle:r.record_vehicle,
-      record_source:r.record_source,
-      source_url:r.source_url,
-      verified_at:r.verified_at
-    };
-    if(tracks[r.track][r.layout].length<10){
-      tracks[r.track][r.layout].push({
-        id:r.id, display_name:r.display_name, country:r.country,
-        lap_ms:r.lap_ms, source:r.source, verified:!!r.verified, created_at:r.created_at
-      });
-    }
-  }
   const {results:refRows=[]}=await env.DB.prepare(`
     SELECT track, layout, record_ms, record_holder, record_vehicle, record_source, source_url, verified_at
     FROM track_records
     ORDER BY track COLLATE NOCASE, layout COLLATE NOCASE
   `).all();
+  const references={}, exactMap=new Map();
   for(const r of refRows){
+    const key=`${String(r.track).toLowerCase()}|${String(r.layout).toLowerCase()}`;
+    exactMap.set(key,r);
     references[r.track] ||= {};
     references[r.track][r.layout] = {
       record_ms:r.record_ms,
@@ -91,7 +94,31 @@ async function top10(env){
       verified_at:r.verified_at
     };
   }
-  return {version:3,updated_at:new Date().toISOString(),tracks,references};
+
+  const {results=[]}=await env.DB.prepare(`
+    SELECT id, display_name, country, track, layout, lap_ms, source, verified, created_at
+    FROM leaderboard_entries
+    WHERE approved=1 AND source='pitlane-gps'
+    ORDER BY track COLLATE NOCASE, layout COLLATE NOCASE, lap_ms ASC, created_at ASC
+  `).all();
+
+  const tracks={};
+  for(const r of results){
+    if(!displayNameCheck(r.display_name).ok) continue;
+    const key=`${String(r.track).toLowerCase()}|${String(r.layout).toLowerCase()}`;
+    const exact=exactMap.get(key), ref=exact||fallbackFor(r.layout);
+    if(Number(r.lap_ms)<Number(ref.record_ms)) continue;
+    tracks[r.track] ||= {};
+    tracks[r.track][r.layout] ||= [];
+    if(tracks[r.track][r.layout].length<10){
+      tracks[r.track][r.layout].push({
+        id:r.id, display_name:r.display_name, country:r.country,
+        lap_ms:r.lap_ms, source:r.source, verified:!!r.verified,
+        validation_mode:exact?'exact':'fallback', created_at:r.created_at
+      });
+    }
+  }
+  return {version:4,updated_at:new Date().toISOString(),tracks,references,fallback_floors:FALLBACK_FLOORS};
 }
 
 export default {
@@ -123,7 +150,7 @@ export default {
         if(String(e).toLowerCase().includes('unique')) return json({ok:true,duplicate:true},409);
         return json({error:'storage_error'},500);
       }
-      return json({ok:true,state:'pending_review',reference_ms:gate.reference.record_ms},202);
+      return json({ok:true,state:'pending_review',reference_ms:gate.reference.record_ms,validation_mode:gate.mode,reference:gate.reference},202);
     }
 
     if(request.method==='POST' && path.endsWith('/api/pitlane/admin/add')){
@@ -139,7 +166,7 @@ export default {
         (id,display_name,country,track,layout,lap_ms,source,verified,approved,created_at)
         VALUES (?,?,?,?,?,?,?,?,1,datetime('now'))`)
         .bind(id,name.name,clean(b.country,80),track,layout,Math.round(lap_ms),'pitlane-gps',1).run();
-      return json({ok:true,id});
+      return json({ok:true,id,validation_mode:gate.mode});
     }
 
     if(request.method==='POST' && path.endsWith('/api/pitlane/admin/approve')){
@@ -167,7 +194,7 @@ export default {
           .bind(id,name.name,row.country,row.track,row.layout,row.lap_ms,'pitlane-gps',1),
         env.DB.prepare(`UPDATE submissions SET review_state='approved', reviewed_at=datetime('now') WHERE submission_id=?`).bind(sid)
       ]);
-      return json({ok:true,id});
+      return json({ok:true,id,validation_mode:gate.mode});
     }
 
     if(request.method==='POST' && path.endsWith('/api/pitlane/admin/reject')){
@@ -210,7 +237,7 @@ export default {
     if(request.method==='GET' && path.endsWith('/api/pitlane/admin/records')){
       if(!adminOK(request,env)) return json({error:'unauthorized'},401);
       const {results=[]}=await env.DB.prepare(`SELECT * FROM track_records ORDER BY track COLLATE NOCASE, layout COLLATE NOCASE`).all();
-      return json({records:results});
+      return json({records:results,fallback_floors:FALLBACK_FLOORS});
     }
 
     return json({error:'not_found'},404);

@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
     private final class UpdateBridge {
         @JavascriptInterface
         public void checkForUpdates() {
-            runOnUiThread(() -> checkForUpdates(true, true));
+            runOnUiThread(() -> MainActivity.this.checkForUpdates(true, true));
         }
     }
 

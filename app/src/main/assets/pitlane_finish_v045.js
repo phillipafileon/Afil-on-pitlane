@@ -81,3 +81,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 let queued=false;
 new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;enhance()})}).observe(document.documentElement,{childList:true,subtree:true});
 })();
+
+(()=>{
+  const id='pitlane-lb-service-v046';
+  if(document.getElementById(id))return;
+  const s=document.createElement('script');
+  s.id=id;
+  s.src='https://appassets.androidplatform.net/assets/leaderboard_service_v046.js';
+  document.body.appendChild(s);
+})();

@@ -52,11 +52,46 @@ function add924(ev){
   const nav=document.querySelector('[data-go="home"]');
   if(nav){nav.click();setTimeout(()=>document.querySelector('[data-go="garage"]')?.click(),20)}
 }
+
+function addCustomerStart(){
+  const garage=$('#garage');if(!garage||$('#amCustomerStart'))return;
+  const heading=garage.querySelector('h1');if(!heading)return;
+  const p=document.createElement('div');p.id='amCustomerStart';p.className='panel';p.style.marginBottom='10px';p.style.borderColor='#3fcfff';
+  p.innerHTML=`<div class="eyebrow">YOUR GARAGE // START HERE</div><h2>Search your car or add your own</h2><p class="muted">Pitlane is for <b>your</b> car. Search the built-in vehicle catalogue for a model and generation, or enter any make and model yourself if it is not listed. You are not limited to Afiléon Motorsport vehicles.</p><div class="actions"><button id="amStartSearch" class="btn">Search vehicle catalogue</button><button id="amStartCustom" class="btn alt">Add an unlisted car</button></div><p class="tiny" style="margin-bottom:0">Catalogue cars can show useful reference information such as tyre sizes, pressures and wheel torque. Custom cars let you enter your own setup values.</p>`;
+  heading.insertAdjacentElement('afterend',p);
+  p.querySelector('#amStartSearch')?.addEventListener('click',()=>{
+    const target=$('#amVehicleSearch')||$('#vcCatalogue');target?.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>$('#amVehicleSearch')?.focus(),250);
+  });
+  p.querySelector('#amStartCustom')?.addEventListener('click',()=>{
+    const target=$('#vcCustomMake')||$('#addCar')?.closest('.panel');target?.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>$('#vcCustomMake')?.focus(),250);
+  });
+}
+
+function placeAfter(node,anchor){
+  if(node&&anchor&&node.previousElementSibling!==anchor)anchor.insertAdjacentElement('afterend',node);
+  return node||anchor;
+}
+
+function customerFirstOrder(){
+  const garage=$('#garage');if(!garage)return;
+  const heading=garage.querySelector('h1'),customer=$('#amCustomerStart'),cat=$('#vcCatalogue');
+  const custom=$('#addCar')?.closest('.panel');
+  const team=$('#amFeaturedVehicles'),ref=$('#vc924Featured');
+  if(!heading||!customer)return;
+  let anchor=heading;
+  anchor=placeAfter(customer,anchor);
+  if(cat)anchor=placeAfter(cat,anchor);
+  if(custom&&custom!==cat)anchor=placeAfter(custom,anchor);
+  if(team)anchor=placeAfter(team,anchor);
+  if(ref)placeAfter(ref,anchor);
+}
+
 function addFeaturedPanel(){
   const cat=$('#vcCatalogue');if(!cat||$('#vc924Featured'))return;
   const p=document.createElement('div');p.id='vc924Featured';p.className='panel';p.style.marginBottom='10px';
-  p.innerHTML=`<div class="eyebrow">◆ AFILÉON MOTORSPORT REFERENCE CAR</div><h2>Porsche 924 2.0 NA // #77</h2><p class="muted">The 924 is the 101st built-in catalogue reference and is highlighted because it is Afiléon Motorsport's race programme car.</p><div class="vcSpec"><div><span>Engine</span><b>1,984 cc inline-four</b></div><div><span>OEM road pressure fallback</span><b>29 / 29 PSI F/R</b></div><div><span>OEM alloy torque fallback</span><b>130 Nm</b></div></div><p class="vcSource">Historic BRSCC race reference: 7×15 wheels, Toyo R888R 205/50R15, 143 hp maximum, 9.6:1 maximum compression and 1000 kg minimum including driver.</p>`;
-  cat.insertAdjacentElement('beforebegin',p);
+  p.innerHTML=`<div class="eyebrow">◆ AFILÉON MOTORSPORT REFERENCE CAR</div><h2>Porsche 924 2.0 NA // #77</h2><p class="muted">Afiléon Motorsport's race programme car is highlighted as a reference example. It does not limit which cars customers can add to their own Garage.</p><div class="vcSpec"><div><span>Engine</span><b>1,984 cc inline-four</b></div><div><span>OEM road pressure fallback</span><b>29 / 29 PSI F/R</b></div><div><span>OEM alloy torque fallback</span><b>130 Nm</b></div></div><p class="vcSource">Historic BRSCC race reference: 7×15 wheels, Toyo R888R 205/50R15, 143 hp maximum, 9.6:1 maximum compression and 1000 kg minimum including driver.</p>`;
+  const custom=$('#addCar')?.closest('.panel');
+  (custom||cat).insertAdjacentElement('afterend',p);
 }
 function augmentSavedCards(){
   const box=$('#cars');if(!box)return;
@@ -71,11 +106,11 @@ function augmentSavedCards(){
   });
 }
 function hook(){
-  ensureOptions();addFeaturedPanel();augmentSavedCards();
+  ensureOptions();addCustomerStart();addFeaturedPanel();customerFirstOrder();augmentSavedCards();
   const preset=$('#vcPreset');if(preset&&!preset.dataset.p924){preset.dataset.p924='1';const rer=()=>setTimeout(()=>{ensureOptions();render924()},0);preset.addEventListener('input',rer);preset.addEventListener('change',rer)}
   const make=$('#vcMake');if(make&&!make.dataset.p924){make.dataset.p924='1';make.addEventListener('input',()=>setTimeout(ensureOptions,0))}
   const add=$('#vcAddCatalogue');if(add&&!add.dataset.p924){add.dataset.p924='1';add.addEventListener('click',add924,true)}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',hook);else hook();
-new MutationObserver(()=>requestAnimationFrame(hook)).observe(document.documentElement,{childList:true,subtree:true});
+let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;hook()})}).observe(document.documentElement,{childList:true,subtree:true});
 })();

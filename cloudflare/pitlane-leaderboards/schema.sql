@@ -32,3 +32,22 @@ CREATE TABLE IF NOT EXISTS leaderboard_entries (
 
 CREATE INDEX IF NOT EXISTS idx_leaderboard_track_layout_time
 ON leaderboard_entries(track, layout, lap_ms);
+
+-- Authoritative reference floor for each supported circuit/layout.
+-- Pitlane leaderboard laps may equal this time or be slower, but may never be faster.
+-- A layout with no configured reference record is not eligible for public leaderboard upload.
+CREATE TABLE IF NOT EXISTS track_records (
+  track TEXT NOT NULL,
+  layout TEXT NOT NULL,
+  record_ms INTEGER NOT NULL CHECK(record_ms >= 5000 AND record_ms <= 3600000),
+  record_holder TEXT,
+  record_vehicle TEXT,
+  record_source TEXT,
+  source_url TEXT,
+  verified_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (track, layout)
+);
+
+CREATE INDEX IF NOT EXISTS idx_track_records_lookup
+ON track_records(track, layout);

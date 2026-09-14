@@ -7,6 +7,7 @@ const CONFIG_URLS=[
 const LEGACY_API='https://afileonmotorsport.co.uk/api/pitlane';
 const previousFetch=window.fetch.bind(window);
 let endpoints=[];
+let queued=false;
 
 const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -61,12 +62,11 @@ function localBests(){
     const track=String(s.track||'').trim(), layout=String(s.layout||'').trim();
     if(!track||!layout)continue;
     const profileKey=`${norm(track)}|${norm(layout)}`;
-    if(profiles[profileKey] && profiles[profileKey].confirmed===false)continue;
+    if(profiles[profileKey]&&profiles[profileKey].confirmed===false)continue;
     for(const lap of (s.laps||[])){
       if(!lap||typeof lap!=='object'||norm(lap.source)!=='gps'||lap.status!=='valid'||!Number.isFinite(Number(lap.ms)))continue;
-      const key=`${track}\u0000${layout}`, ms=Number(lap.ms);
-      const old=best.get(key);
-      if(!old||ms<old.ms)best.set(key,{track,layout,ms,when:s.date||s.created_at||''});
+      const key=`${track}\u0000${layout}`,ms=Number(lap.ms),old=best.get(key);
+      if(!old||ms<old.ms)best.set(key,{track,layout,ms});
     }
   }
   return [...best.values()].sort((a,b)=>a.track.localeCompare(b.track)||a.layout.localeCompare(b.layout));
@@ -88,6 +88,9 @@ function ensurePanel(){
 function renderLocalPanel(){
   const p=ensurePanel();if(!p)return;
   const rows=localBests();
+  const sig=JSON.stringify(rows.map(r=>[r.track,r.layout,r.ms]));
+  if(p.dataset.localSig===sig)return;
+  p.dataset.localSig=sig;
   p.innerHTML=`<div class="eyebrow">YOUR GPS BESTS // THIS PHONE</div><h2>Local timing still works.</h2><p class="muted">If the shared online leaderboard cannot be reached, Pitlane keeps showing your valid GPS personal bests stored on this phone.</p>${rows.length?rows.map(r=>`<div class="lbRow"><div class="lbPos">PB</div><div><span class="lbName">${esc(r.track)}</span><span class="lbMeta">${esc(r.layout)}</span></div><div class="lbTime">${fmt(r.ms)}</div></div>`).join(''):'<p class="muted">No valid GPS personal bests are stored on this phone yet.</p>'}`;
 }
 
@@ -95,17 +98,25 @@ function patchStatus(){
   const s=document.getElementById('lbSync');if(!s)return;
   const text=s.textContent||'';
   if(/Leaderboard service is not connected yet|Could not refresh|Offline .*no cached rankings/i.test(text)){
-    s.innerHTML='<span class="lbDot warn"></span>Online rankings unavailable right now • local GPS bests remain available below';
+    const replacement='Online rankings unavailable right now • local GPS bests remain available below';
+    if(!text.includes(replacement))s.innerHTML=`<span class="lbDot warn"></span>${replacement}`;
     renderLocalPanel();
-  } else if(/Updated /i.test(text)){
-    const p=document.getElementById('lbLocalFallback');
-    if(p){p.querySelector('h2')?.replaceChildren(document.createTextNode('Your local GPS bests.'));}
   }
+}
+
+function refreshUi(){
+  queued=false;
+  patchStatus();
+  renderLocalPanel();
 }
 
 function install(){
   renderLocalPanel();patchStatus();loadConfig();
-  new MutationObserver(()=>{patchStatus();renderLocalPanel()}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+  new MutationObserver(()=>{
+    if(queued)return;
+    queued=true;
+    requestAnimationFrame(refreshUi);
+  }).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
   window.addEventListener('online',()=>{loadConfig();setTimeout(patchStatus,500)});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();

@@ -35,9 +35,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Android 15+ can draw app content underneath the system navigation bar.
-        // Apply the real system-bar insets to the app window so Pitlane's own
-        // bottom navigation always sits above Samsung's Back/Home/Recents keys.
+        // Keep Pitlane above Samsung/Android system navigation controls.
         View contentRoot = findViewById(android.R.id.content);
         ViewCompat.setOnApplyWindowInsetsListener(contentRoot, (view, windowInsets) -> {
             Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -69,10 +67,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                // Load small post-build enhancements without disturbing the core
-                // offline Track Mode code or previously saved local data.
                 view.evaluateJavascript(
-                        "(function(){if(!document.getElementById('pitlane-v031')){var s=document.createElement('script');s.id='pitlane-v031';s.src='https://appassets.androidplatform.net/assets/enhancements_v031.js';document.body.appendChild(s);}})();",
+                        "(function(){if(!document.getElementById('pitlane-v031')){var s=document.createElement('script');s.id='pitlane-v031';s.src='https://appassets.androidplatform.net/assets/enhancements_v031.js';document.body.appendChild(s);}if(!document.getElementById('pitlane-lb-v032')){var l=document.createElement('script');l.id='pitlane-lb-v032';l.src='https://appassets.androidplatform.net/assets/leaderboards_v032.js';document.body.appendChild(l);}})();",
                         null);
             }
         });

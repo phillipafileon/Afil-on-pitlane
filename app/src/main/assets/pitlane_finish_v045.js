@@ -2,7 +2,7 @@
 const KEY='afileon-pitlane-native-v2';
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 
 function read(){try{return JSON.parse(localStorage.getItem(KEY))||{cars:[]}}catch{return {cars:[]}}}
 function write(d){localStorage.setItem(KEY,JSON.stringify(d))}
@@ -92,10 +92,21 @@ new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=
 })();
 
 (()=>{
-  const id='pitlane-live-services-v047';
-  if(document.getElementById(id))return;
-  const s=document.createElement('script');
-  s.id=id;
-  s.src='https://appassets.androidplatform.net/assets/live_services_v047.js';
-  document.body.appendChild(s);
+  const patchId='pitlane-live-services-patch-v048';
+  const liveId='pitlane-live-services-v047';
+  if(document.getElementById(liveId))return;
+  const loadLive=()=>{
+    if(document.getElementById(liveId))return;
+    const s=document.createElement('script');
+    s.id=liveId;
+    s.src='https://appassets.androidplatform.net/assets/live_services_v047.js';
+    document.body.appendChild(s);
+  };
+  if(document.getElementById(patchId)){loadLive();return;}
+  const p=document.createElement('script');
+  p.id=patchId;
+  p.src='https://appassets.androidplatform.net/assets/live_services_patch_v048.js';
+  p.onload=loadLive;
+  p.onerror=loadLive;
+  document.body.appendChild(p);
 })();

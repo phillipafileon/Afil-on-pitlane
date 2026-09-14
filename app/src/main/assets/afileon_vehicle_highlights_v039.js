@@ -4,7 +4,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-function is924Text(t){return /porsche\s*(?:•\s*)?924/i.test(String(t||''))}
+function is924Text(t){return /porsche\s*(?:•\s*)?924/i.test(String(t||'')) || /porsche\s+924/i.test(String(t||''))}
 function isE46Text(t){return /(?:bmw\s*(?:•\s*)?)?(?:3\s*series\s+)?e46/i.test(String(t||'')) || /bmw\s+318i/i.test(String(t||''))}
 function vehicleClass(t){if(is924Text(t))return'am924';if(isE46Text(t))return'amE46';return''}
 
@@ -42,24 +42,53 @@ function addStyles(){
     .amPickerRow.am924 .amMiniTag{color:#ffe500}.amPickerRow.amE46 .amMiniTag{color:#3fcfff}
     .amPickerEmpty{padding:12px;color:#aab5c9;font-size:11px}
     .amCustomUse{margin-top:8px;width:100%;background:transparent;border:1px solid #38495a;color:#c8d1de;padding:10px;font-weight:800}
+    .amVariantBox{display:none;margin-top:10px;padding:10px;border:1px solid #223345;background:#06101a}
+    .amVariantBox.show{display:block}
+    .amVariantTitle{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#aab5c9;font-weight:900;margin-bottom:7px}
+    .amVariantBtns{display:flex;flex-wrap:wrap;gap:7px}
+    .amVariantBtn{border:1px solid #36526a;background:#081725;color:#e9f1fb;padding:8px 10px;font-size:11px;font-weight:800}
+    .amVariantBtn.on{border-color:#ffe500;color:#ffe500;background:#171503}
+    .amTyreNote{margin-top:8px;font-size:10px;line-height:1.45;color:#aab5c9}
     @media(max-width:600px){.amFeaturedGrid{grid-template-columns:1fr}.amPickerDrop{max-height:280px}}
   `;
   document.head.appendChild(s);
 }
 
 function allPresetValues(){return [...($('#vcPresets')?.options||[])].map(o=>o.value).filter(Boolean)}
+function parsePreset(raw){
+  const p=String(raw||'').split('•').map(x=>x.trim()).filter(Boolean);
+  return {raw,make:p[0]||'',model:p[1]||'',years:p[2]||'',tyre:p.slice(3).join(' • ')};
+}
+function catalogueGroups(){
+  const map=new Map();
+  allPresetValues().map(parsePreset).forEach(p=>{
+    const key=norm(`${p.make}|${p.model}`);
+    if(!map.has(key))map.set(key,{key,make:p.make,model:p.model,label:`${p.make} ${p.model}`,rows:[]});
+    map.get(key).rows.push(p);
+  });
+  return [...map.values()];
+}
+function generationGroups(group){
+  const map=new Map();
+  group.rows.forEach(r=>{const k=norm(r.years||'unspecified');if(!map.has(k))map.set(k,{years:r.years||'Reference',rows:[]});map.get(k).rows.push(r)});
+  return [...map.values()];
+}
+function uniqueTyres(rows){return [...new Set(rows.map(r=>r.tyre).filter(Boolean))]}
 
 function updateCatalogueCount(){
   const cat=$('#vcCatalogue');if(!cat)return;
-  const count=allPresetValues().length;
+  const models=catalogueGroups().length, configs=allPresetValues().length;
   const eyebrow=cat.querySelector(':scope > .eyebrow');
-  const txt=`VEHICLE CATALOGUE // ${count || 101} PRELOADED TRACK-DAY REFERENCES`;
+  const txt=`VEHICLE CATALOGUE // ${models} CAR MODELS`;
   if(eyebrow && eyebrow.textContent!==txt)eyebrow.textContent=txt;
+  let note=$('#amCatalogueCountNote');
+  if(!note){note=document.createElement('p');note.id='amCatalogueCountNote';note.className='tiny';cat.querySelector('.eyebrow')?.insertAdjacentElement('afterend',note)}
+  note.textContent=`${configs} technical reference configurations are stored underneath those models. Tyre sizes no longer create duplicate cars in the picker.`;
 }
 
 function selectPreset(value){
   const make=$('#vcMake'),preset=$('#vcPreset');if(!make||!preset)return;
-  const manufacturer=String(value).split('•')[0].trim();
+  const manufacturer=parsePreset(value).make;
   make.value=manufacturer;
   make.dispatchEvent(new Event('input',{bubbles:true}));
   setTimeout(()=>{
@@ -73,45 +102,65 @@ function selectPreset(value){
   },90);
 }
 
+function selectGeneration(group,gen,box){
+  box.querySelectorAll('.amVariantBtn').forEach(b=>b.classList.toggle('on',b.dataset.amYears===gen.years));
+  const representative=gen.rows[0];
+  selectPreset(representative.raw);
+  const tyres=uniqueTyres(gen.rows);
+  const note=box.querySelector('.amTyreNote');
+  if(note)note.innerHTML=`<b>${esc(group.label)} — ${esc(gen.years)}</b><br>${tyres.length?`Known tyre references: ${esc(tyres.join(', '))}. `:''}Tyre sizes are attached to this car as reference data; they do not create separate vehicle entries.`;
+}
+
+function showModel(group){
+  const input=$('#amVehicleSearch'),variant=$('#amVariantBox');if(!input||!variant)return;
+  input.value=group.label;
+  const gens=generationGroups(group);
+  variant.innerHTML=`<div class="amVariantTitle">${gens.length>1?'Choose year / generation':'Reference year / generation'}</div><div class="amVariantBtns"></div><div class="amTyreNote"></div>`;
+  const btns=variant.querySelector('.amVariantBtns');
+  gens.forEach((g,i)=>{
+    const b=document.createElement('button');b.type='button';b.className='amVariantBtn';b.dataset.amYears=g.years;b.textContent=g.years;
+    b.addEventListener('click',()=>selectGeneration(group,g,variant));btns.appendChild(b);
+  });
+  variant.classList.add('show');
+  if(gens[0])selectGeneration(group,gens[0],variant);
+}
+
 function installChooser(){
   const cat=$('#vcCatalogue');if(!cat||$('#amVehicleChooser'))return;
   const oldGrid=cat.querySelector('.vcGrid');if(!oldGrid)return;
   oldGrid.style.display='none';
   const box=document.createElement('div');box.id='amVehicleChooser';box.className='amChooser';
-  box.innerHTML=`<label>Vehicle<input id="amVehicleSearch" autocomplete="off" placeholder="Type your car or choose from the 101 built-in references…"></label><div id="amPickerDrop" class="amPickerDrop"></div><button id="amUseCustom" class="amCustomUse" type="button" style="display:none">Use typed car as a custom vehicle</button><p class="tiny amChooserHelp">Search the built-in catalogue or type any car. If your exact configuration is not listed, continue with the Custom / unlisted vehicle form below.</p>`;
+  box.innerHTML=`<label>Car model<input id="amVehicleSearch" autocomplete="off" placeholder="Search MX-5, E46, Golf, Fiesta ST…"></label><div id="amPickerDrop" class="amPickerDrop"></div><div id="amVariantBox" class="amVariantBox"></div><button id="amUseCustom" class="amCustomUse" type="button" style="display:none">Use typed car as a custom vehicle</button><p class="tiny amChooserHelp">Each car model appears once. If that model has multiple generations, choose the year/generation after selecting it. Tyre sizes stay inside the vehicle record instead of making duplicate cars.</p>`;
   oldGrid.insertAdjacentElement('beforebegin',box);
-  const input=$('#amVehicleSearch'),drop=$('#amPickerDrop'),custom=$('#amUseCustom');
+  const input=$('#amVehicleSearch'),drop=$('#amPickerDrop'),custom=$('#amUseCustom'),variant=$('#amVariantBox');
 
   const render=()=>{
-    const q=norm(input.value);
-    let rows=allPresetValues().filter(v=>!q||norm(v).includes(q));
-    rows.sort((a,b)=>{const aa=vehicleClass(a)?0:1,bb=vehicleClass(b)?0:1;if(aa!==bb)return aa-bb;return a.localeCompare(b)});
-    const exact=allPresetValues().some(v=>norm(v)===q);
+    const q=norm(input.value),groups=catalogueGroups();
+    let rows=groups.filter(g=>!q||norm(`${g.make} ${g.model}`).includes(q));
+    rows.sort((a,b)=>{const aa=vehicleClass(a.label)?0:1,bb=vehicleClass(b.label)?0:1;if(aa!==bb)return aa-bb;return a.label.localeCompare(b.label)});
+    const exact=groups.some(g=>norm(g.label)===q);
     custom.style.display=input.value.trim()&&!exact?'block':'none';
-    if(!rows.length){drop.innerHTML='<div class="amPickerEmpty">No built-in match. You can still save this as a custom vehicle.</div>';drop.classList.add('show');return}
-    drop.innerHTML=rows.map(v=>{const cls=vehicleClass(v);const tag=cls?`<span class="amMiniTag">◆ AFILÉON MOTORSPORT</span>`:'';return `<button type="button" class="amPickerRow ${cls}" data-am-value="${esc(v)}">${esc(v)}${tag}</button>`}).join('');
+    if(!rows.length){drop.innerHTML='<div class="amPickerEmpty">No built-in model match. You can still save this as a custom vehicle.</div>';drop.classList.add('show');return}
+    drop.innerHTML=rows.map(g=>{const cls=vehicleClass(g.label),tag=cls?`<span class="amMiniTag">◆ AFILÉON MOTORSPORT</span>`:'';return `<button type="button" class="amPickerRow ${cls}" data-am-key="${esc(g.key)}">${esc(g.label)}${tag}</button>`}).join('');
     drop.classList.add('show');
-    drop.querySelectorAll('[data-am-value]').forEach(b=>b.addEventListener('click',()=>{input.value=b.dataset.amValue;drop.classList.remove('show');custom.style.display='none';selectPreset(b.dataset.amValue)}));
+    drop.querySelectorAll('[data-am-key]').forEach(b=>b.addEventListener('click',()=>{const g=groups.find(x=>x.key===b.dataset.amKey);if(!g)return;drop.classList.remove('show');custom.style.display='none';showModel(g)}));
   };
   input.addEventListener('focus',render);
-  input.addEventListener('input',render);
-  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const first=drop.querySelector('[data-am-value]');if(first)first.click();else custom.click()}});
+  input.addEventListener('input',()=>{variant.classList.remove('show');render()});
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const first=drop.querySelector('[data-am-key]');if(first)first.click();else custom.click()}});
   custom.addEventListener('click',()=>{
     const typed=input.value.trim();if(!typed)return;
     const model=$('#vcCustomModel');if(model)model.value=typed;
     const panel=model?.closest('.panel');panel?.scrollIntoView({behavior:'smooth',block:'start'});
-    model?.focus();drop.classList.remove('show');
+    model?.focus();drop.classList.remove('show');variant.classList.remove('show');
   });
   document.addEventListener('click',e=>{if(!box.contains(e.target))drop.classList.remove('show')});
 }
 
 function chooseCatalogue(which){
-  const opts=allPresetValues();let value=null;
-  if(which==='924')value=opts.find(v=>is924Text(v));
-  else value=opts.find(v=>/BMW\s*•\s*3 Series E46/i.test(v));
-  if(!value)return;
-  const input=$('#amVehicleSearch');if(input)input.value=value;
-  selectPreset(value);
+  const groups=catalogueGroups();
+  const group=which==='924'?groups.find(g=>is924Text(g.label)):groups.find(g=>isE46Text(g.label));
+  if(group)showModel(group);
 }
 
 function featuredPanel(){
@@ -121,7 +170,7 @@ function featuredPanel(){
   box.id='amFeaturedVehicles';box.className='amFeaturedWrap';
   box.innerHTML=`
     <div class="eyebrow">AFILÉON MOTORSPORT VEHICLES</div>
-    <p class="muted" style="margin:7px 0 0">Our own cars are colour-coded and marked with ◆ so they stand out from the normal catalogue references.</p>
+    <p class="muted" style="margin:7px 0 0">Our own cars are colour-coded and marked with ◆ so they stand out from the normal catalogue models.</p>
     <div class="amFeaturedGrid">
       <button class="amFeaturedCar am924" data-am-vehicle="924"><span class="amTeamBadge">◆ Afiléon Motorsport</span><b>Porsche 924 // #77</b><small>Race programme car • 2.0 NA</small></button>
       <button class="amFeaturedCar amE46" data-am-vehicle="e46"><span class="amTeamBadge blue">◆ Afiléon Motorsport</span><b>BMW E46 318i</b><small>Track-day hire / support car</small></button>

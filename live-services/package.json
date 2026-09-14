@@ -1,10 +1,10 @@
 {
   "name": "afileon-live-services",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "engines": {"node": ">=20"},
-  "scripts": {"start": "node server.js"},
+  "scripts": {"start": "node server_v2.js"},
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2",

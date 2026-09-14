@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 view.evaluateJavascript(
-                        "(function(){if(!document.getElementById('pitlane-v031')){var s=document.createElement('script');s.id='pitlane-v031';s.src='https://appassets.androidplatform.net/assets/enhancements_v031.js';document.body.appendChild(s);}if(!document.getElementById('pitlane-lb-v033')){var l=document.createElement('script');l.id='pitlane-lb-v033';l.src='https://appassets.androidplatform.net/assets/leaderboards_v033.js';document.body.appendChild(l);}})();",
+                        "(function(){if(!document.getElementById('pitlane-v031')){var s=document.createElement('script');s.id='pitlane-v031';s.src='https://appassets.androidplatform.net/assets/enhancements_v031.js';document.body.appendChild(s);}if(!document.getElementById('pitlane-lb-v034')){var l=document.createElement('script');l.id='pitlane-lb-v034';l.src='https://appassets.androidplatform.net/assets/leaderboards_v034.js';document.body.appendChild(l);}})();",
                         null);
             }
         });

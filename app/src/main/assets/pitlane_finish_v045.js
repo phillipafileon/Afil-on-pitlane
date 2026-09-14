@@ -90,3 +90,12 @@ new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=
   s.src='https://appassets.androidplatform.net/assets/leaderboard_service_v046.js';
   document.body.appendChild(s);
 })();
+
+(()=>{
+  const id='pitlane-live-services-v047';
+  if(document.getElementById(id))return;
+  const s=document.createElement('script');
+  s.id=id;
+  s.src='https://appassets.androidplatform.net/assets/live_services_v047.js';
+  document.body.appendChild(s);
+})();

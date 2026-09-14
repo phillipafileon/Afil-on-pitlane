@@ -3,12 +3,12 @@ const API='https://afileon-live-api-production.up.railway.app';
 const originalFetch=window.fetch.bind(window);
 let cfg={services:[],cancellation_note:''};
 const $=s=>document.querySelector(s);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function currentService(){
  const text=$('#lsSummary')?.textContent||'';
  return cfg.services.find(s=>text.includes(s.name))||null;
 }
+function selectedDate(){return $('.lsDay.selected')?.dataset?.date||'';}
 function status(msg,state='warn'){
  const e=$('#lsStatus');if(!e)return;
  e.style.display='block';e.className=`status ${state}`;e.textContent=msg;
@@ -20,16 +20,10 @@ window.fetch=async function(resource,options={}){
    const r=await originalFetch(resource,options);
    try{
      const j=await r.clone().json();
-     cfg=j||cfg;
      if(Array.isArray(j.services)){
-       j.services=j.services.map(s=>{
-         if(s.id==='vehicle_hire_day'&&s.bookable===false){
-           return {...s,description:`Online booking is not open yet. ${s.description||''}`};
-         }
-         return s;
-       });
+       j.services=j.services.map(s=>s.id==='vehicle_hire_day'&&s.bookable===false?{...s,description:`Online booking is not open yet. ${s.description||''}`} : s);
      }
-     cfg=j;
+     cfg=j||cfg;
      return new Response(JSON.stringify(j),{status:r.status,statusText:r.statusText,headers:r.headers});
    }catch{return r}
  }
@@ -58,10 +52,13 @@ function enhanceRules(){
    n.innerHTML='<b>What the support rate covers.</b> Your booked attendance, tools, routine checks, tyre-pressure adjustments, wheel changes, minor adjustments and basic fault finding. Parts, tyres, fluids, fuel, major repairs and fabrication are extra. Travel or circuit-specific extras are agreed before payment where applicable.';
    rules.appendChild(n);
  }
- if(s.id==='vehicle_hire_day'&&s.bookable===false&&!$('#lsHireNotLiveV048')){
-   const n=document.createElement('div');n.id='lsHireNotLiveV048';n.className='lsNotice';
-   n.innerHTML='<b>E46 online booking is not open yet.</b> The package and planned price are shown so customers can see what is coming, but payment will not be taken until the vehicle, testing and commercial arrangements are ready.';
-   rules.appendChild(n);button.textContent='Contact us about E46 hire';
+ if(s.id==='vehicle_hire_day'&&s.bookable===false){
+   button.textContent='Contact us about E46 hire';
+   if(!$('#lsHireNotLiveV048')){
+     const n=document.createElement('div');n.id='lsHireNotLiveV048';n.className='lsNotice';
+     n.innerHTML='<b>E46 online booking is not open yet.</b> The package and planned price are shown so customers can see what is coming, but payment will not be taken until the vehicle, testing and commercial arrangements are ready.';
+     rules.appendChild(n);
+   }
  }
  if(cfg.cancellation_note&&!$('#lsCancelNoteV048')){
    const n=document.createElement('div');n.id='lsCancelNoteV048';n.className='lsNotice';n.textContent=cfg.cancellation_note;rules.appendChild(n);
@@ -72,7 +69,7 @@ async function requestQuote(s){
  const payload={
    service_id:s.id,
    variant_id:s.variants?.[0]?.id||'quote',
-   requested_date:(($('#lsSummary')?.textContent||'').match(/\d{4}-\d{2}-\d{2}/)||[])[0]||'',
+   requested_date:selectedDate(),
    customer_name:$('#lsName')?.value?.trim()||'',
    customer_email:$('#lsEmail')?.value?.trim()||'',
    customer_phone:$('#lsPhone')?.value?.trim()||'',

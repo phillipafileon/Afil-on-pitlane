@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.View;
 import android.webkit.GeolocationPermissions;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -17,6 +18,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.webkit.WebViewAssetLoader;
 
 public class MainActivity extends AppCompatActivity {
@@ -30,6 +34,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Android 15+ can draw app content underneath the system navigation bar.
+        // Apply the real system-bar insets to the app window so Pitlane's own
+        // bottom navigation always sits above Samsung's Back/Home/Recents keys.
+        View contentRoot = findViewById(android.R.id.content);
+        ViewCompat.setOnApplyWindowInsetsListener(contentRoot, (view, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(contentRoot);
 
         webView = findViewById(R.id.webview);
         WebSettings settings = webView.getSettings();

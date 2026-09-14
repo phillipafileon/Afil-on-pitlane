@@ -35,7 +35,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Keep Pitlane above Samsung/Android system navigation controls.
         View contentRoot = findViewById(android.R.id.content);
         ViewCompat.setOnApplyWindowInsetsListener(contentRoot, (view, windowInsets) -> {
             Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -68,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 view.evaluateJavascript(
-                        "(function(){if(!document.getElementById('pitlane-v031')){var s=document.createElement('script');s.id='pitlane-v031';s.src='https://appassets.androidplatform.net/assets/enhancements_v031.js';document.body.appendChild(s);}if(!document.getElementById('pitlane-lb-v032')){var l=document.createElement('script');l.id='pitlane-lb-v032';l.src='https://appassets.androidplatform.net/assets/leaderboards_v032.js';document.body.appendChild(l);}})();",
+                        "(function(){if(!document.getElementById('pitlane-v031')){var s=document.createElement('script');s.id='pitlane-v031';s.src='https://appassets.androidplatform.net/assets/enhancements_v031.js';document.body.appendChild(s);}if(!document.getElementById('pitlane-lb-v033')){var l=document.createElement('script');l.id='pitlane-lb-v033';l.src='https://appassets.androidplatform.net/assets/leaderboards_v033.js';document.body.appendChild(l);}})();",
                         null);
             }
         });

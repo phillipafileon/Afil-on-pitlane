@@ -2,7 +2,7 @@
 const KEY='afileon-pitlane-native-v2';
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function read(){try{return JSON.parse(localStorage.getItem(KEY))||{cars:[]}}catch{return {cars:[]}}}
 function write(d){localStorage.setItem(KEY,JSON.stringify(d))}

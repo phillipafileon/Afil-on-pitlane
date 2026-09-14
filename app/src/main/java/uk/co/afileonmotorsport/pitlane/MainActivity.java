@@ -11,6 +11,7 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.view.View;
 import android.webkit.GeolocationPermissions;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -42,13 +43,27 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_REQUEST = 77;
-    private static final String UPDATE_MANIFEST_URL = "https://afileonmotorsport.co.uk/pitlane-update.json";
-    private static final String ALLOWED_UPDATE_HOST = "afileonmotorsport.co.uk";
+
+    private static final String[] UPDATE_MANIFEST_URLS = new String[] {
+            "https://afileonmotorsport.co.uk/pitlane-update.json",
+            "https://www.afileonmotorsport.co.uk/pitlane-update.json",
+            "https://am.afileon-motorsport.workers.dev/pitlane-update.json",
+            "https://www.afileon-motorsport.workers.dev/pitlane-update.json"
+    };
+
+    private static final String[] ALLOWED_UPDATE_HOSTS = new String[] {
+            "afileonmotorsport.co.uk",
+            "www.afileonmotorsport.co.uk",
+            "am.afileon-motorsport.workers.dev",
+            "www.afileon-motorsport.workers.dev"
+    };
+
     private static final long UPDATE_RECHECK_MS = 30_000L;
 
     private WebView webView;
@@ -81,7 +96,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
+    private final class UpdateBridge {
+        @JavascriptInterface
+        public void checkForUpdates() {
+            runOnUiThread(() -> checkForUpdates(true, true));
+        }
+    }
+
+    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,6 +127,8 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
 
+        webView.addJavascriptInterface(new UpdateBridge(), "PitlaneNative");
+
         WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .build();
@@ -118,12 +142,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+
                 view.evaluateJavascript(
                         "(function(){" +
                         "if(!document.getElementById('pitlane-v031')){var s=document.createElement('script');s.id='pitlane-v031';s.src='https://appassets.androidplatform.net/assets/enhancements_v031.js';document.body.appendChild(s);}" +
-                        "function loadHighlights(){if(!document.getElementById('pitlane-vehicles-highlight-v039')){var h=document.createElement('script');h.id='pitlane-vehicles-highlight-v039';h.src='https://appassets.androidplatform.net/assets/afileon_vehicle_highlights_v039.js';document.body.appendChild(h);}}" +
-                        "function load924(){if(!document.getElementById('pitlane-vehicles-924-v038')){var p=document.createElement('script');p.id='pitlane-vehicles-924-v038';p.src='https://appassets.androidplatform.net/assets/vehicle_catalogue_924_v038.js';p.onload=loadHighlights;document.body.appendChild(p);}else{loadHighlights();}}" +
-                        "if(!document.getElementById('pitlane-vehicles-v037')){var v=document.createElement('script');v.id='pitlane-vehicles-v037';v.src='https://appassets.androidplatform.net/assets/vehicle_catalogue_v037.js';v.onload=load924;document.body.appendChild(v);}else{load924();}" +
+                        "function loadVehicles044(){if(!document.getElementById('pitlane-vehicles-v044')){var n=document.createElement('script');n.id='pitlane-vehicles-v044';n.src='https://appassets.androidplatform.net/assets/vehicle_catalogue_v044.js';document.body.appendChild(n);}}" +
+                        "if(!document.getElementById('pitlane-vehicles-v037')){var v=document.createElement('script');v.id='pitlane-vehicles-v037';v.src='https://appassets.androidplatform.net/assets/vehicle_catalogue_v037.js';v.onload=loadVehicles044;document.body.appendChild(v);}else{loadVehicles044();}" +
                         "function loadLb(){" +
                         "if(!document.getElementById('pitlane-lb-v034')){var l=document.createElement('script');l.id='pitlane-lb-v034';l.src='https://appassets.androidplatform.net/assets/leaderboards_v034.js';l.onload=function(){if(!document.getElementById('pitlane-lb-v035')){var p=document.createElement('script');p.id='pitlane-lb-v035';p.src='https://appassets.androidplatform.net/assets/leaderboards_v035_patch.js';document.body.appendChild(p);}};document.body.appendChild(l);}" +
                         "else if(!document.getElementById('pitlane-lb-v035')){var p=document.createElement('script');p.id='pitlane-lb-v035';p.src='https://appassets.androidplatform.net/assets/leaderboards_v035_patch.js';document.body.appendChild(p);}" +
@@ -132,9 +156,8 @@ public class MainActivity extends AppCompatActivity {
                         "})()",
                         null);
 
-                // Every fresh Pitlane load checks the website's tiny version manifest.
-                // If there is no internet or the check fails, Pitlane remains usable offline.
-                checkForUpdates(true);
+                ensureUpdateStatusUi();
+                checkForUpdates(true, false);
             }
         });
 
@@ -147,7 +170,8 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     pendingOrigin = origin;
                     pendingGeoCallback = callback;
-                    ActivityCompat.requestPermissions(MainActivity.this,
+                    ActivityCompat.requestPermissions(
+                            MainActivity.this,
                             new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
                             LOCATION_REQUEST);
                 }
@@ -157,8 +181,11 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (webView.canGoBack()) webView.goBack();
-                else finish();
+                if (webView.canGoBack()) {
+                    webView.goBack();
+                } else {
+                    finish();
+                }
             }
         });
 
@@ -169,7 +196,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        // Returning from Android's "Install unknown apps" permission screen.
         if (waitingForUnknownSourcesPermission && pendingUpdateFile != null) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls()) {
                 waitingForUnknownSourcesPermission = false;
@@ -180,67 +206,220 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Also re-check when the user comes back to Pitlane after a while.
-        if (webView != null && System.currentTimeMillis() - lastUpdateCheckAt > UPDATE_RECHECK_MS) {
-            checkForUpdates(false);
+        if (pendingUpdateInfo != null && !updateDownloadRunning && !updateDialogShowing) {
+            maybePresentUpdate(pendingUpdateInfo);
+        } else if (webView != null && System.currentTimeMillis() - lastUpdateCheckAt > UPDATE_RECHECK_MS) {
+            checkForUpdates(false, false);
         }
     }
 
-    private void checkForUpdates(boolean force) {
+    private void ensureUpdateStatusUi() {
+        if (webView == null) return;
+        String installed = BuildConfig.VERSION_NAME;
+        String js = "(function(){" +
+                "var home=document.getElementById('home');if(!home)return;" +
+                "var p=document.getElementById('pitlaneUpdatePanel');" +
+                "if(!p){p=document.createElement('div');p.id='pitlaneUpdatePanel';p.className='panel';p.style.marginTop='10px';p.style.borderColor='#33495d';" +
+                "p.innerHTML='<div class=\"eyebrow\">APP UPDATE</div><div style=\"display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap\"><div style=\"min-width:0;flex:1\"><b id=\"pitlaneUpdateTitle\">Checking for updates…</b><p id=\"pitlaneUpdateDetail\" class=\"tiny\" style=\"margin:5px 0 0\"></p></div><button id=\"pitlaneUpdateCheck\" class=\"btn alt\" type=\"button\">Check now</button></div>';" +
+                "var hero=home.querySelector('.hero');if(hero)hero.insertAdjacentElement('afterend',p);else home.prepend(p);" +
+                "var b=document.getElementById('pitlaneUpdateCheck');if(b)b.onclick=function(){if(window.PitlaneNative&&PitlaneNative.checkForUpdates){PitlaneNative.checkForUpdates();}};" +
+                "}" +
+                "var d=document.getElementById('pitlaneUpdateDetail');if(d&&!d.textContent)d.textContent='Installed version: " + escapeJs(installed) + "';" +
+                "})()";
+        webView.evaluateJavascript(js, null);
+    }
+
+    private static String escapeJs(String value) {
+        if (value == null) return "";
+        return value.replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n");
+    }
+
+    private void setUpdateUi(String state, String title, String detail) {
+        if (webView == null) return;
+        ensureUpdateStatusUi();
+        String border;
+        switch (state) {
+            case "available":
+                border = "#ffe500";
+                break;
+            case "ok":
+                border = "#235944";
+                break;
+            case "error":
+                border = "#6e2f39";
+                break;
+            case "downloading":
+                border = "#3fcfff";
+                break;
+            default:
+                border = "#33495d";
+        }
+
+        String js = "(function(){" +
+                "var p=document.getElementById('pitlaneUpdatePanel'),t=document.getElementById('pitlaneUpdateTitle'),d=document.getElementById('pitlaneUpdateDetail');" +
+                "if(p)p.style.borderColor='" + border + "';" +
+                "if(t)t.textContent=" + JSONObject.quote(title) + ";" +
+                "if(d)d.textContent=" + JSONObject.quote(detail) + ";" +
+                "})()";
+        webView.evaluateJavascript(js, null);
+    }
+
+    private void checkForUpdates(boolean force, boolean userInitiated) {
         long now = System.currentTimeMillis();
-        if (updateCheckRunning || updateDownloadRunning) return;
+        if (updateDownloadRunning) return;
+
+        if (updateCheckRunning) {
+            if (userInitiated) {
+                Toast.makeText(this, "Pitlane is already checking for updates.", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
         if (!force && now - lastUpdateCheckAt < UPDATE_RECHECK_MS) return;
         lastUpdateCheckAt = now;
         updateCheckRunning = true;
 
+        setUpdateUi("checking", "Checking for updates…", "Installed version: " + BuildConfig.VERSION_NAME);
+
         updateExecutor.execute(() -> {
-            HttpURLConnection connection = null;
-            try {
-                URL url = new URL(UPDATE_MANIFEST_URL + "?t=" + System.currentTimeMillis());
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(4500);
-                connection.setReadTimeout(4500);
-                connection.setUseCaches(false);
-                connection.setRequestProperty("Cache-Control", "no-cache, no-store");
-                connection.setRequestProperty("Pragma", "no-cache");
-                connection.setRequestProperty("User-Agent", "Afileon-Pitlane/" + BuildConfig.VERSION_NAME);
+            JSONObject manifest = null;
+            String manifestSource = null;
+            Exception lastError = null;
 
-                if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) return;
-
-                StringBuilder body = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) body.append(line);
+            for (String manifestUrl : UPDATE_MANIFEST_URLS) {
+                try {
+                    manifest = fetchManifest(manifestUrl);
+                    manifestSource = manifestUrl;
+                    break;
+                } catch (Exception e) {
+                    lastError = e;
                 }
-
-                JSONObject json = new JSONObject(body.toString());
-                int latestCode = json.optInt("versionCode", 0);
-                if (latestCode <= BuildConfig.VERSION_CODE) return;
-
-                String latestName = json.optString("versionName", String.valueOf(latestCode));
-                boolean mandatory = json.optBoolean("mandatory", true);
-                String apkUrl = json.optString("apkUrl", "");
-                String notes = json.optString("notes", "A newer version of Afiléon Pitlane is available.");
-                if (!isAllowedApkUrl(apkUrl)) return;
-
-                UpdateInfo info = new UpdateInfo(latestCode, latestName, mandatory, apkUrl, notes);
-                runOnUiThread(() -> maybePresentUpdate(info));
-            } catch (Exception ignored) {
-                // Offline / temporary network failures must never prevent Pitlane from opening.
-            } finally {
-                if (connection != null) connection.disconnect();
-                updateCheckRunning = false;
             }
+
+            if (manifest == null) {
+                String reason = lastError != null ? lastError.getClass().getSimpleName() : "No update server response";
+                String finalReason = reason;
+                runOnUiThread(() -> {
+                    updateCheckRunning = false;
+                    setUpdateUi(
+                            "error",
+                            "Could not reach the update server",
+                            "Pitlane is still usable offline. Tap Check now to retry. (" + finalReason + ")");
+                    if (userInitiated) {
+                        Toast.makeText(this, "Update check failed. Check your internet connection and try again.", Toast.LENGTH_LONG).show();
+                    }
+                });
+                return;
+            }
+
+            int latestCode = manifest.optInt("versionCode", 0);
+            String latestName = manifest.optString("versionName", String.valueOf(latestCode));
+            boolean mandatory = manifest.optBoolean("mandatory", false);
+            String apkUrl = manifest.optString("apkUrl", "");
+            String notes = manifest.optString("notes", "A newer version of Afiléon Pitlane is available.");
+            String finalManifestSource = manifestSource;
+
+            if (latestCode <= 0) {
+                runOnUiThread(() -> {
+                    updateCheckRunning = false;
+                    setUpdateUi("error", "Update manifest is invalid", "The server responded, but did not provide a valid version number.");
+                });
+                return;
+            }
+
+            if (latestCode <= BuildConfig.VERSION_CODE) {
+                runOnUiThread(() -> {
+                    updateCheckRunning = false;
+                    pendingUpdateInfo = null;
+                    setUpdateUi(
+                            "ok",
+                            "Pitlane is up to date",
+                            "Installed: " + BuildConfig.VERSION_NAME + " • Latest: " + latestName);
+                    if (userInitiated) {
+                        Toast.makeText(this, "Afiléon Pitlane is up to date.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                return;
+            }
+
+            if (!isAllowedApkUrl(apkUrl)) {
+                runOnUiThread(() -> {
+                    updateCheckRunning = false;
+                    setUpdateUi(
+                            "error",
+                            "Update found, but download address was rejected",
+                            "Latest version " + latestName + " was found via " + finalManifestSource + ", but its APK address is not on an approved Afiléon host.");
+                });
+                return;
+            }
+
+            UpdateInfo info = new UpdateInfo(latestCode, latestName, mandatory, apkUrl, notes);
+            runOnUiThread(() -> {
+                updateCheckRunning = false;
+                pendingUpdateInfo = info;
+                setUpdateUi(
+                        "available",
+                        "Update available — " + info.versionName,
+                        "Installed: " + BuildConfig.VERSION_NAME + ". Tap Update now when prompted, or use Check now to re-open the update.");
+                maybePresentUpdate(info);
+            });
         });
+    }
+
+    private JSONObject fetchManifest(String baseUrl) throws Exception {
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL(baseUrl + (baseUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis());
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(7_000);
+            connection.setReadTimeout(7_000);
+            connection.setUseCaches(false);
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("Cache-Control", "no-cache, no-store");
+            connection.setRequestProperty("Pragma", "no-cache");
+            connection.setRequestProperty("Accept", "application/json,text/plain,*/*");
+            connection.setRequestProperty("User-Agent", "Afileon-Pitlane/" + BuildConfig.VERSION_NAME);
+
+            int response = connection.getResponseCode();
+            if (response != HttpURLConnection.HTTP_OK) {
+                throw new IllegalStateException("Manifest HTTP " + response);
+            }
+
+            StringBuilder body = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) body.append(line);
+            }
+
+            JSONObject json = new JSONObject(body.toString());
+            if (json.optInt("versionCode", 0) <= 0) {
+                throw new IllegalStateException("Manifest missing versionCode");
+            }
+            return json;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     private boolean isAllowedApkUrl(String apkUrl) {
         try {
             Uri uri = Uri.parse(apkUrl);
-            return "https".equalsIgnoreCase(uri.getScheme())
-                    && ALLOWED_UPDATE_HOST.equalsIgnoreCase(uri.getHost())
-                    && uri.getPath() != null
-                    && uri.getPath().toLowerCase().endsWith(".apk");
+            String host = uri.getHost();
+            if (!"https".equalsIgnoreCase(uri.getScheme())
+                    || host == null
+                    || uri.getPath() == null
+                    || !uri.getPath().toLowerCase(Locale.ROOT).endsWith(".apk")) {
+                return false;
+            }
+
+            for (String allowed : ALLOWED_UPDATE_HOSTS) {
+                if (allowed.equalsIgnoreCase(host)) return true;
+            }
+            return false;
         } catch (Exception e) {
             return false;
         }
@@ -250,14 +429,19 @@ public class MainActivity extends AppCompatActivity {
         if (isFinishing() || isDestroyed()) return;
         pendingUpdateInfo = info;
 
-        // Never interrupt an active GPS track session. The update is presented after
-        // the session or the next time Pitlane is foregrounded/opened.
         if (webView != null) {
             webView.evaluateJavascript(
-                    "(function(){var g=document.getElementById('gps');return !!(g&&/(running|live)/i.test(g.textContent||''));})()",
+                    "(function(){var g=document.getElementById('gps');var t=(g&&g.textContent||'').trim();return /gps\\s+(running|live|tracking)/i.test(t);})()",
                     value -> {
                         if ("true".equalsIgnoreCase(value)) {
-                            Toast.makeText(this, "Pitlane update found — it will be offered after your track session.", Toast.LENGTH_LONG).show();
+                            setUpdateUi(
+                                    "available",
+                                    "Update available — " + info.versionName,
+                                    "A track session appears to be active. Finish the session, then return to Pitlane to install the update.");
+                            Toast.makeText(
+                                    this,
+                                    "Pitlane update found — it will be offered after your track session.",
+                                    Toast.LENGTH_LONG).show();
                         } else {
                             showUpdateDialog(info);
                         }
@@ -291,7 +475,13 @@ public class MainActivity extends AppCompatActivity {
                 finishAffinity();
             });
         } else {
-            builder.setNegativeButton("Later", (dialog, which) -> updateDialogShowing = false);
+            builder.setNegativeButton("Later", (dialog, which) -> {
+                updateDialogShowing = false;
+                setUpdateUi(
+                        "available",
+                        "Update available — " + info.versionName,
+                        "Update postponed. Tap Check now whenever you are ready to install it.");
+            });
         }
 
         AlertDialog dialog = builder.create();
@@ -302,6 +492,7 @@ public class MainActivity extends AppCompatActivity {
     private void downloadAndInstallUpdate(UpdateInfo info) {
         if (updateDownloadRunning) return;
         updateDownloadRunning = true;
+        setUpdateUi("downloading", "Downloading " + info.versionName + "…", "Keep Pitlane open while the APK is downloaded.");
 
         downloadDialog = new AlertDialog.Builder(this)
                 .setTitle("Downloading Pitlane update")
@@ -316,15 +507,19 @@ public class MainActivity extends AppCompatActivity {
             try {
                 File directory = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
                 if (directory == null) directory = getCacheDir();
-                if (!directory.exists() && !directory.mkdirs()) throw new IllegalStateException("Cannot create update directory");
+                if (!directory.exists() && !directory.mkdirs()) {
+                    throw new IllegalStateException("Cannot create update directory");
+                }
 
                 target = new File(directory, "Afileon-Pitlane-update.apk");
-                if (target.exists() && !target.delete()) throw new IllegalStateException("Cannot replace old update file");
+                if (target.exists() && !target.delete()) {
+                    throw new IllegalStateException("Cannot replace old update file");
+                }
 
                 URL url = new URL(info.apkUrl + (info.apkUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis());
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setConnectTimeout(10_000);
-                connection.setReadTimeout(20_000);
+                connection.setReadTimeout(25_000);
                 connection.setUseCaches(false);
                 connection.setInstanceFollowRedirects(true);
                 connection.setRequestProperty("Cache-Control", "no-cache");
@@ -342,19 +537,24 @@ public class MainActivity extends AppCompatActivity {
                     output.flush();
                 }
 
-                if (target.length() < 100_000) throw new IllegalStateException("Downloaded file is too small");
+                if (target.length() < 100_000) {
+                    throw new IllegalStateException("Downloaded file is too small");
+                }
 
                 File readyFile = target;
                 runOnUiThread(() -> {
                     if (downloadDialog != null && downloadDialog.isShowing()) downloadDialog.dismiss();
                     updateDownloadRunning = false;
+                    setUpdateUi("available", "Update downloaded", "Android will now ask you to approve installation of " + info.versionName + ".");
                     requestPackageInstall(readyFile);
                 });
             } catch (Exception e) {
                 if (target != null && target.exists()) target.delete();
+                String reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
                 runOnUiThread(() -> {
                     if (downloadDialog != null && downloadDialog.isShowing()) downloadDialog.dismiss();
                     updateDownloadRunning = false;
+                    setUpdateUi("error", "Update download failed", reason);
                     showUpdateDownloadError(info);
                 });
             } finally {
@@ -367,10 +567,10 @@ public class MainActivity extends AppCompatActivity {
         if (isFinishing() || isDestroyed()) return;
         new AlertDialog.Builder(this)
                 .setTitle("Update could not be downloaded")
-                .setMessage("Pitlane could not download the update. Check your internet connection and try again.")
-                .setCancelable(false)
+                .setMessage("Pitlane found the update but could not download the APK. Check your internet connection and try again.")
+                .setCancelable(true)
                 .setPositiveButton("Retry", (d, w) -> downloadAndInstallUpdate(info))
-                .setNegativeButton("Exit", (d, w) -> finishAffinity())
+                .setNegativeButton("Later", null)
                 .show();
     }
 
@@ -379,10 +579,14 @@ public class MainActivity extends AppCompatActivity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
             waitingForUnknownSourcesPermission = true;
-            Intent settingsIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+            Intent settingsIntent = new Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.parse("package:" + getPackageName()));
             startActivity(settingsIntent);
-            Toast.makeText(this, "Allow Afiléon Pitlane to install this update, then return to Pitlane.", Toast.LENGTH_LONG).show();
+            Toast.makeText(
+                    this,
+                    "Allow Afiléon Pitlane to install this update, then return to Pitlane.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -393,20 +597,27 @@ public class MainActivity extends AppCompatActivity {
 
     private void launchPackageInstaller(File apkFile) {
         try {
-            Uri apkUri = FileProvider.getUriForFile(this,
-                    getPackageName() + ".fileprovider", apkFile);
+            Uri apkUri = FileProvider.getUriForFile(
+                    this,
+                    getPackageName() + ".fileprovider",
+                    apkFile);
             Intent installIntent = new Intent(Intent.ACTION_VIEW)
                     .setDataAndType(apkUri, "application/vnd.android.package-archive")
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(installIntent);
         } catch (Exception e) {
-            if (pendingUpdateInfo != null) showUpdateDownloadError(pendingUpdateInfo);
+            if (pendingUpdateInfo != null) {
+                showUpdateDownloadError(pendingUpdateInfo);
+            }
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(
+            int requestCode,
+            @NonNull String[] permissions,
+            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_REQUEST && pendingGeoCallback != null && pendingOrigin != null) {
             boolean granted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -422,10 +633,7 @@ public class MainActivity extends AppCompatActivity {
         if (downloadDialog != null && downloadDialog.isShowing()) downloadDialog.dismiss();
         updateExecutor.shutdownNow();
         if (webView != null) {
-            webView.loadUrl("about:blank");
-            webView.stopLoading();
-            webView.setWebChromeClient(null);
-            webView.setWebViewClient(null);
+            webView.removeJavascriptInterface("PitlaneNative");
             webView.destroy();
         }
         super.onDestroy();

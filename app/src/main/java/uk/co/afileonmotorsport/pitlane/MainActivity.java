@@ -65,6 +65,16 @@ public class MainActivity extends AppCompatActivity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assetLoader.shouldInterceptRequest(request.getUrl());
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                // Load small post-build enhancements without disturbing the core
+                // offline Track Mode code or previously saved local data.
+                view.evaluateJavascript(
+                        "(function(){if(!document.getElementById('pitlane-v031')){var s=document.createElement('script');s.id='pitlane-v031';s.src='https://appassets.androidplatform.net/assets/enhancements_v031.js';document.body.appendChild(s);}})();",
+                        null);
+            }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {

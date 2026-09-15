@@ -3,7 +3,7 @@ const path = 'server_v3.js';
 let s = fs.readFileSync(path, 'utf8');
 
 if (!s.includes('async function ensureStripeWebhookEvents()')) {
-  const marker = "migrate().then(()=>app.listen(port,'0.0.0.0',()=>console.log(`Afiléon Live Services v3 listening on ${port}`))).catch(e=>{console.error(e);process.exit(1)});";
+  const marker = "migrate().then(async()=>{await ensurePrintfulWebhook();app.listen(port,'0.0.0.0',()=>console.log(`Afiléon Live Services v3 listening on ${port}`))}).catch(e=>{console.error(e);process.exit(1)});";
   if (!s.includes(marker)) throw new Error('Stripe webhook startup marker missing');
 
   const replacement = `async function ensureStripeWebhookEvents() {
@@ -33,6 +33,7 @@ if (!s.includes('async function ensureStripeWebhookEvents()')) {
 }
 
 migrate().then(async()=>{
+  await ensurePrintfulWebhook();
   await ensureStripeWebhookEvents();
   app.listen(port,'0.0.0.0',()=>console.log(\`Afiléon Live Services v3 listening on \${port}\`));
 }).catch(e=>{console.error(e);process.exit(1)});`;

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = 'server_v3.js';
 let s = fs.readFileSync(path, 'utf8');
 
+// Refund status is customer-visible and must not be overwritten by later fulfilment events.
 function replaceOnce(oldText, newText, label) {
   if (s.includes(newText)) return;
   if (!s.includes(oldText)) throw new Error(`Patch marker missing: ${label}`);

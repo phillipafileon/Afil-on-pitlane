@@ -79,6 +79,19 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Apply factory-team layout stylesheet
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/src/main/assets/index.html')
+          text = path.read_text(encoding='utf-8')
+          link = '<link rel="stylesheet" href="factory_layout_v057.css">\n'
+          if 'factory_layout_v057.css' not in text:
+              text = text.replace('</head>', link + '</head>', 1)
+              path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
 

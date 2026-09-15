@@ -1,0 +1,28 @@
+name: Verify Smoke Cleanup
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/verify-smoke-cleanup.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify test dates released
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, sys
+          url='https://afileon-live-api-production.up.railway.app/api/availability?months=6'
+          with urllib.request.urlopen(url, timeout=20) as r:
+              data=json.loads(r.read().decode())
+          busy={x.get('date') for x in data.get('busy',[]) if isinstance(x,dict)}
+          dates=['2026-10-15','2026-12-14']
+          print('busy_count=',len(busy))
+          for d in dates:
+              print(d, 'BUSY' if d in busy else 'FREE')
+          if any(d in busy for d in dates):
+              sys.exit(1)
+          PY

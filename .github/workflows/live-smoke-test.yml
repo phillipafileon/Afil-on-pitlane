@@ -40,18 +40,13 @@ jobs:
 
           def check(name, cond, detail=''):
               results.append({'name': name, 'pass': bool(cond), 'detail': detail})
-              if not cond:
-                  print('FAIL:', name, detail)
-              else:
-                  print('PASS:', name, detail)
+              print(('PASS:' if cond else 'FAIL:'), name, detail)
 
-          # 1 health + config
           code, health = request('GET', '/health')
           check('health', code == 200 and health.get('ok') is True and health.get('stripe') is True and health.get('version') == 'live-services-v3', f'{code} {health}')
           code, config = request('GET', '/api/config')
           check('config', code == 200 and isinstance(config.get('services'), list), f'{code}, services={len(config.get("services", [])) if isinstance(config, dict) else "?"}')
 
-          # Current availability / choose free dates
           code, avail = request('GET', '/api/availability?months=6')
           check('availability_initial', code == 200 and isinstance(avail.get('busy'), list), f'{code}')
           busy = {x.get('date') for x in avail.get('busy', []) if isinstance(x, dict)}
@@ -64,8 +59,6 @@ jobs:
               raise RuntimeError('no free date in requested range')
           date1 = choose(30, 60)
           date2 = choose(90, 150)
-          if date2 == date1:
-              raise RuntimeError('test dates collided')
           print('TEST_DATE_WEBSITE=', date1)
           print('TEST_DATE_PITLANE=', date2)
 
@@ -77,17 +70,16 @@ jobs:
                   'customer_name': f'Afileon Smoke {channel}',
                   'customer_email': f'{MARK}-{suffix}@example.com',
                   'customer_phone': '07700900000',
-                  'service_address': '1 Smoke Test Road, Tunbridge Wells',
-                  'postcode': 'TN1 1AA',
+                  'service_address': '1 Test Lane, Tunbridge Wells',
+                  'postcode': 'TN1 1AB',
                   'vehicle_details': f'Smoke test vehicle - {channel}',
                   'safe_work_area_confirmed': True,
                   'notes': f'{MARK} {channel}'
               }
 
-          # 2 website hold
           code, w = request('POST', '/api/bookings/hold', hold_payload(date1, 'website', 'website'))
           wid = w.get('booking_id') if isinstance(w, dict) else None
-          check('website_hold_201', code == 201 and isinstance(wid, str) and wid.startswith('bk_'), f'{code} booking_id={wid}')
+          check('website_hold_201', code == 201 and isinstance(wid, str) and wid.startswith('bk_'), f'{code} body={w}')
           if wid:
               bookings.append(wid)
               pp = w.get('payment_plan') or {}
@@ -99,13 +91,11 @@ jobs:
               except Exception as e:
                   check('website_hold_40m', False, repr(e))
 
-              # checkout immediately so cleanup can expire the Stripe session
               code, wc = request('POST', f'/api/bookings/{wid}/checkout', {})
               wsid = wc.get('session_id') if isinstance(wc, dict) else None
-              check('website_checkout', code == 200 and isinstance(wsid, str) and wsid.startswith('cs_') and bool(wc.get('checkout_url')), f'{code} session={wsid}')
+              check('website_checkout', code == 200 and isinstance(wsid, str) and wsid.startswith('cs_') and bool(wc.get('checkout_url')), f'{code} body={wc}')
               if wsid: sessions.append(wsid)
 
-              # same-date double booking
               code, dup = request('POST', '/api/bookings/hold', hold_payload(date1, 'website-duplicate', 'website-dup'))
               check('website_double_booking_409', code == 409 and isinstance(dup, dict) and dup.get('error') == 'date_unavailable', f'{code} {dup}')
 
@@ -113,23 +103,21 @@ jobs:
               busy2 = {x.get('date') for x in a2.get('busy', []) if isinstance(x, dict)} if isinstance(a2, dict) else set()
               check('website_date_busy', code == 200 and date1 in busy2, f'{code} date={date1}')
 
-          # 3 Pitlane hold
           code, p = request('POST', '/api/bookings/hold', hold_payload(date2, 'pitlane', 'pitlane'))
           pid = p.get('booking_id') if isinstance(p, dict) else None
-          check('pitlane_hold_201', code == 201 and isinstance(pid, str) and pid.startswith('bk_'), f'{code} booking_id={pid}')
+          check('pitlane_hold_201', code == 201 and isinstance(pid, str) and pid.startswith('bk_'), f'{code} body={p}')
           if pid:
               bookings.append(pid)
               pp = p.get('payment_plan') or {}
               check('pitlane_price_plan', pp.get('kind') == 'full' and pp.get('total') == 12000 and pp.get('now') == 12000 and pp.get('balance') == 0, str(pp))
               code, pc = request('POST', f'/api/bookings/{pid}/checkout', {})
               psid = pc.get('session_id') if isinstance(pc, dict) else None
-              check('pitlane_checkout', code == 200 and isinstance(psid, str) and psid.startswith('cs_') and bool(pc.get('checkout_url')), f'{code} session={psid}')
+              check('pitlane_checkout', code == 200 and isinstance(psid, str) and psid.startswith('cs_') and bool(pc.get('checkout_url')), f'{code} body={pc}')
               if psid: sessions.append(psid)
 
               code, dup2 = request('POST', '/api/bookings/hold', hold_payload(date2, 'pitlane-duplicate', 'pitlane-dup'))
               check('pitlane_double_booking_409', code == 409 and isinstance(dup2, dict) and dup2.get('error') == 'date_unavailable', f'{code} {dup2}')
 
-          # 4 Status must still be hold because no payment was completed
           if wid:
               code, wb = request('GET', f'/api/bookings/{wid}')
               check('website_status_hold', code == 200 and wb.get('status') == 'hold' and wb.get('public_id') == wid, f'{code} {wb}')

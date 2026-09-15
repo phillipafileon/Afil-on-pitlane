@@ -1,7 +1,7 @@
 (()=>{
 const API='https://afileon-live-api-production.up.railway.app';
 const originalFetch=window.fetch.bind(window);
-let cfg={services:[],cancellation_note:''};
+let cfg={services:[],cancellation_note:'',terms_version:'2026-09-15-v2',terms_url:'https://afileonmotorsport.co.uk/booking-terms.html'};
 const $=s=>document.querySelector(s);
 
 function currentService(){
@@ -31,6 +31,8 @@ window.fetch=async function(resource,options={}){
    try{
      const b=JSON.parse(options.body);
      if(b.service_id==='pre_track_inspection')b.safe_work_area_confirmed=!!$('#lsSafeWorkArea')?.checked;
+     b.terms_accepted=!!$('#lsTermsAccept')?.checked;
+     b.terms_version=cfg.terms_version||'2026-09-15-v2';
      options={...options,body:JSON.stringify(b)};
    }catch{}
  }
@@ -63,6 +65,12 @@ function enhanceRules(){
  if(cfg.cancellation_note&&!$('#lsCancelNoteV048')){
    const n=document.createElement('div');n.id='lsCancelNoteV048';n.className='lsNotice';n.textContent=cfg.cancellation_note;rules.appendChild(n);
  }
+ if(!$('#lsTermsAccept')&&s.variants?.some(v=>v.price!=null)&&s.bookable!==false){
+   const row=document.createElement('label');row.className='checkrow';row.style.marginTop='10px';
+   const href=cfg.terms_url||'https://afileonmotorsport.co.uk/booking-terms.html';
+   row.innerHTML=`<input id="lsTermsAccept" type="checkbox" style="width:auto;margin:2px 0 0"> <span>I have read and agree to the <a href="${href}" target="_blank" rel="noopener" style="color:var(--c)">Afiléon Motorsport Booking Terms</a>. I understand my date is only confirmed after payment succeeds.</span>`;
+   rules.appendChild(row);
+ }
 }
 
 async function requestQuote(s){
@@ -90,6 +98,11 @@ async function requestQuote(s){
 document.addEventListener('click',e=>{
  const b=e.target.closest?.('#lsContinue');if(!b)return;
  const s=currentService();if(!s)return;
+ if(s.bookable!==false&&s.variants?.some(v=>v.price!=null)&&!$('#lsTermsAccept')?.checked){
+   e.preventDefault();e.stopImmediatePropagation();
+   status('Please read and accept the Afiléon Motorsport Booking Terms before continuing to payment.','bad');
+   return;
+ }
  if(s.bookable===false){
    e.preventDefault();e.stopImmediatePropagation();
    status('Online booking is not open for this service yet. Opening an email so you can register your interest.','warn');

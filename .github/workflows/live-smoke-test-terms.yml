@@ -1,0 +1,85 @@
+name: Afileon Live Terms Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/live-smoke-test-terms.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Test website and Pitlane live booking routes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, urllib.error, datetime, sys
+          API='https://afileon-live-api-production.up.railway.app'
+          results=[]
+          sessions=[]
+          bookings=[]
+
+          def req(method,path,body=None):
+              data=None if body is None else json.dumps(body).encode()
+              r=urllib.request.Request(API+path,data=data,method=method)
+              r.add_header('Content-Type','application/json')
+              try:
+                  with urllib.request.urlopen(r,timeout=25) as x:
+                      raw=x.read().decode(); return x.status,json.loads(raw) if raw else None
+              except urllib.error.HTTPError as e:
+                  raw=e.read().decode()
+                  try: j=json.loads(raw) if raw else None
+                  except: j={'raw':raw}
+                  return e.code,j
+
+          def check(name,ok,detail=''):
+              results.append((name,bool(ok),detail)); print(('PASS' if ok else 'FAIL'),name,detail)
+
+          code,cfg=req('GET','/api/config')
+          check('config_terms',code==200 and cfg.get('terms_version')=='2026-09-15-v2' and cfg.get('terms_url')=='https://afileonmotorsport.co.uk/booking-terms.html',f'{code} {cfg.get("terms_version")} {cfg.get("terms_url")}')
+          code,av=req('GET','/api/availability?months=6')
+          busy={x.get('date') for x in av.get('busy',[]) if isinstance(x,dict)}
+          today=datetime.date.today()
+          def choose(lo,hi,exclude=set()):
+              for n in range(lo,hi+1):
+                  d=(today+datetime.timedelta(days=n)).isoformat()
+                  if d not in busy and d not in exclude:return d
+              raise RuntimeError('no free date')
+          d1=choose(32,70); d2=choose(92,155,{d1}); d3=choose(72,90,{d1,d2})
+          print('WEBSITE_DATE',d1); print('PITLANE_DATE',d2); print('TERMS_REJECT_DATE',d3)
+
+          def payload(d,channel,terms=True):
+              return {'service_id':'pre_track_inspection','variant_id':'standard','booking_date':d,'customer_name':f'Afileon Smoke {channel}','customer_email':f'afileon-smoke-terms-{channel}@example.com','customer_phone':'07700900000','service_address':'1 Test Lane, Tunbridge Wells','postcode':'TN1 1AB','vehicle_details':f'Smoke {channel}','safe_work_area_confirmed':True,'terms_accepted':terms,'terms_version':'2026-09-15-v2','notes':'terms smoke test'}
+
+          code,j=req('POST','/api/bookings/hold',payload(d3,'no-terms',False))
+          check('reject_missing_terms',code==400 and j.get('error')=='booking_terms_required',f'{code} {j}')
+
+          code,w=req('POST','/api/bookings/hold',payload(d1,'website'))
+          wid=w.get('booking_id') if isinstance(w,dict) else None
+          check('website_hold',code==201 and str(wid).startswith('bk_'),f'{code} {wid}')
+          if wid:
+              bookings.append(wid)
+              code,wc=req('POST',f'/api/bookings/{wid}/checkout',{})
+              sid=wc.get('session_id') if isinstance(wc,dict) else None
+              check('website_checkout',code==200 and str(sid).startswith('cs_') and bool(wc.get('checkout_url')),f'{code} {sid}')
+              if sid:sessions.append(sid)
+              code,dup=req('POST','/api/bookings/hold',payload(d1,'website-dup'))
+              check('website_double_booking',code==409 and dup.get('error')=='date_unavailable',f'{code} {dup}')
+
+          code,p=req('POST','/api/bookings/hold',payload(d2,'pitlane'))
+          pid=p.get('booking_id') if isinstance(p,dict) else None
+          check('pitlane_hold',code==201 and str(pid).startswith('bk_'),f'{code} {pid}')
+          if pid:
+              bookings.append(pid)
+              code,pc=req('POST',f'/api/bookings/{pid}/checkout',{})
+              sid=pc.get('session_id') if isinstance(pc,dict) else None
+              check('pitlane_checkout',code==200 and str(sid).startswith('cs_') and bool(pc.get('checkout_url')),f'{code} {sid}')
+              if sid:sessions.append(sid)
+              code,dup=req('POST','/api/bookings/hold',payload(d2,'pitlane-dup'))
+              check('pitlane_double_booking',code==409 and dup.get('error')=='date_unavailable',f'{code} {dup}')
+
+          print('BOOKING_IDS',json.dumps(bookings)); print('SESSION_IDS',json.dumps(sessions))
+          if not all(x[1] for x in results): sys.exit(1)
+          PY

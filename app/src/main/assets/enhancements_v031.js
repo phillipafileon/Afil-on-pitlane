@@ -85,8 +85,21 @@
     });
   }
 
+  function loadScript(id,src,onload){
+    const existing=document.getElementById(id);
+    if(existing){if(onload)onload();return}
+    const s=document.createElement('script');s.id=id;s.src=src;if(onload)s.onload=onload;document.body.appendChild(s);
+  }
+  function loadBusinessScripts(){
+    loadScript('pitlane-live-services-v047','https://appassets.androidplatform.net/assets/live_services_v047.js',()=>{
+      loadScript('pitlane-live-services-patch-v048','https://appassets.androidplatform.net/assets/live_services_patch_v048.js',()=>{
+        loadScript('pitlane-merch-v050','https://appassets.androidplatform.net/assets/merch_v050.js');
+      });
+    });
+  }
+
   function hook(){
-    addStyles();ensureAutoLapStatus();ensureSavedPanel();renderSaved();decorateCars();
+    addStyles();ensureAutoLapStatus();ensureSavedPanel();renderSaved();decorateCars();loadBusinessScripts();
     const gps=$('#gps');if(gps)new MutationObserver(ensureAutoLapStatus).observe(gps,{childList:true,subtree:true,characterData:true,attributes:true});
     const cars=$('#cars');if(cars)new MutationObserver(()=>setTimeout(decorateCars,0)).observe(cars,{childList:true,subtree:true});
     ['trackName','layoutSelect','customLayout'].forEach(id=>{const e=document.getElementById(id);if(e){e.addEventListener('input',renderSaved);e.addEventListener('change',renderSaved)}});

@@ -1,0 +1,114 @@
+name: Patch Terms Checkout
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/patch-terms-checkout.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch backend, Pitlane and smoke test
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Backend
+          p=Path('live-services/server_v3.js')
+          s=p.read_text()
+          marker="const E46_BOOKING_LIVE = String(process.env.E46_BOOKING_LIVE || 'false').toLowerCase() === 'true';"
+          addition=marker+"\nconst TERMS_VERSION = '2026-09-15-v2';\nconst TERMS_URL = process.env.TERMS_URL || `${SITE_URL}/booking-terms.html`;"
+          if "const TERMS_VERSION = '2026-09-15-v2';" not in s:
+              assert marker in s, 'backend constants marker missing'
+              s=s.replace(marker,addition,1)
+
+          old="r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: '2026-09-15', cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });"
+          new="r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_url: TERMS_URL, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });"
+          if old in s: s=s.replace(old,new,1)
+          assert 'terms_url: TERMS_URL' in s, 'config terms URL patch failed'
+
+          contact="if (!clean(b.customer_name,120) || !clean(b.customer_email,200) || !clean(b.customer_phone,60)) return res.status(400).json({ error: 'contact_details_required' });"
+          termscheck="if (b.terms_accepted !== true) return res.status(400).json({ error: 'booking_terms_required', detail: 'Please read and accept the Afiléon Motorsport Booking Terms before continuing.' });"
+          if termscheck not in s:
+              assert contact in s, 'contact marker missing'
+              s=s.replace(contact,contact+'\n  '+termscheck,1)
+
+          oldarr="!!b.safe_work_area_confirmed,'2026-09-15']);"
+          newarr="!!b.safe_work_area_confirmed,TERMS_VERSION]);"
+          if oldarr in s: s=s.replace(oldarr,newarr,1)
+          assert '!!b.safe_work_area_confirmed,TERMS_VERSION]);' in s, 'terms version DB patch failed'
+
+          # Stripe Dashboard TOS setting is no longer required: acceptance happens in our own booking UI and is recorded server-side.
+          s=s.replace(" consent_collection:{terms_of_service:'required'},", "")
+          assert "consent_collection:{terms_of_service:'required'}" not in s, 'Stripe consent removal failed'
+
+          oldmeta="metadata:{kind:'service_booking',booking_id:b.public_id,service_id:b.service_id,variant_id:b.variant_id,booking_date:isoDate(b.booking_date)}"
+          newmeta="metadata:{kind:'service_booking',booking_id:b.public_id,service_id:b.service_id,variant_id:b.variant_id,booking_date:isoDate(b.booking_date),terms_version:TERMS_VERSION}"
+          if oldmeta in s: s=s.replace(oldmeta,newmeta,1)
+          p.write_text(s)
+
+          # Pitlane client patch
+          p=Path('app/src/main/assets/live_services_patch_v048.js')
+          s=p.read_text()
+          s=s.replace("let cfg={services:[],cancellation_note:''};","let cfg={services:[],cancellation_note:'',terms_version:'2026-09-15-v2',terms_url:'https://afileonmotorsport.co.uk/booking-terms.html'};")
+          old="if(b.service_id==='pre_track_inspection')b.safe_work_area_confirmed=!!$('#lsSafeWorkArea')?.checked;"
+          new=old+"\n     b.terms_accepted=!!$('#lsTermsAccept')?.checked;\n     b.terms_version=cfg.terms_version||'2026-09-15-v2';"
+          if "b.terms_accepted=" not in s:
+              assert old in s, 'Pitlane fetch marker missing'
+              s=s.replace(old,new,1)
+
+          cancel="if(cfg.cancellation_note&&!$('#lsCancelNoteV048')){\n   const n=document.createElement('div');n.id='lsCancelNoteV048';n.className='lsNotice';n.textContent=cfg.cancellation_note;rules.appendChild(n);\n }"
+          termsui="""if(!$('#lsTermsAccept')&&s.variants?.some(v=>v.price!=null)&&s.bookable!==false){
+   const row=document.createElement('label');row.className='checkrow';row.style.marginTop='10px';
+   const href=cfg.terms_url||'https://afileonmotorsport.co.uk/booking-terms.html';
+   row.innerHTML=`<input id=\"lsTermsAccept\" type=\"checkbox\" style=\"width:auto;margin:2px 0 0\"> <span>I have read and agree to the <a href=\"${href}\" target=\"_blank\" rel=\"noopener\" style=\"color:var(--c)\">Afiléon Motorsport Booking Terms</a>. I understand my date is only confirmed after payment succeeds.</span>`;
+   rules.appendChild(row);
+ }"""
+          if "id=\"lsTermsAccept\"" not in s:
+              assert cancel in s, 'Pitlane cancellation marker missing'
+              s=s.replace(cancel,cancel+'\n '+termsui,1)
+
+          clickmarker="const s=currentService();if(!s)return;"
+          clickterms="if(s.bookable!==false&&s.variants?.some(v=>v.price!=null)&&!$('#lsTermsAccept')?.checked){\n   e.preventDefault();e.stopImmediatePropagation();\n   status('Please read and accept the Afiléon Motorsport Booking Terms before continuing to payment.','bad');\n   return;\n }"
+          if "Please read and accept the Afiléon Motorsport Booking Terms before continuing to payment." not in s:
+              idx=s.find("document.addEventListener('click'")
+              assert idx>=0, 'Pitlane click listener missing'
+              pos=s.find(clickmarker,idx)
+              assert pos>=0, 'Pitlane click marker missing'
+              pos2=pos+len(clickmarker)
+              s=s[:pos2]+'\n '+clickterms+s[pos2:]
+          p.write_text(s)
+
+          # Version bump
+          p=Path('app/build.gradle')
+          s=p.read_text()
+          s=s.replace('versionCode 21','versionCode 22').replace("versionName '0.4.8-test'","versionName '0.4.9-test'")
+          p.write_text(s)
+
+          # Keep live smoke test compatible with explicit terms acceptance.
+          p=Path('.github/workflows/live-smoke-test.yml')
+          if p.exists():
+              s=p.read_text()
+              marker="'safe_work_area_confirmed': True,"
+              if "'terms_accepted': True," not in s:
+                  assert marker in s, 'smoke payload marker missing'
+                  s=s.replace(marker,marker+"\n                  'terms_accepted': True,",1)
+              p.write_text(s)
+          PY
+      - name: Commit patched flow
+        shell: bash
+        run: |
+          git config user.name "Afiléon Build Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add live-services/server_v3.js app/src/main/assets/live_services_patch_v048.js app/build.gradle .github/workflows/live-smoke-test.yml
+          git commit -m "Fix booking terms acceptance and Stripe checkout [skip ci]"
+          git push origin HEAD:main

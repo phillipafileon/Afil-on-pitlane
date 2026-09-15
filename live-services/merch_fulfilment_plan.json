@@ -1,0 +1,55 @@
+{
+  "version": "2026-09-15",
+  "status": "awaiting_supplier_accounts_and_credentials",
+  "customer_visible_provider_names": false,
+  "launch_sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"],
+  "products": [
+    {
+      "slug": "embroidered-tshirt",
+      "name": "Embroidered T-Shirt",
+      "retail_price_gbp": 24.99,
+      "provider": "printful",
+      "preferred_blank": "Gildan 64000 Softstyle",
+      "provider_size_range": "XS-5XL",
+      "launch_sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"],
+      "technique": "embroidery",
+      "placement": "left_chest",
+      "provider_product_id": null,
+      "provider_variant_ids": {},
+      "live": false
+    },
+    {
+      "slug": "embroidered-polo",
+      "name": "Embroidered Polo",
+      "retail_price_gbp": 39.99,
+      "provider": "inkthreadable",
+      "preferred_blank": "Stanley/Stella Prepster Polo",
+      "provider_size_range": "XXS-5XL",
+      "launch_sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"],
+      "technique": "embroidery",
+      "placement": "left_chest",
+      "provider_product_id": null,
+      "provider_variant_ids": {},
+      "live": false
+    },
+    {
+      "slug": "embroidered-hoodie",
+      "name": "Embroidered Hoodie",
+      "retail_price_gbp": 49.99,
+      "provider": "printful",
+      "preferred_blank": "Cotton Heritage M2580 Premium Hoodie",
+      "provider_size_range": "XS-4XL",
+      "launch_sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"],
+      "technique": "embroidery",
+      "placement": "left_chest",
+      "provider_product_id": null,
+      "provider_variant_ids": {},
+      "live": false
+    }
+  ],
+  "required_secrets": {
+    "printful": ["PRINTFUL_API_TOKEN", "PRINTFUL_STORE_ID", "PRINTFUL_WEBHOOK_SECRET"],
+    "inkthreadable": ["INKTHREADABLE_APP_ID", "INKTHREADABLE_SIGNATURE"]
+  },
+  "activation_rule": "Do not enable customer fulfilment until supplier accounts, billing methods, exact product/variant IDs, embroidery artwork and sample approval are complete."
+}

@@ -94,12 +94,22 @@ new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=
 (()=>{
   const patchId='pitlane-live-services-patch-v048';
   const liveId='pitlane-live-services-v047';
-  if(document.getElementById(liveId))return;
+  const merchId='pitlane-merch-v050';
+  const loadMerch=()=>{
+    if(document.getElementById(merchId))return;
+    const m=document.createElement('script');
+    m.id=merchId;
+    m.src='https://appassets.androidplatform.net/assets/merch_v050.js';
+    document.body.appendChild(m);
+  };
+  if(document.getElementById(liveId)){loadMerch();return;}
   const loadLive=()=>{
-    if(document.getElementById(liveId))return;
+    if(document.getElementById(liveId)){loadMerch();return;}
     const s=document.createElement('script');
     s.id=liveId;
     s.src='https://appassets.androidplatform.net/assets/live_services_v047.js';
+    s.onload=loadMerch;
+    s.onerror=loadMerch;
     document.body.appendChild(s);
   };
   if(document.getElementById(patchId)){loadLive();return;}

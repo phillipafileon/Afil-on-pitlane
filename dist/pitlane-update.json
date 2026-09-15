@@ -3,7 +3,7 @@
   "versionName": "0.5.5-test",
   "mandatory": false,
   "apkUrl": "https://raw.githubusercontent.com/phillipafileon/Afil-on-pitlane/main/dist/Afileon-Pitlane.apk",
-  "sha256": "43e44845807a8fb08acbe333de2ad299b5bcbfca1670f1ffb87864eeb7abca94",
+  "sha256": "3cbf2092c9704ff227a34b995d08d9a99b4526c866e8d61ecf64537353ef86e4",
   "signerSha256": "3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af",
   "notes": "A newer Afiléon Pitlane build is available. Pitlane will verify the APK before asking Android to install it."
 }

@@ -9,4 +9,5 @@ RUN node runtime_terms_patch.cjs
 RUN node runtime_printful_shop_patch.cjs
 ENV NODE_ENV=production
 EXPOSE 3000
+# Afiléon Printful shop + webhook integration
 CMD ["npm","start"]

@@ -2,7 +2,7 @@
 const API='https://afileon-live-api-production.up.railway.app';
 const $=s=>document.querySelector(s);
 const money=p=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format((Number(p)||0)/100);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BASKET_KEY='afileon_shop_basket_v1';
 const ORDER_KEY='afileon_shop_recent_order_v1';
 let catalog=[],basket=[],delivery=499,checkoutLive=false,loading=false,recentOrder='',recentOrderData=null,orderPoll=null;

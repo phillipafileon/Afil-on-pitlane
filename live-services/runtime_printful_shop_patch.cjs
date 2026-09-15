@@ -13,6 +13,7 @@ replaceOnce(
   `const E46_BOOKING_LIVE = String(process.env.E46_BOOKING_LIVE || 'false').toLowerCase() === 'true';
 const PRINTFUL_API_TOKEN = process.env.PRINTFUL_API_TOKEN || '';
 const PRINTFUL_STORE_ID = String(process.env.PRINTFUL_STORE_ID || '18758860');
+const API_PUBLIC_URL = process.env.API_PUBLIC_URL || 'https://afileon-live-api-production.up.railway.app';
 const PRINTFUL_WEBHOOK_KEY = process.env.PRINTFUL_WEBHOOK_KEY || '';
 const PRINTFUL_FULFILMENT_LIVE = String(process.env.PRINTFUL_FULFILMENT_LIVE || 'false').toLowerCase() === 'true';
 const SHOP_CHECKOUT_REQUESTED = String(process.env.SHOP_CHECKOUT_LIVE || 'false').toLowerCase() === 'true';
@@ -62,6 +63,17 @@ replaceOnce(
   try { j = await r.json(); } catch {}
   if (!r.ok) throw new Error(\`Printful \${r.status}: \${j?.error?.message || j?.error || j?.result || 'request_failed'}\`);
   return j;
+}
+
+async function ensurePrintfulWebhook() {
+  if (!PRINTFUL_API_TOKEN || !PRINTFUL_WEBHOOK_KEY || !PRINTFUL_STORE_ID) return;
+  try {
+    const url = \`${API_PUBLIC_URL}/api/printful/webhook?key=\${encodeURIComponent(PRINTFUL_WEBHOOK_KEY)}\`;
+    await printfulRequest('POST','/webhooks',{ url, types:['package_shipped','package_returned','order_failed'] });
+    console.log('Printful webhook configured');
+  } catch (e) {
+    console.error('Printful webhook configuration failed', e.message);
+  }
 }
 
 function normaliseShopItems(input) {
@@ -215,6 +227,12 @@ replaceOnce(
   "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_url: TERMS_URL, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });",
   "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_url: TERMS_URL, shop_checkout_live: SHOP_CHECKOUT_LIVE, printful_connected: !!PRINTFUL_API_TOKEN, printful_fulfilment_live: PRINTFUL_FULFILMENT_LIVE, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });",
   'config shop state'
+);
+
+replaceOnce(
+  "migrate().then(()=>app.listen(port,'0.0.0.0',()=>console.log(`Afiléon Live Services v3 listening on ${port}`))).catch(e=>{console.error(e);process.exit(1)});",
+  "migrate().then(async()=>{await ensurePrintfulWebhook();app.listen(port,'0.0.0.0',()=>console.log(`Afiléon Live Services v3 listening on ${port}`))}).catch(e=>{console.error(e);process.exit(1)});",
+  'Printful webhook startup'
 );
 
 fs.writeFileSync(path, s);

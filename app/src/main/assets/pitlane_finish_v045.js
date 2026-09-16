@@ -120,3 +120,12 @@ new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=
   p.onerror=loadLive;
   document.body.appendChild(p);
 })();
+
+(()=>{
+  const id='pitlane-reference-layout-v03';
+  if(document.getElementById(id))return;
+  const s=document.createElement('script');
+  s.id=id;
+  s.src='https://appassets.androidplatform.net/assets/reference_layout_v03.js';
+  document.body.appendChild(s);
+})();

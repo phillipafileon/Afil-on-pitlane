@@ -10,8 +10,8 @@ android {
         applicationId 'uk.co.afileonmotorsport.pitlane'
         minSdk 26
         targetSdk 35
-        versionCode 30
-        versionName '0.5.7-test'
+        versionCode 31
+        versionName '0.5.8-test'
     }
 
     buildFeatures {

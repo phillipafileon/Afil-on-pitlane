@@ -10,6 +10,7 @@ COPY fix_printful_patch.cjs ./
 COPY runtime_stripe_refund_patch.cjs ./
 COPY runtime_stripe_webhook_events_patch.cjs ./
 COPY runtime_booking_pricing_patch.cjs ./
+COPY runtime_booking_patch_compat.cjs ./
 COPY runtime_quote_travel_patch.cjs ./
 RUN node runtime_terms_patch.cjs
 RUN node fix_printful_patch.cjs
@@ -17,6 +18,7 @@ RUN node runtime_printful_shop_patch.cjs
 RUN node runtime_shop_image_patch.cjs
 RUN node runtime_stripe_refund_patch.cjs
 RUN node runtime_stripe_webhook_events_patch.cjs
+RUN node runtime_booking_patch_compat.cjs
 RUN node runtime_booking_pricing_patch.cjs
 RUN node runtime_quote_travel_patch.cjs
 ENV NODE_ENV=production

@@ -1,0 +1,1 @@
+Pitlane public release rolled back from v0.3 to v0.2 on 2026-09-16. v0.3 is no longer on the public release path. The public updater and website download should point to v0.2 / versionCode 2.

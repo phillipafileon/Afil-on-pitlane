@@ -1,0 +1,1 @@
+Current public Pitlane release: v0.2 (versionCode 2). v0.3 is withdrawn from the public release path.

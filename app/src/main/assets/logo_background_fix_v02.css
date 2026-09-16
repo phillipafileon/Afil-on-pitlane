@@ -1,6 +1,0 @@
-/* Pitlane v0.2 logo treatment: the source wordmark is supplied on black.
-   Screen blending makes black behave like the app background while retaining the mark. */
-.header-logo{
-  background:transparent !important;
-  mix-blend-mode:screen;
-}

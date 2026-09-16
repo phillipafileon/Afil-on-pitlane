@@ -1,4 +1,4 @@
-/* Afiléon Pitlane v0.5.8 — website-colour parity + factory-team layout */
+/* Afiléon Pitlane v0.2 — website-colour parity + factory-team layout */
 :root{
   --bg:#020711;
   --panel:#071421;
@@ -28,7 +28,7 @@ body:before{
 }
 .app{max-width:980px;padding:10px 14px calc(100px + env(safe-area-inset-bottom))}
 .top{min-height:68px;padding:7px 0 10px;border-bottom:1px solid var(--line)}
-.header-logo{width:min(53vw,240px);filter:drop-shadow(0 0 13px rgba(255,229,0,.14))}
+.header-logo{width:min(53vw,240px);background:transparent;mix-blend-mode:screen;filter:drop-shadow(0 0 13px rgba(255,229,0,.14))}
 .badge{color:var(--c);letter-spacing:1.4px;font-size:9px}
 .hero,.panel,.stat,.card,.trackCard{
   background:linear-gradient(145deg,rgba(8,22,36,.97),rgba(3,12,22,.95));

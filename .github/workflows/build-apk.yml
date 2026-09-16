@@ -100,14 +100,54 @@ jobs:
         run: |
           set -euo pipefail
           EXPECTED="3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af"
-          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-          APKSIGNER=$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -1)
-          if [ -z "$APKSIGNER" ]; then
-            echo "::error::apksigner was not found; refusing to publish an unverified APK."
-            exit 1
-          fi
-          ACTUAL=$("$APKSIGNER" verify --print-certs app/build/outputs/apk/debug/app-debug.apk \
-            | awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print tolower($2); exit}')
+          ACTUAL=$(python - <<'PY'
+          import hashlib, struct
+          from pathlib import Path
+
+          data = Path('app/build/outputs/apk/debug/app-debug.apk').read_bytes()
+          eocd = data.rfind(b'PK\x05\x06')
+          if eocd < 0:
+              raise SystemExit('APK EOCD not found')
+          cd_off = struct.unpack_from('<I', data, eocd + 16)[0]
+          if data[cd_off-16:cd_off] != b'APK Sig Block 42':
+              raise SystemExit('APK signing block not found')
+          size = struct.unpack_from('<Q', data, cd_off - 24)[0]
+          block_start = cd_off - (size + 8)
+          if struct.unpack_from('<Q', data, block_start)[0] != size:
+              raise SystemExit('APK signing block size mismatch')
+
+          pos = block_start + 8
+          end = cd_off - 24
+          pairs = {}
+          while pos < end:
+              pair_len = struct.unpack_from('<Q', data, pos)[0]
+              pos += 8
+              pair_id = struct.unpack_from('<I', data, pos)[0]
+              pos += 4
+              pairs[pair_id] = data[pos:pos + pair_len - 4]
+              pos += pair_len - 4
+
+          def lp(buf, off):
+              n = struct.unpack_from('<I', buf, off)[0]
+              off += 4
+              return buf[off:off+n], off+n
+
+          cert = None
+          for pair_id in (0x7109871a, 0xf05368c0, 0x1b93ad61):
+              if pair_id not in pairs:
+                  continue
+              signers, _ = lp(pairs[pair_id], 0)
+              signer, _ = lp(signers, 0)
+              signed_data, _ = lp(signer, 0)
+              _, off = lp(signed_data, 0)
+              certs, _ = lp(signed_data, off)
+              cert, _ = lp(certs, 0)
+              break
+          if not cert:
+              raise SystemExit('No signer certificate found in APK')
+          print(hashlib.sha256(cert).hexdigest())
+          PY
+          )
           echo "Finished APK signer SHA-256: $ACTUAL"
           if [ "$ACTUAL" != "$EXPECTED" ]; then
             echo "::error::Finished APK is not signed with the permanent Pitlane identity. Refusing to publish."

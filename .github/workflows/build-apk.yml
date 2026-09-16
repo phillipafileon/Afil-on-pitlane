@@ -68,7 +68,7 @@ jobs:
             -keystore "$HOME/.android/debug.keystore" \
             -storepass android \
             -alias androiddebugkey | awk -F'SHA256: ' '/SHA256:/{gsub(":","",$2); print tolower($2); exit}')
-          echo "Pitlane signer SHA-256: $ACTUAL"
+          echo "Pitlane keystore signer SHA-256: $ACTUAL"
           if [ "$ACTUAL" != "$EXPECTED" ]; then
             echo "::error::Pitlane signing identity changed. Refusing to build an incompatible update."
             exit 1
@@ -94,6 +94,25 @@ jobs:
 
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
+
+      - name: Verify finished APK signing identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          APKSIGNER=$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -1)
+          if [ -z "$APKSIGNER" ]; then
+            echo "::error::apksigner was not found; refusing to publish an unverified APK."
+            exit 1
+          fi
+          ACTUAL=$("$APKSIGNER" verify --print-certs app/build/outputs/apk/debug/app-debug.apk \
+            | awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print tolower($2); exit}')
+          echo "Finished APK signer SHA-256: $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Finished APK is not signed with the permanent Pitlane identity. Refusing to publish."
+            exit 1
+          fi
 
       - name: Prepare APK and automatic update manifest
         shell: bash

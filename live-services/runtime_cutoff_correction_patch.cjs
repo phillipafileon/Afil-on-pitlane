@@ -25,6 +25,12 @@ replaceOnce(
 );
 
 replaceOnce(
+  "detail:'For tomorrow's '+policy.label+', secure checkout must be started before '+policy.checkout_start_cutoff+' and payment completed before '+(policy.payment_cutoff === '24:00' ? 'midnight' : policy.payment_cutoff)+'. Choose a later date.'",
+  "detail:'For next-day '+policy.label+', secure checkout must be started before '+policy.checkout_start_cutoff+' and payment completed before '+(policy.payment_cutoff === '24:00' ? 'midnight' : policy.payment_cutoff)+'. Choose a later date.'",
+  'generated cutoff message syntax'
+);
+
+replaceOnce(
   "expires_at:Math.floor(new Date(b.hold_expires_at).getTime()/1000),",
   "expires_at:Math.floor(Math.max(new Date(b.hold_expires_at).getTime(),Date.now()+31*60000)/1000),",
   'Stripe minimum checkout expiry'

@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 COPY server_v3.js ./
+COPY boot_v311.js ./
 COPY runtime_terms_patch.cjs ./
 COPY runtime_printful_shop_patch.cjs ./
 COPY runtime_shop_image_patch.cjs ./

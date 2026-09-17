@@ -6,13 +6,18 @@ let code = await fs.readFile(sourceUrl, 'utf8');
 
 const blockAnchor = "app.post('/api/admin/block-date', admin, async (req,res) => { const {date,service_id,label,colour}=req.body||{}; if(!isDate(date)) return res.status(400).json({error:'invalid_date'}); await pool.query(`INSERT INTO availability_blocks(block_date,service_id,label,colour) VALUES($1,$2,$3,$4)`,[date,service_id||null,clean(label||'Unavailable',160),clean(colour||'#64748b',20)]); res.status(201).json({ok:true}); });\n";
 const unblockRoute = "app.post('/api/admin/unblock-date', admin, async (req,res) => { const id=Number(req.body?.block_id); if(!Number.isInteger(id)||id<1) return res.status(400).json({error:'invalid_block_id'}); const result=await pool.query(`DELETE FROM availability_blocks WHERE id=$1 RETURNING id,block_date::text block_date,service_id,label`,[id]); if(!result.rowCount) return res.status(404).json({error:'block_not_found'}); res.json({ok:true,removed:result.rows[0]}); });\n";
-if (!code.includes(blockAnchor)) throw new Error('v6.11.0 boot patch failed: block-date route anchor not found');
-code = code.replace(blockAnchor, blockAnchor + unblockRoute);
+if (!code.includes("/api/admin/unblock-date")) {
+  if (!code.includes(blockAnchor)) throw new Error('v6.11.0 boot patch failed: block-date route anchor not found');
+  code = code.replace(blockAnchor, blockAnchor + unblockRoute);
+}
 
-const summaryAnchor = "app.get('/api/admin/summary', admin, async (_req,res) => { const [bookings,quotes,orders,seasons] = await Promise.all([ pool.query(`SELECT public_id,service_id,variant_id,booking_date::text booking_date,customer_name,customer_email,status,balance_status,licence_status,amount_total,amount_paid,created_at FROM bookings ORDER BY booking_date ASC LIMIT 250`), pool.query(`SELECT public_id,service_id,requested_date::text requested_date,customer_name,customer_email,status,created_at FROM quote_requests ORDER BY created_at DESC LIMIT 100`), pool.query(`SELECT public_id,customer_email,status,total,created_at FROM orders ORDER BY created_at DESC LIMIT 100`), pool.query(`SELECT slug,name,starts_at,ends_at,active FROM seasonal_campaigns ORDER BY starts_at DESC LIMIT 50`) ]); res.json({bookings:bookings.rows,quotes:quotes.rows,orders:orders.rows,seasons:seasons.rows}); });";
 const summaryReplacement = "app.get('/api/admin/summary', admin, async (_req,res) => { const [bookings,quotes,orders,seasons,blocks] = await Promise.all([ pool.query(`SELECT public_id,service_id,variant_id,booking_date::text booking_date,customer_name,customer_email,status,balance_status,licence_status,amount_total,amount_paid,created_at FROM bookings ORDER BY booking_date ASC LIMIT 250`), pool.query(`SELECT public_id,service_id,requested_date::text requested_date,customer_name,customer_email,status,created_at FROM quote_requests ORDER BY created_at DESC LIMIT 100`), pool.query(`SELECT public_id,customer_email,status,total,created_at FROM orders ORDER BY created_at DESC LIMIT 100`), pool.query(`SELECT slug,name,starts_at,ends_at,active FROM seasonal_campaigns ORDER BY starts_at DESC LIMIT 50`), pool.query(`SELECT id,block_date::text block_date,COALESCE(service_id,'') service_id,label,colour,created_at FROM availability_blocks WHERE block_date>=CURRENT_DATE ORDER BY block_date ASC,id ASC LIMIT 250`) ]); res.json({bookings:bookings.rows,quotes:quotes.rows,orders:orders.rows,seasons:seasons.rows,blocks:blocks.rows}); });";
-if (!code.includes(summaryAnchor)) throw new Error('v6.11.0 boot patch failed: admin summary anchor not found');
-code = code.replace(summaryAnchor, summaryReplacement);
+const summaryStartMarker = "app.get('/api/admin/summary'";
+const summaryEndMarker = "\n\napp.get('/',";
+const summaryStart = code.indexOf(summaryStartMarker);
+const summaryEnd = code.indexOf(summaryEndMarker, summaryStart);
+if (summaryStart < 0 || summaryEnd < 0) throw new Error('v6.11.0 boot patch failed: admin summary route range not found');
+code = code.slice(0, summaryStart) + summaryReplacement + code.slice(summaryEnd);
 
 await fs.writeFile(runtimeUrl, code, 'utf8');
 await import(`${runtimeUrl.href}?v=6110`);

@@ -147,14 +147,14 @@ app.post('/api/gift-vouchers/checkout', async (req,res) => {
       mode:'payment',
       customer_email:purchaserEmail,
       customer_creation:'always',
-      success_url:\`${SITE_URL}/gift-voucher-success.html?voucher=${encodeURIComponent(id)}&session_id={CHECKOUT_SESSION_ID}\`,
-      cancel_url:\`${SITE_URL}/gift-vouchers.html?cancelled=1\`,
+      success_url:\`\${SITE_URL}/gift-voucher-success.html?voucher=\${encodeURIComponent(id)}&session_id={CHECKOUT_SESSION_ID}\`,
+      cancel_url:\`\${SITE_URL}/gift-vouchers.html?cancelled=1\`,
       billing_address_collection:'required',
       automatic_tax:{enabled:false},
-      line_items:[{quantity:1,price_data:{currency:'gbp',unit_amount:amount,product_data:{name:\`Afiléon Motorsport Gift Voucher — £${Math.round(amount/100)}\`,description:'Digital gift voucher. Unique redemption code issued after successful payment.'}}}],
+      line_items:[{quantity:1,price_data:{currency:'gbp',unit_amount:amount,product_data:{name:\`Afiléon Motorsport Gift Voucher — £\${Math.round(amount/100)}\`,description:'Digital gift voucher. Unique redemption code issued after successful payment.'}}}],
       metadata:{kind:'gift_voucher',voucher_id:id},
       payment_intent_data:{metadata:{kind:'gift_voucher',voucher_id:id}}
-    }, { idempotencyKey:\`gift_voucher_${id}\` });
+    }, { idempotencyKey:\`gift_voucher_\${id}\` });
     await pool.query(\`UPDATE gift_vouchers SET stripe_checkout_session_id=$1,updated_at=now() WHERE public_id=$2\`, [session.id,id]);
     res.json({ voucher_id:id, checkout_url:session.url });
   } catch (e) {
@@ -229,18 +229,18 @@ if (!s.includes('gift_voucher_code = normaliseVoucherCode')) {
 
   const cardDue = Math.max(0, Number(b.booking_payment_amount || 0) - voucherApplied);
   const isDeposit = Number(b.balance_amount) > 0;
-  const label = isDeposit ? \`${service.name} — reservation payment\` : service.name;
-  const voucherText = voucherApplied > 0 ? \` Gift voucher credit applied: £${(voucherApplied/100).toFixed(2)}.\` : '';
-  const desc = isDeposit ? \`Reserves ${isoDate(b.booking_date)}. Remaining balance is due 7 days before the booking.${voucherText}\` : \`Payment for ${isoDate(b.booking_date)}.${voucherText}\`;
+  const label = isDeposit ? \`\${service.name} — reservation payment\` : service.name;
+  const voucherText = voucherApplied > 0 ? \` Gift voucher credit applied: £\${(voucherApplied/100).toFixed(2)}.\` : '';
+  const desc = isDeposit ? \`Reserves \${isoDate(b.booking_date)}. Remaining balance is due 7 days before the booking.\${voucherText}\` : \`Payment for \${isoDate(b.booking_date)}.\${voucherText}\`;
 
   if (cardDue <= 0) {
     const hire = b.service_id === 'vehicle_hire_day';
     await pool.query(\`UPDATE bookings SET status=$1,amount_paid=GREATEST(COALESCE(amount_paid,0),$2),balance_status=CASE WHEN COALESCE(balance_amount,0)<=0 THEN 'paid' ELSE balance_status END,licence_status=CASE WHEN licence_required THEN 'awaiting_email' ELSE licence_status END,updated_at=now() WHERE public_id=$3\`, [hire?'confirmed_pending_licence':'confirmed',voucherApplied,b.public_id]);
-    return res.json({ confirmed:true, success_url:\`${SITE_URL}/booking-success.html?booking=${encodeURIComponent(b.public_id)}&voucher=1\`, gift_voucher_applied:voucherApplied, gift_voucher_remaining:voucherRemaining });
+    return res.json({ confirmed:true, success_url:\`\${SITE_URL}/booking-success.html?booking=\${encodeURIComponent(b.public_id)}&voucher=1\`, gift_voucher_applied:voucherApplied, gift_voucher_remaining:voucherRemaining });
   }
   if (!stripe) { if (voucherNewlyApplied) await restoreVoucherForBooking(b.public_id).catch(()=>{}); return res.status(503).json({ error:'stripe_not_configured' }); }
   try {
-    const session = await stripe.checkout.sessions.create({ mode:'payment', customer_email:b.customer_email||undefined, customer_creation:'always', success_url:\`${SITE_URL}/booking-success.html?booking=${encodeURIComponent(b.public_id)}&session_id={CHECKOUT_SESSION_ID}\`, cancel_url:\`${SITE_URL}/book.html?cancelled=1&booking=${encodeURIComponent(b.public_id)}\`, automatic_tax:{enabled:true}, billing_address_collection:'required', phone_number_collection:{enabled:true}, expires_at:Math.floor(Math.max(new Date(b.hold_expires_at).getTime(),Date.now()+31*60000)/1000), line_items:[{quantity:1,price_data:{currency:'gbp',unit_amount:cardDue,tax_behavior:'exclusive',product_data:{name:label,description:desc}}}], metadata:{kind:'service_booking',booking_id:b.public_id,service_id:b.service_id,variant_id:b.variant_id,booking_date:isoDate(b.booking_date),appointment_time:b.appointment_time||'',terms_version:TERMS_VERSION,gift_voucher_amount:String(voucherApplied||0)}, payment_intent_data:{metadata:{kind:'service_booking',booking_id:b.public_id,service_id:b.service_id}}, consent_collection:{terms_of_service:'required'}, custom_text:{submit:{message:service.licenceRequired?\`After payment, email a clear photo of the driver's valid driving licence to ${LICENCE_EMAIL}. Booking remains subject to the hire terms and eligibility checks.\`:'Your date is confirmed after payment succeeds.'}} }, { idempotencyKey:\`checkout_${b.public_id}\` });
+    const session = await stripe.checkout.sessions.create({ mode:'payment', customer_email:b.customer_email||undefined, customer_creation:'always', success_url:\`\${SITE_URL}/booking-success.html?booking=\${encodeURIComponent(b.public_id)}&session_id={CHECKOUT_SESSION_ID}\`, cancel_url:\`\${SITE_URL}/book.html?cancelled=1&booking=\${encodeURIComponent(b.public_id)}\`, automatic_tax:{enabled:true}, billing_address_collection:'required', phone_number_collection:{enabled:true}, expires_at:Math.floor(Math.max(new Date(b.hold_expires_at).getTime(),Date.now()+31*60000)/1000), line_items:[{quantity:1,price_data:{currency:'gbp',unit_amount:cardDue,tax_behavior:'exclusive',product_data:{name:label,description:desc}}}], metadata:{kind:'service_booking',booking_id:b.public_id,service_id:b.service_id,variant_id:b.variant_id,booking_date:isoDate(b.booking_date),appointment_time:b.appointment_time||'',terms_version:TERMS_VERSION,gift_voucher_amount:String(voucherApplied||0)}, payment_intent_data:{metadata:{kind:'service_booking',booking_id:b.public_id,service_id:b.service_id}}, consent_collection:{terms_of_service:'required'}, custom_text:{submit:{message:service.licenceRequired?\`After payment, email a clear photo of the driver's valid driving licence to \${LICENCE_EMAIL}. Booking remains subject to the hire terms and eligibility checks.\`:'Your date is confirmed after payment succeeds.'}} }, { idempotencyKey:\`checkout_\${b.public_id}\` });
     await pool.query(\`UPDATE bookings SET stripe_checkout_session_id=$1,updated_at=now() WHERE public_id=$2\`, [session.id,b.public_id]);
     res.json({ checkout_url:session.url, session_id:session.id, gift_voucher_applied:voucherApplied, gift_voucher_remaining:voucherRemaining, card_due:cardDue });
   } catch (e) { console.error(e); if (voucherNewlyApplied) await restoreVoucherForBooking(b.public_id).catch(()=>{}); res.status(500).json({ error:'checkout_creation_failed' }); }

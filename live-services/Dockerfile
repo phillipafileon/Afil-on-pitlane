@@ -19,6 +19,12 @@ COPY runtime_cutoff_session_expirer_patch.cjs ./
 COPY runtime_service_consolidation_patch.cjs ./
 COPY runtime_gift_voucher_patch.cjs ./
 COPY runtime_email_notifications_patch.cjs ./
+COPY runtime_discount_core_patch.cjs ./
+COPY runtime_discount_public_patch.cjs ./
+COPY runtime_discount_admin_patch.cjs ./
+COPY runtime_discount_booking_patch.cjs ./
+COPY runtime_discount_shop_patch.cjs ./
+COPY runtime_discount_webhook_patch.cjs ./
 RUN node runtime_terms_patch.cjs
 RUN node fix_printful_patch.cjs
 RUN node runtime_printful_shop_patch.cjs
@@ -34,7 +40,13 @@ RUN node runtime_cutoff_session_expirer_patch.cjs
 RUN node runtime_service_consolidation_patch.cjs
 RUN node runtime_gift_voucher_patch.cjs
 RUN node runtime_email_notifications_patch.cjs
+RUN node runtime_discount_core_patch.cjs
+RUN node runtime_discount_public_patch.cjs
+RUN node runtime_discount_admin_patch.cjs
+RUN node runtime_discount_booking_patch.cjs
+RUN node runtime_discount_shop_patch.cjs
+RUN node runtime_discount_webhook_patch.cjs
 ENV NODE_ENV=production
 EXPOSE 3000
-# Afiléon transactional email + Printful shop integrations
+# Afiléon transactional email, promo code and Printful shop integrations
 CMD ["npm","start"]

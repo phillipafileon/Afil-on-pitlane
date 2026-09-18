@@ -97,8 +97,8 @@ jobs:
               path.write_text(text, encoding='utf-8')
           PY
 
-      - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+      - name: Build release APK
+        run: gradle --no-daemon assembleRelease
 
       - name: Verify finished APK signing identity
         shell: bash
@@ -109,7 +109,7 @@ jobs:
           import hashlib, struct
           from pathlib import Path
 
-          data = Path('app/build/outputs/apk/debug/app-debug.apk').read_bytes()
+          data = Path('app/build/outputs/apk/release/app-release.apk').read_bytes()
           eocd = data.rfind(b'PK\x05\x06')
           if eocd < 0:
               raise SystemExit('APK EOCD not found')
@@ -163,7 +163,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp app/build/outputs/apk/debug/app-debug.apk Afileon-Pitlane.apk
+          cp app/build/outputs/apk/release/app-release.apk Afileon-Pitlane.apk
           VERSION_CODE=$(sed -n 's/.*versionCode \([0-9][0-9]*\).*/\1/p' app/build.gradle | head -1)
           VERSION_NAME=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" app/build.gradle | head -1)
           APK_SHA=$(sha256sum Afileon-Pitlane.apk | awk '{print $1}')
@@ -174,7 +174,7 @@ jobs:
             "versionCode": $VERSION_CODE,
             "versionName": "$VERSION_NAME",
             "mandatory": false,
-            "apkUrl": "https://raw.githubusercontent.com/phillipafileon/Afil-on-pitlane/main/dist/Afileon-Pitlane.apk",
+            "apkUrl": "https://afileonmotorsport.co.uk/downloads/Afileon-Pitlane.apk",
             "sha256": "$APK_SHA",
             "signerSha256": "3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af",
             "notes": "A newer Afiléon Pitlane build is available. Pitlane will verify the APK before asking Android to install it."

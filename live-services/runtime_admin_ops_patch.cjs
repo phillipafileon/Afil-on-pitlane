@@ -41,7 +41,7 @@ if(!s.includes('CREATE TABLE IF NOT EXISTS admin_sessions(')){
 if(!s.includes("const ADMIN_LOGIN_USER = process.env.ADMIN_LOGIN_USER")){
   const m="const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';";
   if(!s.includes(m))throw new Error('admin config marker missing');
-  s=s.replace(m,m+"\nconst ADMIN_LOGIN_USER = process.env.ADMIN_LOGIN_USER || '';\nconst ADMIN_LOGIN_PASSWORD = process.env.ADMIN_LOGIN_PASSWORD || '';\nconst ADMIN_LOGIN_EMAIL = process.env.ADMIN_LOGIN_EMAIL || 'team@afileonmotorsport.co.uk';\nconst ADMIN_LEGACY_TOKEN_ENABLED = String(process.env.ADMIN_LEGACY_TOKEN_ENABLED || 'false').toLowerCase() === 'true';\nconst ADMIN_SESSION_HOURS = Number(process.env.ADMIN_SESSION_HOURS || 12);\nconst ADMIN_TRUST_DAYS = Number(process.env.ADMIN_TRUST_DAYS || 30);");
+  s=s.replace(m,m+"\nconst ADMIN_LOGIN_USER = process.env.ADMIN_LOGIN_USER || '';\nconst ADMIN_LOGIN_EMAIL = process.env.ADMIN_LOGIN_EMAIL || 'team@afileonmotorsport.co.uk';\nconst ADMIN_LEGACY_TOKEN_ENABLED = String(process.env.ADMIN_LEGACY_TOKEN_ENABLED || 'false').toLowerCase() === 'true';\nconst ADMIN_SESSION_HOURS = Number(process.env.ADMIN_SESSION_HOURS || 12);\nconst ADMIN_TRUST_DAYS = Number(process.env.ADMIN_TRUST_DAYS || 30);");
 }
 
 if(!s.includes('function adminSessionHash(')){
@@ -88,14 +88,14 @@ if(!s.includes("app.get('/api/admin/auth/status'")){
   const m="app.get('/api/config'";
   const i=s.indexOf(m); if(i<0)throw new Error('admin auth route marker missing');
   const routes=[
-    "app.get('/api/admin/auth/status',(_req,res)=>res.json({configured:!!(ADMIN_LOGIN_USER&&ADMIN_LOGIN_PASSWORD&&ADMIN_LOGIN_EMAIL&&EMAIL_ENABLED),two_factor:true,session_hours:ADMIN_SESSION_HOURS,trusted_device_days:ADMIN_TRUST_DAYS}));",
+    "app.get('/api/admin/auth/status',(_req,res)=>res.json({configured:!!(ADMIN_LOGIN_USER&&ADMIN_LOGIN_EMAIL&&EMAIL_ENABLED),two_factor:true,session_hours:ADMIN_SESSION_HOURS,trusted_device_days:ADMIN_TRUST_DAYS}));",
     "app.post('/api/admin/auth/login',async(req,res)=>{",
-    "  const username=clean(req.body?.username,200).toLowerCase(),password=String(req.body?.password||''),remember=!!req.body?.remember_device,ip=requestIp(req);",
+    "  const username=clean(req.body?.username,200).toLowerCase(),remember=!!req.body?.remember_device,ip=requestIp(req);",
     "  const recent=await pool.query(`SELECT count(*)::int n FROM admin_login_attempts WHERE success=false AND attempted_at>now()-interval '15 minutes' AND (ip=$1 OR lower(username)=lower($2))`,[ip,username]);",
     "  if(Number(recent.rows[0]?.n||0)>=5)return res.status(429).json({error:'too_many_attempts',detail:'Too many failed sign-in attempts. Try again in about 15 minutes.'});",
-    "  const ok=ADMIN_LOGIN_USER&&ADMIN_LOGIN_PASSWORD&&username===String(ADMIN_LOGIN_USER).toLowerCase()&&safeAdminSecret(password,ADMIN_LOGIN_PASSWORD);",
+    "  const ok=ADMIN_LOGIN_USER&&username===String(ADMIN_LOGIN_USER).toLowerCase();",
     "  await pool.query(`INSERT INTO admin_login_attempts(username,ip,success) VALUES($1,$2,$3)`,[username||null,ip,!!ok]);",
-    "  if(!ok){await new Promise(r=>setTimeout(r,450));return res.status(401).json({error:'invalid_credentials',detail:'The login details are not correct.'});}",
+    "  if(!ok){await new Promise(r=>setTimeout(r,450));return res.status(401).json({error:'invalid_credentials',detail:'The admin login email is not recognised.'});}",
     "  if(!EMAIL_ENABLED)return res.status(503).json({error:'email_not_configured',detail:'Two-factor email is unavailable.'});",
     "  const code=String(crypto.randomInt(100000,1000000)),id=token('admch');",
     "  await pool.query(`INSERT INTO admin_login_challenges(public_id,username,code_hash,remember_device,expires_at) VALUES($1,$2,$3,$4,now()+interval '10 minutes')`,[id,username,adminOtpHash(code),remember]);",

@@ -88,7 +88,7 @@ if(!s.includes("app.get('/api/admin/auth/status'")){
   const m="app.get('/api/config'";
   const i=s.indexOf(m); if(i<0)throw new Error('admin auth route marker missing');
   const routes=[
-    "app.get('/api/admin/auth/status',(_req,res)=>res.json({configured:!!(ADMIN_LOGIN_USER&&ADMIN_LOGIN_EMAIL&&EMAIL_ENABLED),two_factor:true,session_hours:ADMIN_SESSION_HOURS,trusted_device_days:ADMIN_TRUST_DAYS}));",
+    "app.get('/api/admin/auth/status',(_req,res)=>res.json({configured:!!(ADMIN_LOGIN_USER&&ADMIN_LOGIN_EMAIL&&EMAIL_ENABLED),email_verification:true,password_required:false,session_hours:ADMIN_SESSION_HOURS,trusted_device_days:ADMIN_TRUST_DAYS}));",
     "app.post('/api/admin/auth/login',async(req,res)=>{",
     "  const username=clean(req.body?.username,200).toLowerCase(),remember=!!req.body?.remember_device,ip=requestIp(req);",
     "  const recent=await pool.query(`SELECT count(*)::int n FROM admin_login_attempts WHERE success=false AND attempted_at>now()-interval '15 minutes' AND (ip=$1 OR lower(username)=lower($2))`,[ip,username]);",

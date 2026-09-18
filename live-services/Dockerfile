@@ -17,6 +17,7 @@ COPY runtime_booking_cutoffs_slots_patch.cjs ./
 COPY runtime_cutoff_correction_patch.cjs ./
 COPY runtime_cutoff_session_expirer_patch.cjs ./
 COPY runtime_service_consolidation_patch.cjs ./
+COPY runtime_gift_voucher_patch.cjs ./
 RUN node runtime_terms_patch.cjs
 RUN node fix_printful_patch.cjs
 RUN node runtime_printful_shop_patch.cjs
@@ -30,6 +31,7 @@ RUN node runtime_booking_cutoffs_slots_patch.cjs
 RUN node runtime_cutoff_correction_patch.cjs
 RUN node runtime_cutoff_session_expirer_patch.cjs
 RUN node runtime_service_consolidation_patch.cjs
+RUN node runtime_gift_voucher_patch.cjs
 ENV NODE_ENV=production
 EXPOSE 3000
 # Afiléon Printful shop + webhook integration

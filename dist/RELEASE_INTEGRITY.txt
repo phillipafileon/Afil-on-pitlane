@@ -1,9 +1,13 @@
 Afiléon Pitlane public release integrity
 
-Version: 0.2
-Version code: 2
+Version: 0.2.1
+Version code: 3
 APK: dist/Afileon-Pitlane.apk
-APK SHA-256: 3b6612c3f8a72cb64a4d6d7a6c546db5698157803ec0d9a210a84b39bf649da2
+APK SHA-256: 1ca2ab384bf75fd04c1acd8b84947722e32e24dabf51014f8770b9810ec6d30c
 Signer certificate SHA-256: 3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af
+
+Build type: signed non-debug release APK.
+Primary update manifest: https://afileonmotorsport.co.uk/pitlane-update.json
+Primary APK URL: https://afileonmotorsport.co.uk/downloads/Afileon-Pitlane.apk
 
 The CI workflow refuses to publish an APK if the signer certificate does not match the pinned Pitlane identity.

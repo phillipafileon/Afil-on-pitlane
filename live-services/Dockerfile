@@ -56,5 +56,5 @@ RUN node runtime_admin_ops_patch.cjs
 RUN node runtime_admin_password_login_patch.cjs
 ENV NODE_ENV=production
 EXPOSE 3000
-# Afiléon transactional email, promo code and Printful shop integrations
+# Afiléon transactional email, promo codes, secure password admin and Printful integrations
 CMD ["npm","start"]

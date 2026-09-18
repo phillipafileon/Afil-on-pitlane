@@ -51,7 +51,9 @@ replaceRange("  {\n    id: 'track_day_support',", "  {\n    id: 'race_day_suppor
 replaceRange("  {\n    id: 'race_day_support',", "  {\n    id: 'vehicle_transport',", '', 'separate race support service block');
 replaceRange("  {\n    id: 'full_package',", "\n];", '', 'duplicate full package service block');
 
-replaceOnce("const TERMS_VERSION = '2026-09-16-v3';", "const TERMS_VERSION = '2026-09-16-v4';", 'terms version');
+if (s.includes("const TERMS_VERSION = '2026-09-16-v3';")) {
+  s = s.replace("const TERMS_VERSION = '2026-09-16-v3';", "const TERMS_VERSION = '2026-09-16-v4';");
+}
 
 replaceOnce(
   "  if (!service || service.payment !== 'quote') return res.status(400).json({ error: 'quote_not_required' });",

@@ -25,6 +25,7 @@ COPY runtime_discount_admin_patch.cjs ./
 COPY runtime_discount_booking_patch.cjs ./
 COPY runtime_discount_shop_patch.cjs ./
 COPY runtime_discount_webhook_patch.cjs ./
+COPY runtime_discount_scope_margin_patch.cjs ./
 COPY fix_discount_patch_sources.cjs ./
 RUN node runtime_terms_patch.cjs
 RUN node fix_printful_patch.cjs
@@ -48,6 +49,7 @@ RUN node fix_discount_patch_sources.cjs
 RUN node runtime_discount_booking_patch.cjs
 RUN node runtime_discount_shop_patch.cjs
 RUN node runtime_discount_webhook_patch.cjs
+RUN node runtime_discount_scope_margin_patch.cjs
 ENV NODE_ENV=production
 EXPOSE 3000
 # Afiléon transactional email, promo code and Printful shop integrations

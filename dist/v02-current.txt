@@ -1,1 +1,1 @@
-Pitlane v0.2 is the current public release.
+Pitlane v0.2 was the previous public release. Current public release: v0.2.1.

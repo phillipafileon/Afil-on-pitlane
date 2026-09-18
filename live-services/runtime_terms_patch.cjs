@@ -10,7 +10,7 @@ function replaceOnce(oldText, newText, label) {
 
 replaceOnce(
   "const E46_BOOKING_LIVE = String(process.env.E46_BOOKING_LIVE || 'false').toLowerCase() === 'true';",
-  "const E46_BOOKING_LIVE = String(process.env.E46_BOOKING_LIVE || 'false').toLowerCase() === 'true';\nconst TERMS_VERSION = '2026-09-16-v3';\nconst TERMS_URL = process.env.TERMS_URL || `${SITE_URL}/booking-terms.html`;",
+  "const E46_BOOKING_LIVE = String(process.env.E46_BOOKING_LIVE || 'false').toLowerCase() === 'true';\nconst TERMS_VERSION = '2026-09-18-v5';\nconst TERMS_URL = process.env.TERMS_URL || `${SITE_URL}/booking-terms`;",
   'terms constants'
 );
 

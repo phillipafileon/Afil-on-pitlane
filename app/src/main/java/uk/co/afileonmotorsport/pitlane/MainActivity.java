@@ -58,9 +58,9 @@ public class MainActivity extends AppCompatActivity {
             "https://raw.githubusercontent.com/phillipafileon/Afil-on-pitlane/main/dist/pitlane-update.json";
 
     private static final String[] UPDATE_MANIFEST_URLS = new String[] {
-            RAW_UPDATE_MANIFEST,
             "https://afileonmotorsport.co.uk/pitlane-update.json",
             "https://www.afileonmotorsport.co.uk/pitlane-update.json",
+            RAW_UPDATE_MANIFEST,
             "https://am.afileon-motorsport.workers.dev/pitlane-update.json",
             "https://www.afileon-motorsport.workers.dev/pitlane-update.json"
     };

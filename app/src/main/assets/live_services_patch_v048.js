@@ -106,7 +106,7 @@ document.addEventListener('click',e=>{
  if(s.bookable===false){
    e.preventDefault();e.stopImmediatePropagation();
    status('Online booking is not open for this service yet. Opening an email so you can register your interest.','warn');
-   location.href=`mailto:contact@afileonmotorsport.co.uk?subject=${encodeURIComponent('Afiléon E46 hire enquiry')}`;
+   location.href=`mailto:team@afileonmotorsport.co.uk?subject=${encodeURIComponent('Afiléon E46 hire enquiry')}`;
    return;
  }
  if(s.variants?.every(v=>v.price==null)){

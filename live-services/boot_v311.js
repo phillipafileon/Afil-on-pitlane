@@ -37,9 +37,5 @@ const summaryEnd = code.indexOf(summaryEndMarker, summaryStart);
 if (summaryStart < 0 || summaryEnd < 0) throw new Error('v6.11.0 boot patch failed: admin summary route range not found');
 code = code.slice(0, summaryStart) + summaryReplacement + code.slice(summaryEnd);
 
-// E2E_VOUCHER_DIAGNOSTIC (temporary)
-const e2eVoucherDiagnostic = "app.get('/_diag/e2e-voucher-7d6f', (_req,res)=>res.type('html').send(\"<!doctype html><html><head><meta charset=\\\"utf-8\\\"><title>E2E Voucher Diagnostic</title></head><body><h1>E2E Voucher Diagnostic</h1><label>Verification ID <input id=\\\"vid\\\"></label><br><label>Code <input id=\\\"code\\\" inputmode=\\\"numeric\\\"></label><br><label>Email <input id=\\\"email\\\" value=\\\"phillipafileon@gmail.com\\\"></label><br><button id=\\\"confirm\\\">Confirm code</button><button id=\\\"checkout\\\">Test checkout unlock</button><pre id=\\\"out\\\"></pre><script>\\nconst out=document.getElementById('out');\\ndocument.getElementById('confirm').onclick=async()=>{const r=await fetch('/api/email-verification/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({verification_id:document.getElementById('vid').value.trim(),code:document.getElementById('code').value.trim()})});out.textContent='CONFIRM '+r.status+'\\\\n'+await r.text();};\\ndocument.getElementById('checkout').onclick=async()=>{const r=await fetch('/api/gift-vouchers/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:2500,purchaser_name:'E2E Test',purchaser_email:document.getElementById('email').value.trim(),email_verification_id:document.getElementById('vid').value.trim()})});out.textContent='CHECKOUT '+r.status+'\\\\n'+await r.text();};\\n</script></body></html>\"));\\n";
-if (!code.includes("/_diag/e2e-voucher-7d6f")) code += "\n" + e2eVoucherDiagnostic;
-
 await fs.writeFile(runtimeUrl, code, 'utf8');
 await import(`${runtimeUrl.href}?v=6110`);

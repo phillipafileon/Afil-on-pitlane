@@ -37,16 +37,16 @@ app.post('/api/admin/auth/login',async(req,res)=>{
   const password=String(req.body?.password||'');
   const remember=!!req.body?.remember_device;
   const ip=requestIp(req);
-  const recent=await pool.query(`SELECT attempted_at FROM admin_login_attempts WHERE lower(username)=lower($1) AND ip=$2 AND attempted_at>now()-interval '10 minutes' ORDER BY attempted_at DESC LIMIT 1`,[username,ip]);
+  const recent=await pool.query("SELECT attempted_at FROM admin_login_attempts WHERE lower(username)=lower($1) AND ip=$2 AND attempted_at>now()-interval '10 minutes' ORDER BY attempted_at DESC LIMIT 1",[username,ip]);
   if(recent.rows[0]){
     const next=new Date(new Date(recent.rows[0].attempted_at).getTime()+10*60*1000);
     const retry=Math.max(1,Math.ceil((next-Date.now())/1000));
     res.set('Retry-After',String(retry));
-    return res.status(429).json({error:'login_cooldown',detail:`Only one login attempt is allowed every 10 minutes on this device. Try again in about ${Math.ceil(retry/60)} minute(s).`,retry_after_seconds:retry});
+    return res.status(429).json({error:'login_cooldown',detail:'Only one login attempt is allowed every 10 minutes on this device. Try again in about '+Math.ceil(retry/60)+' minute(s).',retry_after_seconds:retry});
   }
 
   const ok=ADMIN_LOGIN_USER&&username===String(ADMIN_LOGIN_USER).toLowerCase()&&verifyAdminPassword(password);
-  await pool.query(`INSERT INTO admin_login_attempts(username,ip,success) VALUES($1,$2,$3)`,[username||null,ip,!!ok]);
+  await pool.query('INSERT INTO admin_login_attempts(username,ip,success) VALUES($1,$2,$3)',[username||null,ip,!!ok]);
 
   if(!ok){
     await new Promise(r=>setTimeout(r,500));
@@ -57,7 +57,7 @@ app.post('/api/admin/auth/login',async(req,res)=>{
   const raw='adms_'+crypto.randomBytes(32).toString('hex');
   const hash=adminSessionHash(raw);
   const exp=new Date(Date.now()+(remember?ADMIN_TRUST_DAYS*86400000:ADMIN_SESSION_HOURS*3600000));
-  await pool.query(`INSERT INTO admin_sessions(token_hash,username,expires_at,ip,user_agent) VALUES($1,$2,$3,$4,$5)`,[hash,username,exp,ip,clean(req.get('user-agent')||'',300)]);
+  await pool.query('INSERT INTO admin_sessions(token_hash,username,expires_at,ip,user_agent) VALUES($1,$2,$3,$4,$5)',[hash,username,exp,ip,clean(req.get('user-agent')||'',300)]);
   await auditAdmin(username,'admin_login_password_ok',{ip,remember_device:remember});
   res.json({authenticated:true,session_token:raw,expires_at:exp.toISOString(),username});
 });

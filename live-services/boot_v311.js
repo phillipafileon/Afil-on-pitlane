@@ -1,23 +1,5 @@
 import fs from 'fs/promises';
 
-// SMTP2GO_DIAGNOSTIC_WRAPPER: log provider rejection details without secrets.
-const nativeFetch = globalThis.fetch;
-globalThis.fetch = async (...args) => {
-  const res = await nativeFetch(...args);
-  try {
-    const url = String(args?.[0]?.url || args?.[0] || '');
-    if (url.includes('api.smtp2go.com/v3/email/send')) {
-      const clone = res.clone();
-      const data = await clone.json().catch(() => ({}));
-      const failed = Number(data?.data?.failed || 0);
-      if (!res.ok || failed > 0) {
-        console.error('SMTP2GO_DIAGNOSTIC', JSON.stringify({status:res.status, failed, failures:data?.data?.failures || null, error:data?.data?.error || data?.error || null, error_code:data?.data?.error_code || null}));
-      }
-    }
-  } catch {}
-  return res;
-};
-
 const sourceUrl = new URL('./server_v3.js', import.meta.url);
 const runtimeUrl = new URL('./.runtime-server-v311.js', import.meta.url);
 let code = await fs.readFile(sourceUrl, 'utf8');

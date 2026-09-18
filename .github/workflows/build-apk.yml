@@ -3,8 +3,13 @@ name: Build Afileon Pitlane APK
 on:
   push:
     branches: [ main ]
-    paths-ignore:
-      - 'dist/**'
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - 'BUILD_TRIGGER.txt'
+      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
   schedule:
     - cron: '17 4 * * 1'

@@ -6,7 +6,7 @@ The current public release is defined by:
 - `dist/PUBLIC_RELEASE_VERSION.txt`
 - `dist/pitlane-update.json`
 
-At the time of this note, the public release remains **v0.2**.
+At the time of this note, the public release is **v0.2.1**.
 
 ## Garage changes described here
 

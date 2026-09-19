@@ -10,7 +10,7 @@ function replaceOnce(oldText, newText, label) {
 
 replaceOnce(
   "const E46_BOOKING_LIVE = String(process.env.E46_BOOKING_LIVE || 'false').toLowerCase() === 'true';",
-  "const E46_BOOKING_LIVE = String(process.env.E46_BOOKING_LIVE || 'false').toLowerCase() === 'true';\nconst TERMS_VERSION = '2026-09-18-v5';\nconst TERMS_URL = process.env.TERMS_URL || `${SITE_URL}/booking-terms`;",
+  "const E46_BOOKING_LIVE = String(process.env.E46_BOOKING_LIVE || 'false').toLowerCase() === 'true';\nconst TERMS_VERSION = '2026-09-19-v7';\nconst TERMS_URL = process.env.TERMS_URL || `${SITE_URL}/booking-terms`;",
   'terms constants'
 );
 
@@ -22,7 +22,7 @@ replaceOnce(
 
 replaceOnce(
   "if (!clean(b.customer_name,120) || !clean(b.customer_email,200) || !clean(b.customer_phone,60)) return res.status(400).json({ error: 'contact_details_required' });",
-  "if (!clean(b.customer_name,120) || !clean(b.customer_email,200) || !clean(b.customer_phone,60)) return res.status(400).json({ error: 'contact_details_required' });\n  if (b.terms_accepted !== true) return res.status(400).json({ error: 'booking_terms_required', detail: 'Please read and accept the Afiléon Motorsport Booking Terms before continuing.' });",
+  "if (!clean(b.customer_name,120) || !clean(b.customer_email,200) || !clean(b.customer_phone,60)) return res.status(400).json({ error: 'contact_details_required' });\n  if (b.terms_accepted !== true) return res.status(400).json({ error: 'booking_terms_required', detail: 'Please read and accept the Afiléon Motorsport Booking Terms and the applicable service-specific terms before continuing.' });",
   'explicit terms acceptance'
 );
 

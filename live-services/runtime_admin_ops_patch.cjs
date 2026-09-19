@@ -180,6 +180,7 @@ if(!s.includes("app.get('/api/admin/dashboard'")){
     "  sections.terms.base={accepted_at:b.terms_accepted_at,version:b.terms_version,applicable_terms:terms};",
     "  sections.vehicle.base={vehicle_details:b.vehicle_details,booking_notes:b.notes,service:svc?.name||b.service_id,variant_id:b.variant_id,service_address:b.service_address,postcode:b.postcode};",
     "  sections.payments.base={amount_total:b.amount_total,amount_paid:b.amount_paid,booking_payment_amount:b.booking_payment_amount,balance_amount:b.balance_amount,balance_due_at:b.balance_due_at,balance_status:b.balance_status,payment_intent_id:b.stripe_payment_intent_id,checkout_session_id:b.stripe_checkout_session_id,balance_invoice_id:b.stripe_balance_invoice_id};",
+    "  sections.handover.incident_summary=sections.incidents.entries.map(x=>({id:x.id,incident_type:x.entry_type||null,title:x.title||null,timestamp:x.occurred_at,status:x.status||null,notes:x.notes||null,evidence_link:x.reference_url||null,administrator:x.created_by||null})).sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));",
     "  res.json({booking:{reference:b.public_id,service_id:b.service_id,service_name:svc?.name||b.service_id,variant_id:b.variant_id,booking_date:b.booking_date,status:b.status,created_at:b.created_at,updated_at:b.updated_at,licence_required:b.licence_required,licence_status:b.licence_status},section_order:sectionOrder,sections});",
     "});",
     "app.post('/api/admin/booking-record/:id/entry',admin,async(req,res)=>{",

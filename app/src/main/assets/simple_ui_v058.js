@@ -98,11 +98,13 @@ function moveUpdate(){
 
 function findDatePanel(){
   const cal=$('#lsCalendar');if(!cal)return null;
-  const panel=cal.closest('.panel');if(panel&&!panel.id)panel.id='lsDatePanel';return panel;
+  const panel=cal.closest('.panel');if(panel&&!panel.id)panel.id='lsDatePanel';
+  if(panel)panel.classList.remove('lsHidden');
+  return panel;
 }
 function bookingStep(n){
   const date=findDatePanel(),services=$('#lsServicePanel'),details=$('#lsDetailsPanel');
-  if(date)date.classList.toggle('lsHidden',n!==1);
+  if(date)date.classList.remove('lsHidden');
   if(services)services.classList.toggle('lsHidden',n!==2);
   if(details)details.classList.toggle('lsHidden',n!==3);
   $$('.lsSteps span').forEach((x,i)=>x.classList.toggle('on',i<n));
@@ -137,6 +139,8 @@ function simplifyBooking(){
     },true);
     const hasService=!!$('#lsSummary')?.textContent?.trim()&&!/Choose a date/i.test($('#lsSummary')?.textContent||'');
     bookingStep(hasService?3:$('.lsDay.selected')?2:1);
+    date.classList.remove('lsHidden');
+    const cal=$('#lsCalendar'); if(cal&&!cal.children.length){ setTimeout(()=>{ try{ window.dispatchEvent(new Event('resize')); }catch(e){} },100); }
   }
 }
 

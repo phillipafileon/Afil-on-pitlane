@@ -1,6 +1,6 @@
 (()=>{
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const ALLOWED_NAV=new Set(['home','track','garage','liveServices','more']);
+const ALLOWED_NAV=new Set(['home','track','garage','more']);
 
 function go(id){
   $('.view').forEach(v=>v.classList.toggle('active',v.id===id));

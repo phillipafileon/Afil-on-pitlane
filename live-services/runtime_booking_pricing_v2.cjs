@@ -10,7 +10,7 @@ function replaceReq(from, to, label) {
 
 replaceReq(
 "    payment: 'full',\n    kentOnly: true,\n    addressRequired: true,",
-"    payment: 'full',\n    kentOnly: true,\n    travelMode: 'postcode',\n    travelRatePencePerMile: 35,\n    addressRequired: true,",
+"    payment: 'full',\n    kentOnly: true,\n    addressRequired: true,",
 'pre-track travel settings');
 
 replaceReq(

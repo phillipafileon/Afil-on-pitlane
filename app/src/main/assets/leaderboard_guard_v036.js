@@ -89,7 +89,7 @@
     }
 
     // Keep the app version accurate even though the older leaderboard module builds the request body.
-    p.app_version='0.3.6-test';
+    p.app_version='0.2.4';
     sub.options.body=JSON.stringify(p);
 
     const response=await realFetch(resource,sub.options);

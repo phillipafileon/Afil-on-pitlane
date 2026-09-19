@@ -78,8 +78,8 @@ replaceOnce(
 'travel validation and pricing in booking hold');
 
 replaceOnce(
-"res.status(201).json({ booking_id:id, hold_expires_at:expires, service:publicService(service), variant, payment_plan:plan, checkout_available:true, licence_email:service.licenceRequired?LICENCE_EMAIL:null });",
-"res.status(201).json({ booking_id:id, hold_expires_at:expires, service:publicService(service), variant, travel, payment_plan:plan, checkout_available:true, licence_email:service.licenceRequired?LICENCE_EMAIL:null });",
+"res.status(201).json({ booking_id:id, hold_expires_at:expires, service:publicService(service), variant, payment_plan:plan, checkout_available:true, terms_acceptance:termsAcceptance, damage_security_amount_pence:service.id==='vehicle_hire_day'?E46_DAMAGE_SECURITY_PENCE:null, licence_email:service.licenceRequired?LICENCE_EMAIL:null });",
+"res.status(201).json({ booking_id:id, hold_expires_at:expires, service:publicService(service), variant, travel, payment_plan:plan, checkout_available:true, terms_acceptance:termsAcceptance, damage_security_amount_pence:service.id==='vehicle_hire_day'?E46_DAMAGE_SECURITY_PENCE:null, licence_email:service.licenceRequired?LICENCE_EMAIL:null });",
 'booking response travel details');
 
 fs.writeFileSync(path, s);

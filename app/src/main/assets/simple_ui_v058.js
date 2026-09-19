@@ -3,9 +3,9 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const ALLOWED_NAV=new Set(['home','track','garage','more']);
 
 function go(id){
-  $('.view').forEach(v=>v.classList.toggle('active',v.id===id));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));
   const navId=ALLOWED_NAV.has(id)?id:'more';
-  $('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===navId));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===navId));
   if(id==='liveServices')setTimeout(()=>simplifyBooking(),40);
 }
 

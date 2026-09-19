@@ -174,7 +174,7 @@ jobs:
             "versionCode": $VERSION_CODE,
             "versionName": "$VERSION_NAME",
             "mandatory": false,
-            "apkUrl": "https://afileonmotorsport.co.uk/downloads/Afileon-Pitlane.apk",
+            "apkUrl": "https://www.afileonmotorsport.co.uk/downloads/Afileon-Pitlane.apk",
             "sha256": "$APK_SHA",
             "signerSha256": "3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af",
             "notes": "A newer Afiléon Pitlane build is available. Pitlane will verify the APK before asking Android to install it."

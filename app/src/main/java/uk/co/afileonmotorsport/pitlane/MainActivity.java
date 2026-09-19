@@ -58,8 +58,8 @@ public class MainActivity extends AppCompatActivity {
             "https://raw.githubusercontent.com/phillipafileon/Afil-on-pitlane/main/dist/pitlane-update.json";
 
     private static final String[] UPDATE_MANIFEST_URLS = new String[] {
-            "https://afileonmotorsport.co.uk/pitlane-update.json",
             "https://www.afileonmotorsport.co.uk/pitlane-update.json",
+            "https://afileonmotorsport.co.uk/pitlane-update.json",
             RAW_UPDATE_MANIFEST,
             "https://am.afileon-motorsport.workers.dev/pitlane-update.json",
             "https://www.afileon-motorsport.workers.dev/pitlane-update.json"
@@ -605,32 +605,64 @@ public class MainActivity extends AppCompatActivity {
                     throw new IllegalStateException("Cannot replace the previous update file");
                 }
 
-                URL url = new URL(info.apkUrl + (info.apkUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis());
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(10_000);
-                connection.setReadTimeout(30_000);
-                connection.setUseCaches(false);
-                connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("Cache-Control", "no-cache");
-                connection.setRequestProperty("User-Agent", "Afileon-Pitlane-Updater/" + BuildConfig.VERSION_NAME);
+                String advertisedUrl = info.apkUrl;
+                String wwwFallback = advertisedUrl.replace(
+                        "https://afileonmotorsport.co.uk/",
+                        "https://www.afileonmotorsport.co.uk/");
+                String rawFallback = "https://raw.githubusercontent.com" + RAW_APK_PATH;
+                String[] apkCandidates = new String[] { advertisedUrl, wwwFallback, rawFallback };
 
-                if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                    throw new IllegalStateException("Download returned HTTP " + connection.getResponseCode());
+                Exception lastFailure = null;
+                boolean downloaded = false;
+
+                for (String candidate : apkCandidates) {
+                    if (candidate == null || candidate.trim().isEmpty() || !isAllowedApkUrl(candidate)) continue;
+                    if (target.exists()) target.delete();
+                    try {
+                        URL url = new URL(candidate + (candidate.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis());
+                        connection = (HttpURLConnection) url.openConnection();
+                        connection.setConnectTimeout(10_000);
+                        connection.setReadTimeout(30_000);
+                        connection.setUseCaches(false);
+                        connection.setInstanceFollowRedirects(true);
+                        connection.setRequestProperty("Cache-Control", "no-cache");
+                        connection.setRequestProperty("User-Agent", "Afileon-Pitlane-Updater/" + BuildConfig.VERSION_NAME);
+
+                        int response = connection.getResponseCode();
+                        if (response != HttpURLConnection.HTTP_OK) {
+                            throw new IllegalStateException("Download returned HTTP " + response + " from " + Uri.parse(candidate).getHost());
+                        }
+
+                        try (InputStream input = new BufferedInputStream(connection.getInputStream());
+                             FileOutputStream output = new FileOutputStream(target)) {
+                            byte[] buffer = new byte[32 * 1024];
+                            int read;
+                            while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
+                            output.flush();
+                        }
+
+                        if (target.length() < 100_000) {
+                            throw new IllegalStateException("Downloaded APK is unexpectedly small");
+                        }
+
+                        validateDownloadedApk(target, info);
+                        downloaded = true;
+                        break;
+                    } catch (Exception candidateFailure) {
+                        lastFailure = candidateFailure;
+                        if (target.exists()) target.delete();
+                    } finally {
+                        if (connection != null) {
+                            connection.disconnect();
+                            connection = null;
+                        }
+                    }
                 }
 
-                try (InputStream input = new BufferedInputStream(connection.getInputStream());
-                     FileOutputStream output = new FileOutputStream(target)) {
-                    byte[] buffer = new byte[32 * 1024];
-                    int read;
-                    while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
-                    output.flush();
+                if (!downloaded) {
+                    if (lastFailure != null) throw lastFailure;
+                    throw new IllegalStateException("No approved update download address was reachable");
                 }
-
-                if (target.length() < 100_000) {
-                    throw new IllegalStateException("Downloaded APK is unexpectedly small");
-                }
-
-                validateDownloadedApk(target, info);
 
                 File readyFile = target;
                 runOnUiThread(() -> {

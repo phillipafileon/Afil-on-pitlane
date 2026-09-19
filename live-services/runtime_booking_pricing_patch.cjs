@@ -54,7 +54,7 @@ replaceOnce(
 
 replaceOnce(
 "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_document_versions: TERMS_DOCUMENT_VERSIONS, damage_security_amount_pence: E46_DAMAGE_SECURITY_PENCE || null, terms_url: TERMS_URL, cancellation_note:",
-"r.json({ services: SERVICES.map(publicService), venues: Object.values(KENT_VENUES), operations_base: OPERATIONS_BASE.name, min_lead_days: 1, season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_url: TERMS_URL, cancellation_note:",
+"r.json({ services: SERVICES.map(publicService), venues: Object.values(KENT_VENUES), operations_base: OPERATIONS_BASE.name, min_lead_days: 1, season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_document_versions: TERMS_DOCUMENT_VERSIONS, damage_security_amount_pence: E46_DAMAGE_SECURITY_PENCE || null, terms_url: TERMS_URL, cancellation_note:",
 'config travel metadata');
 
 replaceOnce(

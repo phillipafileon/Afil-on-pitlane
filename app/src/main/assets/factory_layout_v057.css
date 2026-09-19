@@ -26,7 +26,7 @@ body:before{
   background:linear-gradient(90deg,var(--y) 0 58%,var(--c) 58% 80%,var(--m) 80%);
   z-index:999;
 }
-.app{max-width:980px;padding:10px 14px calc(118px + env(safe-area-inset-bottom))}
+.app{max-width:980px;padding:10px 14px calc(108px + env(safe-area-inset-bottom))}
 .top{min-height:68px;padding:7px 0 10px;border-bottom:1px solid var(--line)}
 .header-logo{width:min(53vw,240px);background:transparent;mix-blend-mode:screen;filter:drop-shadow(0 0 13px rgba(255,229,0,.14))}
 .badge{color:var(--c);letter-spacing:1.4px;font-size:9px}
@@ -62,13 +62,12 @@ h1{font-size:38px;line-height:.85;letter-spacing:-1.8px;margin:14px 0 10px;color
 .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.18);border-bottom:3px solid rgba(255,255,255,.18)}
 .btn.danger{background:#25131b;color:#ffdce3;border:1px solid var(--bad);border-bottom:3px solid var(--bad)}
 .nav{
-  grid-template-columns:repeat(6,minmax(0,1fr));
+  grid-template-columns:repeat(5,minmax(0,1fr));
   bottom:0;background:rgba(1,5,12,.97);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -8px 26px #0008
 }
 .nav:before{content:"";position:absolute;left:0;top:-3px;width:28%;height:3px;background:linear-gradient(90deg,var(--y),var(--c))}
-.nav button{padding:14px 2px 13px;min-height:58px;font-size:12px;line-height:1.15;letter-spacing:0;text-transform:uppercase;color:#eef3fb;font-weight:900;white-space:normal}
-.nav button[data-go="liveServices"]{color:var(--c)}
+.nav button{padding:14px 2px 13px;min-height:58px;font-size:14px;line-height:1.1;letter-spacing:0;text-transform:uppercase;color:#f3f6fb;font-weight:900;white-space:nowrap}
 .nav button.on{color:var(--y);background:rgba(255,229,0,.035)}
 input,select,textarea{background:#040f1b;border-color:rgba(255,255,255,.14);border-radius:0;color:var(--text)}
 .timer{background:rgba(5,17,29,.82);border-color:var(--line)}
@@ -85,4 +84,35 @@ input,select,textarea{background:#040f1b;border-color:rgba(255,255,255,.14);bord
   .hero h1{font-size:64px}
   .app{padding-inline:20px}
   .nav{left:50%;right:auto;transform:translateX(-50%);width:min(980px,100%);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+}
+
+/* Simplified Pitlane mobile UI */
+.pageIntro{margin:4px 0 12px;color:var(--muted);font-size:15px;line-height:1.45}
+.simpleMenu{display:grid;gap:8px}
+.simpleMenuItem{
+  width:100%;min-height:68px;padding:14px 16px;text-align:left;
+  border:1px solid var(--line);background:linear-gradient(145deg,rgba(8,22,36,.97),rgba(3,12,22,.95));
+  color:var(--text)
+}
+.simpleMenuItem b{display:block;font-size:17px;margin-bottom:3px;color:var(--text)}
+.simpleMenuItem span{display:block;font-size:13px;line-height:1.35;color:var(--muted)}
+.compactDrop{padding:0!important}
+.compactDrop>summary{list-style:none;cursor:pointer;padding:16px;font-size:16px;font-weight:900;color:var(--text)}
+.compactDrop>summary::-webkit-details-marker{display:none}
+.compactDrop>summary:after{content:"+";float:right;color:var(--y);font-size:21px;line-height:16px}
+.compactDrop[open]>summary:after{content:"–"}
+.compactDrop[open]>.compactInner{padding:0 16px 16px}
+#home .hero{padding:20px 18px 18px}
+#home .hero h1{font-size:38px;max-width:12ch;line-height:.88}
+#home .hero p{font-size:15px;margin:8px 0 12px}
+#home .grid{margin-top:8px}
+#home .stat{padding:12px}
+#home .stat b{font-size:24px}
+#track>h1,#garage>h1,#more>h1,#team>h1,#shop>h1,#profile>h1,#leaderboards>h1,#liveServices>h1{font-size:30px;line-height:1;margin-top:16px}
+.muted{font-size:15px}
+.tiny{font-size:12px}
+.lsWizardBack{width:100%;margin-bottom:10px;background:transparent;color:var(--c);border:1px solid #355166;padding:10px;font-weight:900;text-align:left}
+@media(max-width:420px){
+  .nav button{font-size:13px;padding-left:1px;padding-right:1px}
+  #home .hero h1{font-size:34px}
 }

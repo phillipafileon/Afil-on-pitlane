@@ -178,6 +178,17 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
   <div class="shop" id="shopGrid" style="margin-top:10px"></div>
 </section>
 
+<section id="more" class="view">
+  <h1>More</h1>
+  <p class="pageIntro">Less-used features are kept here so the main app stays simple.</p>
+  <div id="simpleMoreMenu" class="simpleMenu">
+    <button class="simpleMenuItem" data-simple-go="team"><b>Afiléon Motorsport</b><span>Team, services, partners and contact details.</span></button>
+    <button class="simpleMenuItem" data-simple-go="shop"><b>Shop</b><span>Afiléon Motorsport merchandise.</span></button>
+    <button class="simpleMenuItem" data-simple-go="profile"><b>Driver, safety & privacy</b><span>Your name, safety information and app terms.</span></button>
+  </div>
+  <div id="pitlaneUpdateMount"></div>
+</section>
+
 <section id="profile" class="view">
   <h1>Driver</h1>
   <div class="panel">
@@ -197,9 +208,8 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
   <button class="on" data-go="home">Home</button>
   <button data-go="track">Track</button>
   <button data-go="garage">Garage</button>
-  <button data-go="team">Motorsport</button>
-  <button data-go="shop">Shop</button>
-  <button data-go="liveServices" aria-label="Booking">Booking</button>
+  <button data-go="liveServices">Booking</button>
+  <button data-go="more">More</button>
 </nav>
 <div id="toast" class="toast"></div>
 
@@ -530,5 +540,6 @@ $('#manualClose').onclick=()=>{
 renderLaps();renderCars();home();refreshPB();refreshProfileState();
 })();
 </script>
+<script src="simple_ui_v058.js"></script>
 </body>
 </html>

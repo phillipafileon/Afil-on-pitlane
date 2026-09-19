@@ -45,7 +45,13 @@ replaceOnce(
 if (!s.includes("terms_customer_name TEXT")) {
   const m = "    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ;";
   if (!s.includes(m)) throw new Error('terms acceptance migration marker missing');
-  s = s.replace(m, m + "\n    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS terms_customer_name TEXT;\n    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS terms_documents JSONB NOT NULL DEFAULT '[]'::jsonb;\n    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS damage_security_amount INTEGER;\n    ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_version TEXT;\n    ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ;\n    ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_customer_name TEXT;\n    ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_documents JSONB NOT NULL DEFAULT '[]'::jsonb;");
+  s = s.replace(m, m + "\n    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS terms_customer_name TEXT;\n    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS terms_documents JSONB NOT NULL DEFAULT '[]'::jsonb;\n    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS damage_security_amount INTEGER;");
+}
+
+if (!s.includes("ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_version TEXT;")) {
+  const m = "    CREATE TABLE IF NOT EXISTS shop_products(";
+  if (!s.includes(m)) throw new Error('quote terms migration marker missing');
+  s = s.replace(m, "    ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_version TEXT;\n    ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ;\n    ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_customer_name TEXT;\n    ALTER TABLE quote_requests ADD COLUMN IF NOT EXISTS terms_documents JSONB NOT NULL DEFAULT '[]'::jsonb;\n\n" + m);
 }
 
 if (!s.includes("function bookingTermsDocuments(serviceId)")) {

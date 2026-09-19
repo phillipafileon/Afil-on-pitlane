@@ -3,8 +3,9 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const ALLOWED_NAV=new Set(['home','track','garage','liveServices','more']);
 
 function go(id){
-  $$('.view').forEach(v=>v.classList.toggle('active',v.id===id));
-  $$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===id));
+  $('.view').forEach(v=>v.classList.toggle('active',v.id===id));
+  const navId=ALLOWED_NAV.has(id)?id:'more';
+  $('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===navId));
   if(id==='liveServices')setTimeout(()=>simplifyBooking(),40);
 }
 
@@ -76,6 +77,10 @@ function moveTimesIntoMore(){
   if(!navTimes||!menu)return;
   navTimes.className='simpleMenuItem';
   navTimes.innerHTML='<b>Lap times & rankings</b><span>View your saved times and the public leaderboard.</span>';
+  if(!navTimes.dataset.simpleMoreBound){
+    navTimes.dataset.simpleMoreBound='1';
+    navTimes.addEventListener('click',()=>setTimeout(()=>$('.nav [data-go="more"]')?.classList.add('on'),0));
+  }
   menu.prepend(navTimes);
 }
 

@@ -1,32 +1,533 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#020711">
 <title>Afiléon Pitlane</title>
 <style>
-:root{--bg:#030b14;--panel:#071421;--ink:#f5f7fb;--muted:#aab6c8;--yellow:#ffe600;--cyan:#42d8ff;--pink:#ff38cf;--line:#324252}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#0c2940 0,#030b14 40%);color:var(--ink);font:16px Arial,sans-serif;padding:0 0 82px}
-header{padding:20px 20px 14px;border-bottom:1px solid #6d6419;display:flex;align-items:center;gap:15px}.mark{font-weight:1000;font-style:italic;font-size:27px;color:var(--yellow);letter-spacing:-2px}.sub{margin-left:auto;color:var(--cyan);font-size:12px;font-weight:900;letter-spacing:2px;text-align:right}
-main{padding:18px;max-width:720px;margin:auto}.view{display:none}.view.active{display:block}.eyebrow{color:var(--yellow);font-weight:900;letter-spacing:4px;font-size:12px}.hero,.card{border:1px solid #465024;background:linear-gradient(145deg,#071522,#040b12);padding:22px;margin-bottom:14px;clip-path:polygon(0 0,96% 0,100% 12px,100% 100%,0 100%)}h1{font-size:48px;line-height:.92;margin:20px 0}h2{margin:5px 0 14px;font-size:22px}.muted{color:var(--muted);line-height:1.6}.btn{width:100%;border:0;padding:17px;margin-top:10px;background:var(--yellow);color:#071018;font-weight:1000;font-size:16px;text-transform:uppercase}.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--cyan)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{border:1px solid var(--line);padding:16px;min-height:90px}.stat b{display:block;font-size:26px;margin-top:8px}.list{display:grid;gap:10px}.row{border:1px solid var(--line);padding:15px;background:#06111c}.row strong{display:block;margin-bottom:6px}.tag{font-size:11px;color:var(--cyan);letter-spacing:2px}.shop{display:grid;grid-template-columns:1fr 1fr;gap:12px}.product{border:1px solid var(--line);padding:10px;background:#06111c}.product .pic{height:120px;background:#0b1a28;display:grid;place-items:center;color:#627083;font-weight:bold;margin-bottom:10px;overflow:hidden}.product img{width:100%;height:100%;object-fit:contain}.product strong{font-size:14px}.nav{position:fixed;z-index:10;bottom:0;left:0;right:0;height:70px;background:#020811;border-top:1px solid #665e15;display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom)}.nav button{background:none;border:0;color:#dbe2ee;font-weight:900}.nav button.on{color:var(--yellow);background:#0a141a}.hidden{display:none}select,input{width:100%;padding:14px;background:#07111c;border:1px solid #46566a;color:white;margin:7px 0 12px}
-@media(max-width:430px){h1{font-size:43px}.hero,.card{padding:18px}.shop{grid-template-columns:1fr 1fr}}
-</style></head><body>
-<header><div class="mark">AFILÉON<br><span style="font-size:13px;letter-spacing:1px">MOTORSPORT</span></div><div class="sub">PITLANE //<br>BY AFILÉON MOTORSPORT</div></header>
-<main>
-<section id="home" class="view active"><div class="hero"><div class="eyebrow">YOUR TRACK DAY. ONE PLACE.</div><h1>TRACK IT.<br>TUNE IT.<br>REMEMBER IT.</h1><p class="muted">Track-day tools, car setup, pressures, garage history and Afiléon Motorsport services without the clutter.</p><button class="btn" data-go="track">Start track day</button></div><div class="grid"><div class="stat"><span class="tag">PERSONAL BEST</span><b>—</b></div><div class="stat"><span class="tag">RECORDED LAPS</span><b id="lapCount">0</b></div><div class="stat"><span class="tag">GARAGE</span><b id="carCount">0</b></div><div class="stat"><span class="tag">STATUS</span><b style="font-size:17px">READY</b></div></div></section>
-<section id="track" class="view"><div class="eyebrow">TRACK</div><h1>TRACK DAY</h1><div class="card"><h2>Start a session</h2><label>Circuit<select id="circuit"><option>Brands Hatch</option><option>Lydden Hill</option><option>Other circuit</option></select></label><button class="btn" id="startSession">Start session</button><p class="muted" id="sessionState">No session running.</p></div><div class="card"><h2>Lap history</h2><div id="laps" class="list"><p class="muted">No laps recorded yet.</p></div></div></section>
-<section id="garage" class="view"><div class="eyebrow">GARAGE</div><h1>YOUR CARS</h1><div class="card"><h2>Add a car</h2><input id="carName" placeholder="e.g. Porsche 924"><input id="tyre" placeholder="Tyre size (optional)"><button class="btn" id="addCar">Add to garage</button></div><div id="cars" class="list"></div></section>
-<section id="more" class="view"><div class="eyebrow">AFILÉON MOTORSPORT</div><h1>MORE</h1><div class="list"><button class="btn" data-go="booking">Book a service</button><button class="btn alt" data-go="shop">Shop</button><button class="btn alt" data-go="motorsport">Afiléon Motorsport</button><button class="btn alt" data-go="safety">Driver & safety</button></div></section>
-<section id="booking" class="view"><div class="eyebrow">SERVICES</div><h1>BOOKING</h1><div class="card"><h2>Choose what you need</h2><select id="service"><option>Track-day support</option><option>Race-day support</option><option>Pre-track-day inspection</option><option>BMW E46 arrive & drive</option><option>Vehicle transport</option></select><label>Date<input type="date"></label><label>Circuit / location<input placeholder="Circuit or postcode"></label><button class="btn">Continue booking</button></div></section>
-<section id="shop" class="view"><div class="eyebrow">AFILÉON MOTORSPORT</div><h1>SHOP</h1><p class="muted">Compact product cards keep the shop usable on a phone.</p><div class="shop"><div class="product"><div class="pic">PRODUCT</div><strong>Afiléon T-shirt</strong><p>Team apparel</p></div><div class="product"><div class="pic">PRODUCT</div><strong>Afiléon Cap</strong><p>Motorsport cap</p></div><div class="product"><div class="pic">PRODUCT</div><strong>Sticker</strong><p>Team decal</p></div><div class="product"><div class="pic">PRODUCT</div><strong>More</strong><p>View merchandise</p></div></div></section>
-<section id="motorsport" class="view"><div class="eyebrow">MORE THAN MOTORSPORT</div><h1>AFILÉON MOTORSPORT</h1><div class="card"><h2>Track days • Race days • Driver support</h2><p class="muted">Track-day hire, inspections, paddock support, race-day support, vehicle transport and practical mechanical support.</p></div></section>
-<section id="safety" class="view"><div class="eyebrow">DRIVER</div><h1>SAFETY</h1><div class="card"><p class="muted">Use Pitlane only when stationary or through a passenger/crew member. Follow circuit rules and event instructions at all times.</p></div></section>
-</main>
-<nav class="nav"><button class="on" data-go="home">HOME</button><button data-go="track">TRACK</button><button data-go="garage">GARAGE</button><button data-go="more">MORE</button></nav>
+:root{--bg:#020711;--panel:#071421;--panel2:#091a2a;--y:#ffe500;--c:#3fcfff;--m:#ff3bd4;--text:#f7f9ff;--muted:#aab5c9;--line:#223345;--bad:#ff6578;--ok:#58e6a9}
+*{box-sizing:border-box}
+html,body{min-height:100%;background:var(--bg)}
+body{margin:0;background:radial-gradient(circle at 8% 0,#0b2030 0,transparent 28rem),var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+.app{max-width:900px;margin:auto;padding:12px 14px 96px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0 12px;border-bottom:1px solid #3a3f22}
+.header-logo{width:min(49vw,220px);height:auto;display:block;object-fit:contain}
+.badge{font-size:10px;color:var(--c);font-weight:900;letter-spacing:.4px;text-align:right;max-width:46%;line-height:1.3}
+.view{display:none}.view.active{display:block}
+.hero,.panel,.stat,.card,.trackCard{background:linear-gradient(145deg,#081725,#040c14);border:1px solid var(--line);position:relative}
+.hero{margin-top:14px;padding:24px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.hero:before,.panel:before,.stat:before,.card:before,.trackCard:before{content:"";position:absolute;left:-1px;top:-1px;width:46px;height:3px;background:var(--y)}
+h1{margin:10px 0 8px;font-size:34px;line-height:.95;text-transform:uppercase}
+h2{font-size:20px;margin:8px 0}
+.eyebrow{color:var(--y);font-size:11px;letter-spacing:3px;font-weight:900}
+.muted{color:var(--muted);line-height:1.5}
+.tiny{font-size:11px;color:var(--muted);line-height:1.4}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+.stat,.card,.panel,.trackCard{padding:16px}
+.stat b{font-size:26px;display:block}.stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--y);background:var(--y);color:#07101b;font-weight:900;text-transform:uppercase;letter-spacing:1px;padding:13px 16px;min-height:46px;clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px))}
+.btn.alt{background:#071421;color:var(--text);border-color:var(--c)}
+.btn.danger{background:#25131b;color:#ffdce3;border-color:var(--bad)}
+.btn.ghost{background:transparent;color:var(--muted);border-color:#38495a}
+.wide{width:100%}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.nav{position:fixed;left:0;right:0;bottom:0;background:#02060df5;border-top:1px solid #273442;display:grid;grid-template-columns:repeat(5,1fr);z-index:20}
+.nav button{background:none;color:#8e9bb0;border:0;padding:13px 4px 12px;font-size:11px;font-weight:800}
+.nav button.on{color:var(--y)}
+label{display:block;font-size:11px;color:#9ca9ba;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:10px 0}
+input,select,textarea{width:100%;margin-top:6px;padding:12px;border:1px solid #2a3a4b;background:#040b13;color:var(--text);font-size:16px}
+textarea{min-height:80px}
+.timers{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:10px}
+.timer{padding:14px;background:#050d16;border:1px solid var(--line)}
+.timer span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.timer strong{font-size:28px;font-variant-numeric:tabular-nums}
+.status{padding:9px 11px;border-left:3px solid var(--c);background:#05111b;color:#b8ddeb;margin:10px 0;font-size:12px}
+.status.ok{border-left-color:var(--ok);color:#c9ffe7}.status.warn{border-left-color:var(--y)}.status.bad{border-left-color:var(--bad);color:#ffd5db}
+.lap{display:grid;grid-template-columns:1fr auto;gap:6px;padding:10px 0;border-bottom:1px solid #172431;font-variant-numeric:tabular-nums}
+.lap.best{color:var(--y)}.lap small{grid-column:1/-1;color:var(--muted)}
+.shop{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.soon{color:var(--y);font-size:11px;font-weight:900;letter-spacing:1px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111c28;border:1px solid var(--y);padding:12px 15px;max-width:88%;z-index:99;display:none}
+.toast.show{display:block}
+.pill{display:inline-block;padding:5px 8px;border:1px solid #314557;background:#06101a;color:var(--c);font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase}
+.pill.ok{color:var(--ok);border-color:#235944}.pill.warn{color:var(--y);border-color:#6a5f00}.pill.bad{color:#ff9aa8;border-color:#6e2f39}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.overlay{position:fixed;inset:0;background:#01050bf7;z-index:200;display:none;align-items:center;justify-content:center;padding:18px}
+.overlay.show{display:flex}
+.modal{width:min(100%,720px);max-height:92vh;overflow:auto;background:#06111d;border:1px solid #2a3c4d;padding:18px;box-shadow:0 20px 80px #000}
+.modal h1{font-size:28px}.modal h2{color:var(--y);font-size:15px;text-transform:uppercase;letter-spacing:1px}
+.checkrow{display:flex;gap:10px;align-items:flex-start;margin:14px 0;color:var(--text);font-size:14px}.checkrow input{width:auto;margin:2px 0 0}
+.manualOverlay{position:fixed;inset:0;background:#020711;z-index:190;display:none;flex-direction:column;padding:20px}
+.manualOverlay.show{display:flex}
+.manualHeader{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.manualTime{font-size:52px;font-weight:900;font-variant-numeric:tabular-nums;text-align:center;margin:26px 0 16px}
+.bigLap{flex:1;min-height:220px;border:3px solid var(--y);background:#091522;color:var(--y);font-size:36px;font-weight:900;text-transform:uppercase;letter-spacing:2px}
+.manualWarn{color:#ffcf6a;text-align:center;font-size:12px;line-height:1.4;margin:12px 0}
+details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-weight:800}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}.timers{grid-template-columns:repeat(4,1fr)}.shop{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <img class="header-logo" src="afileon_wordmark_header.png" alt="Afiléon Motorsport">
+  <div class="badge">PITLANE //<br>BY AFILÉON MOTORSPORT</div>
+</header>
+
+<section id="home" class="view active">
+  <div class="hero">
+    <div class="eyebrow">YOUR TRACK DAY. ONE PLACE.</div>
+    <h1>Track it. Tune it. Remember it.</h1>
+    <p class="muted">Offline-first track-day logging, GPS lap timing, setup notes, pressures, garage history and Afiléon Motorsport.</p>
+    <button class="btn wide" data-go="track">Start track day</button>
+  </div>
+  <div class="grid">
+    <div class="stat"><span>Personal best</span><b id="hBest">—</b></div>
+    <div class="stat"><span>Recorded laps</span><b id="hLaps">0</b></div>
+    <div class="stat"><span>Sessions</span><b id="hSessions">0</b></div>
+    <div class="stat"><span>Garage</span><b id="hCars">0</b></div>
+  </div>
+  <div class="panel" style="margin-top:10px">
+    <div class="eyebrow">PRIVACY BY DESIGN</div>
+    <p class="muted">During automatic timing, GPS points are processed live. The full driven route is not saved. Pitlane stores lap results and, when a circuit is learned, only a start/finish anchor plus two checkpoint anchors.</p>
+  </div>
+  <div class="grid">
+    <button class="card" data-go="team" style="color:var(--text);text-align:left"><div class="eyebrow">AFILÉON MOTORSPORT</div><b>Team & services</b><p class="muted">Race programme, support services and partners.</p></button>
+    <button class="card" data-go="shop" style="color:var(--text);text-align:left"><div class="eyebrow">SHOP</div><b>Merchandise</b><p class="muted">Afiléon gear — coming soon.</p></button>
+  </div>
+</section>
+
+<section id="track" class="view">
+  <h1>Track mode</h1>
+  <div class="panel">
+    <label>Track
+      <input id="trackName" list="tracks" placeholder="Start typing Brands Hatch…">
+      <datalist id="tracks"></datalist>
+    </label>
+    <label>Layout
+      <select id="layoutSelect"></select>
+    </label>
+    <label id="customLayoutWrap" style="display:none">Custom layout name
+      <input id="customLayout" placeholder="Full / Club / New layout">
+    </label>
+    <div class="split">
+      <div class="stat"><span>Your fastest — layout</span><b id="layoutPB">—</b><small id="layoutPBSource" class="tiny"></small></div>
+      <div class="stat"><span>Your fastest — track</span><b id="trackPB">—</b><small id="trackPBLayout" class="tiny"></small></div>
+    </div>
+    <div id="profileState" class="status warn">Choose a track and layout.</div>
+    <div class="actions">
+      <button id="setLine" class="btn alt">Set start / finish here</button>
+      <button id="start" class="btn">Start GPS session</button>
+    </div>
+    <div id="gps" class="status">GPS idle</div>
+    <p class="tiny">First visit to a new layout: set the start/finish while stationary. Pitlane learns two checkpoint anchors from completed laps. It does not need a stored map of the whole circuit.</p>
+  </div>
+
+  <div class="timers">
+    <div class="timer"><span>Current</span><strong id="current">0:00.000</strong></div>
+    <div class="timer"><span>Last</span><strong id="last">—</strong></div>
+    <div class="timer"><span>Fastest</span><strong id="best">—</strong></div>
+    <div class="timer"><span>Average</span><strong id="avg">—</strong></div>
+  </div>
+
+  <div class="actions">
+    <button id="openManual" class="btn alt">Passenger / crew manual timing</button>
+    <button id="finish" class="btn danger">Finish & save</button>
+  </div>
+
+  <div class="panel" style="margin-top:10px">
+    <div class="eyebrow">LAPS</div>
+    <div id="laps"></div>
+  </div>
+
+  <div class="panel" style="margin-top:10px">
+    <div class="eyebrow">HOW CIRCUIT LEARNING WORKS</div>
+    <p class="muted">The first completed lap creates provisional ⅓ and ⅔ checkpoint anchors. Repeated laps confirm them. If two later laps consistently follow another path, Pitlane can replace a bad provisional learning lap while keeping the earlier lap in history.</p>
+  </div>
+</section>
+
+<section id="garage" class="view">
+  <h1>Garage</h1>
+  <div class="panel">
+    <label>Car name<input id="carName" placeholder="BMW E46 318i"></label>
+    <label>Tyres<input id="carTyres" placeholder="Make / model / size"></label>
+    <label>Wheel torque (Nm)<input id="carTorque" inputmode="decimal" placeholder="120"></label>
+    <button id="addCar" class="btn">Add car</button>
+  </div>
+  <div id="cars"></div>
+</section>
+
+<section id="team" class="view">
+  <h1>Afiléon Motorsport</h1>
+  <div class="hero">
+    <div class="eyebrow">THE TEAM BEHIND PITLANE</div>
+    <h1 style="font-size:28px">Race. Support. Build.</h1>
+    <p class="muted">Pitlane is part of Afiléon Motorsport — our grassroots racing programme and track-day services operation.</p>
+    <div class="actions"><button class="btn wide" onclick="location.href='https://afileonmotorsport.co.uk'">Visit Afiléon Motorsport</button></div>
+  </div>
+  <div class="panel" style="margin-top:10px"><div class="eyebrow">RACE PROGRAMME</div><b>Porsche 924 // #77</b><p class="muted">Follow the Afiléon Porsche 924 programme, track progress and paddock updates as the team develops.</p></div>
+  <div class="panel" style="margin-top:10px"><div class="eyebrow">TRACK SERVICES</div><p class="muted"><b>Track-day hire</b><br>BMW E46 track-day hire for drivers who want to get on circuit without owning a dedicated track car.</p><p class="muted"><b>Track-day support</b><br>Practical paddock support, vehicle preparation and assistance through the day.</p><p class="muted"><b>Pre-track-day inspections</b><br>Checks before circuit use to identify obvious preparation issues before arrival.</p><p class="muted"><b>Vehicle transport</b><br>Transport support for suitable vehicles to and from track days and events.</p></div>
+  <div class="panel" style="margin-top:10px"><div class="eyebrow">SUPPORTED BY</div><p class="muted"><b>Ramair</b> — Performance Filtration Support<br><b>GT Towing</b> — Towing & Transport Support<br><b>Demon Tweeks</b> — Motorsport Equipment Support</p></div>
+  <div class="panel" style="margin-top:10px"><div class="eyebrow">CONTACT</div><p class="muted">Website: afileonmotorsport.co.uk<br>Email: team@afileonmotorsport.co.uk</p></div>
+</section>
+
+<section id="shop" class="view">
+  <h1>Afiléon Shop</h1>
+  <div class="panel"><div class="eyebrow">MERCHANDISE // COMING SOON</div><p class="muted">Afiléon Motorsport clothing, paddock gear and small accessories are being prepared. Tap any item for a Pitlane status update.</p></div>
+  <div class="shop" id="shopGrid" style="margin-top:10px"></div>
+</section>
+
+<section id="profile" class="view">
+  <h1>Driver</h1>
+  <div class="panel">
+    <label>Display name<input id="driverName" placeholder="Phillip77"></label>
+    <label>Country<input id="driverCountry" placeholder="United Kingdom"></label>
+    <button id="saveProfile" class="btn">Save profile</button>
+    <p class="muted" id="driverId"></p>
+  </div>
+  <div class="panel" style="margin-top:10px">
+    <div class="eyebrow">SAFETY & PRIVACY</div>
+    <button id="showTerms" class="btn alt wide">View terms & safety</button>
+  </div>
+</section>
+</div>
+
+<nav class="nav">
+  <button class="on" data-go="home">Home</button>
+  <button data-go="track">Track</button>
+  <button data-go="garage">Garage</button>
+  <button data-go="team">Motorsport</button>
+  <button data-go="shop">Shop</button>
+</nav>
+<div id="toast" class="toast"></div>
+
+<div id="termsOverlay" class="overlay">
+  <div class="modal">
+    <div class="eyebrow">AFILÉON PITLANE // TERMS & SAFETY v1.0</div>
+    <h1>Use the app. Not while driving.</h1>
+    <p class="muted">Pitlane is a track-day companion and approximate timing tool. It is not official competition timing, a safety system, driver coaching, or a substitute for circuit instructions or marshals.</p>
+    <h2>Driver safety</h2>
+    <p class="muted">Configure the app, mount the device securely and make any selections before the vehicle moves. The driver must not tap, type, read, adjust or otherwise interact with Pitlane while driving. Manual lap timing is intended only for a passenger, pit crew member, or stationary use. Never use Pitlane in a way that distracts from driving.</p>
+    <h2>Closed-circuit use</h2>
+    <p class="muted">Automatic lap timing is intended for lawful closed-circuit use where timing devices are permitted. Do not use Pitlane to encourage speeding or competitive driving on public roads. Follow the circuit operator's rules at all times.</p>
+    <h2>Timing accuracy</h2>
+    <p class="muted">Phone GPS and external receivers can drift, lose signal or produce inaccurate results. Times, checkpoints, speed and circuit recognition are estimates and must not be relied on for official results, safety-critical decisions or vehicle control.</p>
+    <h2>Your responsibility</h2>
+    <p class="muted">You remain responsible for safe driving, vehicle condition, device mounting, circuit compliance and deciding whether it is safe and lawful to use the app. Stop using Pitlane if it interferes with safe operation of the vehicle.</p>
+    <h2>Location & privacy</h2>
+    <p class="muted">During an active automatic timing session Pitlane processes precise location on the device. Full route history is not saved. For learned layouts Pitlane may save only the start/finish anchor and two derived checkpoint anchors, together with lap/session results. Location is not used for advertising.</p>
+    <h2>Liability</h2>
+    <p class="muted">Pitlane is provided as a convenience tool and may contain errors or become unavailable. To the extent permitted by law, Afiléon Motorsport is not responsible for losses caused by reliance on approximate timing or by use contrary to these safety instructions. Nothing in these terms excludes or restricts liability where the law does not permit that exclusion or restriction.</p>
+    <label class="checkrow"><input id="termsCheck" type="checkbox"> <span>I have read and agree to the Terms & Safety notice, and I understand that the driver must not interact with the app while the vehicle is moving.</span></label>
+    <button id="acceptTerms" class="btn wide">Accept & continue</button>
+  </div>
+</div>
+
+<div id="locationOverlay" class="overlay">
+  <div class="modal">
+    <div class="eyebrow">PRECISE LOCATION DISCLOSURE</div>
+    <h1>GPS timing needs location.</h1>
+    <p class="muted">During an active GPS timing session, Afiléon Pitlane uses your precise location to detect start/finish and checkpoint crossings and calculate lap times. The full route is processed temporarily in memory and discarded; Pitlane saves lap results and a small number of circuit anchor points, not your continuous location history.</p>
+    <p class="muted">Pitlane does not use location for advertising. This build requests location only while you are using the app.</p>
+    <div class="actions"><button id="locationContinue" class="btn">Continue</button><button id="locationCancel" class="btn ghost">Not now</button></div>
+  </div>
+</div>
+
+<div id="manualConfirm" class="overlay">
+  <div class="modal">
+    <div class="eyebrow">MANUAL TIMING</div>
+    <h1>Passenger / crew only while moving.</h1>
+    <p class="muted">The large manual lap button is designed for a passenger or pit crew member. A driver must not use it while the vehicle is moving.</p>
+    <label class="checkrow"><input id="manualSafeCheck" type="checkbox"> <span>I confirm I am a passenger/pit crew member, or the vehicle is stationary.</span></label>
+    <div class="actions"><button id="manualConfirmGo" class="btn">Open manual timer</button><button id="manualCancel" class="btn ghost">Cancel</button></div>
+  </div>
+</div>
+
+<div id="manualOverlay" class="manualOverlay">
+  <div class="manualHeader">
+    <div><div class="eyebrow">MANUAL TIMING</div><div id="manualTrack" class="muted"></div></div>
+    <button id="manualClose" class="btn danger">Finish</button>
+  </div>
+  <div class="manualTime" id="manualTime">0:00.000</div>
+  <button id="manualLapButton" class="bigLap">START</button>
+  <p class="manualWarn">Driver: do not interact with this screen while the vehicle is moving. Use automatic GPS timing instead.</p>
+</div>
+
 <script>
-const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-const state=JSON.parse(localStorage.getItem('pitlaneFresh')||'{"cars":[],"laps":[]}');
-function save(){localStorage.setItem('pitlaneFresh',JSON.stringify(state));render()}
-function go(id){qa('.view').forEach(v=>v.classList.toggle('active',v.id===id));qa('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===(['home','track','garage','more'].includes(id)?id:'more')));scrollTo(0,0)}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
-q('#addCar').onclick=()=>{const n=q('#carName').value.trim();if(!n)return;state.cars.push({name:n,tyre:q('#tyre').value.trim()});q('#carName').value='';q('#tyre').value='';save()};
-q('#startSession').onclick=()=>{q('#sessionState').textContent='Session ready at '+q('#circuit').value+'. Keep the phone secured and use controls only when safe.'};
-function render(){q('#carCount').textContent=state.cars.length;q('#lapCount').textContent=state.laps.length;q('#cars').innerHTML=state.cars.length?state.cars.map((c,i)=>'<div class="row"><strong>'+c.name+'</strong><span class="muted">'+(c.tyre||'Tyre size not set')+'</span></div>').join(''):'<p class="muted">Your garage is empty.</p>'}render();
-</script></body></html>
+(()=>{
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const KEY='afileon-pitlane-native-v2', TERMS='pitlane-terms-v1.0';
+let legacy=null; try{legacy=JSON.parse(localStorage.getItem('afileon-pitlane-native-v1'))}catch{}
+let data; try{data=JSON.parse(localStorage.getItem(KEY))}catch{}
+data=data||{
+  cars:legacy?.cars||[],
+  sessions:(legacy?.sessions||[]).map(s=>({...s,laps:(s.laps||[]).map(x=>typeof x==='number'?{ms:x,source:'legacy',status:'valid'}:x)})),
+  trackProfiles:{},
+  profile:legacy?.profile||{id:(crypto.randomUUID?crypto.randomUUID():'D'+Date.now()),name:'',country:''},
+  termsAccepted:null,
+  locationDisclosure:false
+};
+const save=()=>localStorage.setItem(KEY,JSON.stringify(data));
+const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2700)};
+const fmt=ms=>{if(!Number.isFinite(ms))return '—';const m=Math.floor(ms/60000),s=(ms%60000)/1000;return `${m}:${s.toFixed(3).padStart(6,'0')}`};
+const now=()=>Date.now();
+const norm=s=>(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+const hav=(a,b)=>{if(!a||!b)return Infinity;const R=6371000,p=Math.PI/180,dlat=(b.lat-a.lat)*p,dlon=(b.lon-a.lon)*p,x=Math.sin(dlat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dlon/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:NaN;
+
+const TRACKS={
+ 'Brands Hatch':['Indy','Grand Prix'],
+ 'Silverstone Circuit':['Grand Prix','National','International'],
+ 'Donington Park':['National','Grand Prix'],
+ 'Snetterton Circuit':['300','200','100'],
+ 'Oulton Park':['International','Island','Fosters'],
+ 'Cadwell Park':['Full Circuit','Club Circuit','Woodland Circuit'],
+ 'Lydden Hill':['Full Circuit'],
+ 'Goodwood Motor Circuit':['Full Circuit'],
+ 'Castle Combe Circuit':['Full Circuit'],
+ 'Thruxton Circuit':['Full Circuit'],
+ 'Circuit de Spa-Francorchamps':['Grand Prix'],
+ 'Nürburgring':['Grand Prix','Nordschleife','Combined'],
+ 'Autodromo Nazionale Monza':['Grand Prix'],
+ 'Circuit de Barcelona-Catalunya':['Grand Prix'],
+ 'Red Bull Ring':['Grand Prix'],
+ 'Circuit Paul Ricard':['Full Circuit'],
+ 'Circuit Zandvoort':['Grand Prix'],
+ 'Suzuka Circuit':['Grand Prix'],
+ 'Circuit of the Americas':['Grand Prix'],
+ 'Mount Panorama Circuit':['Full Circuit']
+};
+$('#tracks').innerHTML=Object.keys(TRACKS).map(x=>`<option value="${x}">`).join('');
+
+function nav(id){
+  $$('.view').forEach(v=>v.classList.toggle('active',v.id===id));
+  $$('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===id));
+  if(id==='garage')renderCars();
+  if(id==='home')home();
+  if(id==='track'){refreshLayouts();refreshPB();refreshProfileState();}
+}
+$$('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));
+
+function selectedTrack(){return $('#trackName').value.trim()||'Unnamed circuit'}
+function selectedLayout(){
+  const s=$('#layoutSelect').value;
+  return s==='__custom__'?($('#customLayout').value.trim()||'Custom'):s;
+}
+function pkey(track=selectedTrack(),layout=selectedLayout()){return `${norm(track)}|${norm(layout)}`}
+function getProfile(){return data.trackProfiles[pkey()]||null}
+function layoutList(track){
+  const exact=Object.keys(TRACKS).find(k=>norm(k)===norm(track));
+  return exact?TRACKS[exact]:['Full Circuit'];
+}
+function refreshLayouts(){
+  const current=$('#layoutSelect').value;
+  const arr=layoutList(selectedTrack());
+  $('#layoutSelect').innerHTML=[...arr.map(x=>`<option value="${x}">${x}</option>`),'<option value="__custom__">Custom / Other…</option>'].join('');
+  if([...arr,'__custom__'].includes(current))$('#layoutSelect').value=current;
+  $('#customLayoutWrap').style.display=$('#layoutSelect').value==='__custom__'?'block':'none';
+  refreshPB();refreshProfileState();
+}
+$('#trackName').addEventListener('input',refreshLayouts);
+$('#trackName').addEventListener('change',refreshLayouts);
+$('#layoutSelect').addEventListener('change',()=>{$('#customLayoutWrap').style.display=$('#layoutSelect').value==='__custom__'?'block':'none';refreshPB();refreshProfileState()});
+$('#customLayout').addEventListener('input',()=>{refreshPB();refreshProfileState()});
+refreshLayouts();
+
+function lapMs(l){return typeof l==='number'?l:l?.ms}
+function lapValid(l){return typeof l==='number'||l?.status==='valid'||l?.status==='learning'}
+function matchingSessions(track,layout){
+ return data.sessions.filter(s=>norm(s.track)===norm(track)&&(!layout||norm(s.layout)===norm(layout)));
+}
+function pbFor(track,layout){
+ let rows=[];
+ matchingSessions(track,layout).forEach(s=>(s.laps||[]).forEach(l=>{if(lapValid(l)&&Number.isFinite(lapMs(l)))rows.push({ms:lapMs(l),source:l.source||'unknown',layout:s.layout})}));
+ rows.sort((a,b)=>a.ms-b.ms); return rows[0]||null;
+}
+function refreshPB(){
+ const t=selectedTrack(),l=selectedLayout(), lp=pbFor(t,l), tp=pbFor(t,null);
+ $('#layoutPB').textContent=lp?fmt(lp.ms):'—';
+ $('#layoutPBSource').textContent=lp?`${lp.source==='manual'?'Manual':'Automatic'} timing`:'No laps yet';
+ $('#trackPB').textContent=tp?fmt(tp.ms):'—';
+ $('#trackPBLayout').textContent=tp?tp.layout:'No laps yet';
+}
+function refreshProfileState(){
+ const p=getProfile();
+ if(!p){$('#profileState').className='status warn';$('#profileState').textContent='Layout not learned yet — set start/finish while stationary, then complete a lap.';return}
+ const c=p.confirmations||1;
+ if(p.confirmed){$('#profileState').className='status ok';$('#profileState').textContent=`Circuit anchors learned locally • start/finish + 2 checkpoints • ${c} matching laps`;return}
+ $('#profileState').className='status warn';$('#profileState').textContent=`Learning circuit anchors • ${c}/3 matching laps • provisional profile`;
+}
+
+function home(){
+ let all=[];
+ data.sessions.forEach(s=>(s.laps||[]).forEach(l=>{if(lapValid(l)&&Number.isFinite(lapMs(l)))all.push(lapMs(l))}));
+ $('#hBest').textContent=all.length?fmt(Math.min(...all)):'—';
+ $('#hLaps').textContent=all.length;
+ $('#hSessions').textContent=data.sessions.length;
+ $('#hCars').textContent=data.cars.length;
+}
+function renderCars(){
+ $('#cars').innerHTML=data.cars.length?data.cars.map(c=>`<div class="card" style="margin-top:10px"><b>${escapeHtml(c.name)}</b><p class="muted">${escapeHtml(c.tyres||'Tyres not set')}${c.torque?` • ${escapeHtml(c.torque)} Nm`:''}</p></div>`).join(''):'<p class="muted">Your garage is empty.</p>';
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('#addCar').onclick=()=>{const name=$('#carName').value.trim();if(!name)return toast('Enter a car name');data.cars.push({id:now(),name,tyres:$('#carTyres').value.trim(),torque:$('#carTorque').value.trim()});save();renderCars();home();toast('Car added')};
+
+const products=['Polo','Hoodie','Crewneck jumper','T-shirt','Pencil set','Pencil case','Cap','Sticker pack'];
+const msgs=['Still in the paddock — green light soon.','Not on pole yet. Coming soon.','Currently in parc fermé.','Pit crew are still working on it.','Red lights on. Launch coming soon.','Tyres warm. Merch nearly ready.','Still on the formation lap.','Garage doors open soon.','Flat out in development.','Awaiting race control approval.','Not race-ready just yet.','Hold position — drop incoming.'];
+$('#shopGrid').innerHTML=products.map(p=>`<button class="card" data-product="${p}" style="color:var(--text);text-align:left"><b>${p}</b><div class="soon">COMING SOON</div></button>`).join('');
+$$('[data-product]').forEach(b=>b.onclick=()=>toast(msgs[Math.floor(Math.random()*msgs.length)]));
+
+$('#driverName').value=data.profile.name||'';$('#driverCountry').value=data.profile.country||'';$('#driverId').textContent=`Local driver ID: ${data.profile.id}`;
+$('#saveProfile').onclick=()=>{data.profile.name=$('#driverName').value.trim();data.profile.country=$('#driverCountry').value.trim();save();toast('Driver profile saved locally')};
+$('#showTerms').onclick=()=>{$('#termsCheck').checked=true;$('#termsOverlay').classList.add('show')};
+$('#acceptTerms').onclick=()=>{if(!$('#termsCheck').checked)return toast('Please confirm the Terms & Safety notice');data.termsAccepted={version:TERMS,at:new Date().toISOString()};save();$('#termsOverlay').classList.remove('show')};
+if(!data.termsAccepted||data.termsAccepted.version!==TERMS)$('#termsOverlay').classList.add('show');
+
+let pendingLocationAction=null;
+function withLocationDisclosure(cb){
+ if(data.locationDisclosure)return cb();
+ pendingLocationAction=cb;$('#locationOverlay').classList.add('show');
+}
+$('#locationContinue').onclick=()=>{data.locationDisclosure=true;save();$('#locationOverlay').classList.remove('show');const f=pendingLocationAction;pendingLocationAction=null;f&&f()};
+$('#locationCancel').onclick=()=>{$('#locationOverlay').classList.remove('show');pendingLocationAction=null};
+
+let watch=null,pos=null,running=false,sessionStart=0,lapStart=0,laps=[],tick=null,currentTrace=[],outsideStart=false,cp1Hit=false,cp2Hit=false,startAnchor=null;
+function ensureGPS(cb){
+ withLocationDisclosure(()=>{
+   if(!navigator.geolocation)return toast('GPS unavailable on this device');
+   navigator.geolocation.getCurrentPosition(p=>{
+     pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy};
+     $('#gps').className='status ok';$('#gps').textContent=`GPS ready • ±${Math.round(pos.acc)} m`;cb&&cb();
+   },()=>{toast('Location permission is required for GPS timing');$('#gps').className='status bad';$('#gps').textContent='GPS unavailable';},{enableHighAccuracy:true,maximumAge:0,timeout:12000});
+ });
+}
+$('#setLine').onclick=()=>ensureGPS(()=>{
+ const key=pkey(); const old=data.trackProfiles[key]||{};
+ data.trackProfiles[key]={...old,track:selectedTrack(),layout:selectedLayout(),start:{...pos},confirmations:old.confirmations||0,confirmed:old.confirmed||false};
+ save();startAnchor={...pos};refreshProfileState();toast('Start / finish saved locally');
+});
+
+function traceDistance(trace){let d=0;for(let i=1;i<trace.length;i++)d+=hav(trace[i-1],trace[i]);return d}
+function pointAtFraction(trace,f){
+ if(trace.length<2)return trace[0]||null;
+ const total=traceDistance(trace); if(!total)return trace[Math.floor((trace.length-1)*f)];
+ const target=total*f; let acc=0;
+ for(let i=1;i<trace.length;i++){const seg=hav(trace[i-1],trace[i]);if(acc+seg>=target){const r=(target-acc)/(seg||1);return {lat:trace[i-1].lat+(trace[i].lat-trace[i-1].lat)*r,lon:trace[i-1].lon+(trace[i].lon-trace[i-1].lon)*r}}acc+=seg}
+ return trace.at(-1);
+}
+function candidateFromTrace(trace){return {cp1:pointAtFraction(trace,1/3),cp2:pointAtFraction(trace,2/3),distance:traceDistance(trace)}}
+function candidatesMatch(a,b){
+ if(!a||!b||!a.cp1||!b.cp1)return false;
+ const distOk=Math.abs((a.distance||1)-(b.distance||1))/Math.max(a.distance||1,b.distance||1)<.18;
+ return distOk&&hav(a.cp1,b.cp1)<90&&hav(a.cp2,b.cp2)<90;
+}
+function profileCandidate(p){return p?.cp1?{cp1:p.cp1,cp2:p.cp2,distance:p.distance}:null}
+function learnFromLap(candidate){
+ const key=pkey(); let p=data.trackProfiles[key]||{track:selectedTrack(),layout:selectedLayout(),start:startAnchor||{...pos},confirmations:0,confirmed:false};
+ const current=profileCandidate(p);
+ if(!current){
+   p.cp1=candidate.cp1;p.cp2=candidate.cp2;p.distance=candidate.distance;p.confirmations=1;p.confirmed=false;p.altCandidate=null;p.altCount=0;
+ } else if(candidatesMatch(current,candidate)){
+   p.confirmations=(p.confirmations||1)+1; p.altCandidate=null;p.altCount=0;
+   if(p.confirmations>=3)p.confirmed=true;
+ } else {
+   if(p.altCandidate&&candidatesMatch(p.altCandidate,candidate)){p.altCount=(p.altCount||1)+1}
+   else {p.altCandidate=candidate;p.altCount=1}
+   if(p.altCount>=2){
+     p.cp1=p.altCandidate.cp1;p.cp2=p.altCandidate.cp2;p.distance=p.altCandidate.distance;p.confirmations=2;p.confirmed=false;p.altCandidate=null;p.altCount=0;
+     laps.forEach(l=>{if(l.candidate&&candidatesMatch({cp1:p.cp1,cp2:p.cp2,distance:p.distance},l.candidate))l.status='learning'});
+     toast('Pitlane replaced the provisional circuit path with two matching laps');
+   }
+ }
+ data.trackProfiles[key]=p;save();refreshProfileState();return p;
+}
+function finishLap(ms){
+ const p=getProfile();
+ const cand=candidateFromTrace(currentTrace);
+ let status='learning',reason='';
+ if(p?.cp1){
+   if(cp1Hit&&cp2Hit)status=p.confirmed?'valid':'learning';
+   else {status='invalid';reason='Checkpoint sequence not confirmed'}
+ }
+ const lap={id:`L${now()}-${Math.random().toString(36).slice(2,7)}`,ms,source:'gps',status,reason,candidate:cand};
+ laps.push(lap);
+ const learned=learnFromLap(cand);
+ if(learned.confirmed){laps.forEach(l=>{if(l.source==='gps'&&l.candidate&&candidatesMatch(profileCandidate(learned),l.candidate))l.status='valid'})}
+ lapStart=now();currentTrace=[];outsideStart=false;cp1Hit=false;cp2Hit=false;renderLaps();refreshPB();
+ toast(`${status==='invalid'?'Lap stored — validation failed':'GPS lap'} • ${fmt(ms)}`);
+}
+function onPos(p){
+ pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy};
+ $('#gps').className='status ok';$('#gps').textContent=`GPS live • ±${Math.round(pos.acc)} m`;
+ if(!running)return;
+ currentTrace.push({lat:pos.lat,lon:pos.lon}); if(currentTrace.length>5000)currentTrace.shift();
+ const prof=getProfile(), start=prof?.start||startAnchor;
+ if(!start)return;
+ const ds=hav(pos,start);
+ if(ds>55)outsideStart=true;
+ if(prof?.cp1&&!cp1Hit&&hav(pos,prof.cp1)<65)cp1Hit=true;
+ if(prof?.cp2&&cp1Hit&&!cp2Hit&&hav(pos,prof.cp2)<65)cp2Hit=true;
+ if(outsideStart&&ds<24&&now()-lapStart>18000&&traceDistance(currentTrace)>250){finishLap(now()-lapStart)}
+}
+function startTick(){clearInterval(tick);tick=setInterval(()=>$('#current').textContent=fmt(now()-lapStart),100)}
+$('#start').onclick=()=>{
+ if(running)return toast('Session already running');
+ ensureGPS(()=>{
+   let prof=getProfile();
+   if(!prof?.start){
+     prof={...(prof||{}),track:selectedTrack(),layout:selectedLayout(),start:{...pos},confirmations:0,confirmed:false};
+     data.trackProfiles[pkey()]=prof;save();toast('No saved line — start / finish set here for this first session');
+   }
+   startAnchor={...prof.start};running=true;sessionStart=lapStart=now();laps=[];currentTrace=[];outsideStart=false;cp1Hit=false;cp2Hit=false;renderLaps();startTick();
+   watch=navigator.geolocation.watchPosition(onPos,()=>{$('#gps').className='status bad';$('#gps').textContent='GPS signal lost — session remains active'},{enableHighAccuracy:true,maximumAge:0,timeout:12000});
+   $('#gps').className='status ok';$('#gps').textContent='GPS session running';
+ });
+};
+function renderLaps(){
+ const valid=laps.filter(l=>lapValid(l)&&Number.isFinite(lapMs(l))), b=valid.length?Math.min(...valid.map(lapMs)):NaN;
+ $('#last').textContent=laps.length?fmt(lapMs(laps.at(-1))):'—';$('#best').textContent=fmt(b);$('#avg').textContent=fmt(avg(valid.map(lapMs)));
+ $('#laps').innerHTML=laps.length?laps.map((l,i)=>{
+   const cls=lapMs(l)===b&&lapValid(l)?'best':'';
+   const tag=l.source==='manual'?'MANUAL':(l.status==='invalid'?'INVALID':l.status==='learning'?'LEARNING':'VALID');
+   return `<div class="lap ${cls}"><span>Lap ${i+1} <span class="pill ${l.status==='invalid'?'bad':l.status==='learning'?'warn':'ok'}">${tag}</span></span><b>${fmt(lapMs(l))}</b>${l.reason?`<small>${escapeHtml(l.reason)}</small>`:''}</div>`;
+ }).join(''):'<p class="muted">No laps recorded yet.</p>';
+}
+function saveSession(source='gps'){
+ const track=selectedTrack(),layout=selectedLayout();
+ data.sessions.push({id:`S${now()}`,track,layout,date:new Date().toISOString(),source,laps:laps.map(l=>{const x={...l};if(getProfile()?.confirmed)delete x.candidate;return x})});
+ save();home();refreshPB();toast('Session saved locally — no full route stored');
+}
+$('#finish').onclick=()=>{
+ if(!running)return toast('No active GPS session');
+ running=false;if(watch!=null)navigator.geolocation.clearWatch(watch);watch=null;clearInterval(tick);tick=null;
+ saveSession('gps');renderLaps();$('#gps').className='status';$('#gps').textContent='GPS idle';
+};
+
+let manualRunning=false,manualLapStart=0,manualTick=null,manualLaps=[];
+$('#openManual').onclick=()=>{$('#manualSafeCheck').checked=false;$('#manualConfirm').classList.add('show')};
+$('#manualCancel').onclick=()=>$('#manualConfirm').classList.remove('show');
+$('#manualConfirmGo').onclick=()=>{
+ if(!$('#manualSafeCheck').checked)return toast('Please confirm passenger / crew or stationary use');
+ $('#manualConfirm').classList.remove('show');$('#manualOverlay').classList.add('show');$('#manualTrack').textContent=`${selectedTrack()} // ${selectedLayout()}`;
+ manualRunning=false;manualLaps=[];$('#manualTime').textContent='0:00.000';$('#manualLapButton').textContent='START';
+};
+$('#manualLapButton').onclick=()=>{
+ if(!manualRunning){manualRunning=true;manualLapStart=now();$('#manualLapButton').textContent='NEXT LAP';clearInterval(manualTick);manualTick=setInterval(()=>$('#manualTime').textContent=fmt(now()-manualLapStart),100);return}
+ const ms=now()-manualLapStart;if(ms<3000)return;
+ manualLaps.push({id:`M${now()}`,ms,source:'manual',status:'valid'});manualLapStart=now();$('#manualTime').textContent='0:00.000';toast(`Manual lap • ${fmt(ms)}`);
+};
+$('#manualClose').onclick=()=>{
+ clearInterval(manualTick);manualTick=null;
+ if(manualLaps.length){
+   data.sessions.push({id:`S${now()}`,track:selectedTrack(),layout:selectedLayout(),date:new Date().toISOString(),source:'manual',laps:manualLaps});
+   save();home();refreshPB();toast('Manual session saved locally');
+ }
+ manualRunning=false;$('#manualOverlay').classList.remove('show');
+};
+
+renderLaps();renderCars();home();refreshPB();refreshProfileState();
+})();
+</script>
+</body>
+</html>

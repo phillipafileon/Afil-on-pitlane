@@ -1,9 +1,9 @@
 {
-  "versionCode": 17,
-  "versionName": "1.0.0",
+  "versionCode": 18,
+  "versionName": "0.2.2-r1",
   "mandatory": false,
   "apkUrl": "https://www.afileonmotorsport.co.uk/downloads/Afileon-Pitlane.apk",
-  "sha256": "9a3e3c0c398df1b340d3bf7add2fe7cdcc7fbf861794b4c9da306c0ccd08027f",
+  "sha256": "f5988396ee1b7135d47a661448f565a5e22d4ac315dfeb4e529f1fcfefada6d0",
   "signerSha256": "3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af",
   "notes": "A newer Afiléon Pitlane build is available. Pitlane will verify the APK before asking Android to install it."
 }

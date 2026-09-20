@@ -117,6 +117,18 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public void openBookingPage() {
+            runOnUiThread(() -> {
+                try {
+                    Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("https://afileonmotorsport.co.uk/book.html"));
+                    startActivity(browser);
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "No browser is available to open booking.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void installPendingUpdate() {
             runOnUiThread(() -> {
                 if (pendingUpdateFile != null && pendingUpdateFile.exists()) {

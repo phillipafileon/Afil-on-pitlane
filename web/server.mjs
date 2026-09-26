@@ -1,0 +1,4 @@
+import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
+const root=path.dirname(fileURLToPath(import.meta.url)),port=Number(process.env.PORT||3000);
+const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8'};
+http.createServer((req,res)=>{let u=new URL(req.url,'http://localhost');let p=u.pathname==='/'?'/index.html':u.pathname;let f=path.join(root,p);if(!f.startsWith(root)||!fs.existsSync(f)){res.writeHead(404);return res.end('Not found')};res.writeHead(200,{'Content-Type':types[path.extname(f)]||'application/octet-stream','Cache-Control':p==='/index.html'?'no-cache':'public,max-age=3600'});fs.createReadStream(f).pipe(res)}).listen(port,'0.0.0.0',()=>console.log('Afiléon Pitlane Web listening on '+port));

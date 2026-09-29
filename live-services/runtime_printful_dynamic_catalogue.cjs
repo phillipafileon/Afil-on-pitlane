@@ -1,0 +1,213 @@
+const fs = require('fs');
+const path = 'server_v3.js';
+let s = fs.readFileSync(path, 'utf8');
+
+function mustReplace(oldText, newText, label) {
+  if (s.includes(newText)) return;
+  if (!s.includes(oldText)) throw new Error('Dynamic Printful patch marker missing: ' + label);
+  s = s.replace(oldText, newText);
+}
+
+// Keep the legacy catalogue only as dead data so existing patch steps remain build-compatible.
+mustReplace('const SHOP_CATALOG = [', 'const LEGACY_SHOP_CATALOG = [', 'legacy catalogue rename');
+mustReplace('const SHOP_MAP = new Map(SHOP_CATALOG.map(p => [p.slug,p]));', 'const LEGACY_SHOP_MAP = new Map(LEGACY_SHOP_CATALOG.map(p => [p.slug,p]));', 'legacy shop map rename');
+
+const dynamicBlock = [
+  "const SHOP_CATALOG = [];",
+  "const SHOP_MAP = new Map();",
+  "const SHOP_CATALOG_TTL_MS = 60 * 1000;",
+  "let SHOP_CATALOG_CACHE = null;",
+  "let SHOP_CATALOG_CACHE_AT = 0;",
+  "let SHOP_CATALOG_REFRESH = null;",
+  "",
+  "function printfulPriceToPence(value) {",
+  "  const n = Number.parseFloat(String(value ?? ''));",
+  "  return Number.isFinite(n) ? Math.round(n * 100) : null;",
+  "}",
+  "",
+  "function printfulVariantLabel(v) {",
+  "  const parts = [];",
+  "  if (v.color) parts.push(String(v.color));",
+  "  if (v.size) parts.push(String(v.size));",
+  "  if (parts.length) return parts.join(' / ');",
+  "  return String(v.name || v.external_id || v.id || 'Variant');",
+  "}",
+  "",
+  "async function listAllPrintfulStoreProducts() {",
+  "  const out = [];",
+  "  let offset = 0;",
+  "  const limit = 100;",
+  "  for (let page = 0; page < 20; page++) {",
+  "    const j = await printfulRequest('GET', '/store/products?limit=' + limit + '&offset=' + offset);",
+  "    const rows = Array.isArray(j.result) ? j.result : [];",
+  "    out.push(...rows);",
+  "    const total = Number(j.paging?.total || out.length);",
+  "    if (!rows.length || out.length >= total || rows.length < limit) break;",
+  "    offset += rows.length;",
+  "  }",
+  "  return out;",
+  "}",
+  "",
+  "async function fetchPrintfulShopCatalog() {",
+  "  const summaries = (await listAllPrintfulStoreProducts()).filter(p => p && p.is_ignored !== true);",
+  "  const details = [];",
+  "  for (let i = 0; i < summaries.length; i += 8) {",
+  "    const batch = summaries.slice(i, i + 8);",
+  "    const rows = await Promise.all(batch.map(async summary => {",
+  "      try {",
+  "        const j = await printfulRequest('GET', '/store/products/' + encodeURIComponent(String(summary.id)));",
+  "        return { summary, data: j.result || {} };",
+  "      } catch (e) {",
+  "        console.error('Printful product detail failed', summary.id, e.message);",
+  "        return null;",
+  "      }",
+  "    }));",
+  "    details.push(...rows.filter(Boolean));",
+  "  }",
+  "  return details.map(({summary, data}) => {",
+  "    const product = data.sync_product || summary || {};",
+  "    const variants = (data.sync_variants || [])",
+  "      .filter(v => v && v.is_ignored !== true && v.synced !== false && v.availability_status !== 'discontinued')",
+  "      .map(v => ({",
+  "        id: String(v.id),",
+  "        label: printfulVariantLabel(v),",
+  "        sync_variant_id: Number(v.id),",
+  "        price: printfulPriceToPence(v.retail_price)",
+  "      }))",
+  "      .filter(v => Number.isInteger(v.price) && v.price >= 0 && Number.isInteger(v.sync_variant_id));",
+  "    if (!variants.length) return null;",
+  "    const prices = variants.map(v => v.price);",
+  "    return {",
+  "      slug: 'pf-' + String(product.id || summary.id),",
+  "      name: String(product.name || summary.name || 'Afiléon Motorsport Product').trim(),",
+  "      description: String(product.description || 'Made-to-order Afiléon Motorsport product.'),",
+  "      price: Math.min(...prices),",
+  "      price_from: Math.min(...prices),",
+  "      image_url: product.thumbnail_url || summary.thumbnail_url || null,",
+  "      stock: null,",
+  "      featured: true,",
+  "      collection: 'teamwear',",
+  "      variants",
+  "    };",
+  "  }).filter(Boolean);",
+  "}",
+  "",
+  "async function getPrintfulShopCatalog(force = false) {",
+  "  if (!PRINTFUL_API_TOKEN) return [];",
+  "  if (!force && Array.isArray(SHOP_CATALOG_CACHE) && Date.now() - SHOP_CATALOG_CACHE_AT < SHOP_CATALOG_TTL_MS) return SHOP_CATALOG_CACHE;",
+  "  if (SHOP_CATALOG_REFRESH) return SHOP_CATALOG_REFRESH;",
+  "  SHOP_CATALOG_REFRESH = (async () => {",
+  "    try {",
+  "      const next = await fetchPrintfulShopCatalog();",
+  "      if (!next.length) throw new Error('printful_catalog_empty');",
+  "      SHOP_CATALOG_CACHE = next;",
+  "      SHOP_CATALOG_CACHE_AT = Date.now();",
+  "      console.log('Printful shop catalogue refreshed', next.length, 'products');",
+  "      return next;",
+  "    } catch (e) {",
+  "      console.error('Printful shop catalogue refresh failed', e.message);",
+  "      return Array.isArray(SHOP_CATALOG_CACHE) ? SHOP_CATALOG_CACHE : [];",
+  "    } finally {",
+  "      SHOP_CATALOG_REFRESH = null;",
+  "    }",
+  "  })();",
+  "  return SHOP_CATALOG_REFRESH;",
+  "}",
+].join('\n');
+
+const printfulMarker = "async function ensurePrintfulWebhook() {";
+if (!s.includes('const SHOP_CATALOG_TTL_MS = 60 * 1000;')) {
+  if (!s.includes('async function printfulRequest(')) throw new Error('Dynamic Printful patch marker missing: printfulRequest');
+  s = s.replace(printfulMarker, dynamicBlock + '\n\n' + printfulMarker);
+}
+
+const normaliseStart = 'function normaliseShopItems(input) {';
+const normaliseEnd = '\n\nasync function submitPrintfulOrder';
+const ns = s.indexOf(normaliseStart);
+const ne = s.indexOf(normaliseEnd, ns);
+if (ns < 0 || ne < 0) throw new Error('Dynamic Printful patch marker missing: normaliseShopItems');
+const normaliseNew = [
+  'async function normaliseShopItems(input) {',
+  "  const items = Array.isArray(input) ? input : [];",
+  "  if (!items.length) throw new Error('empty_basket');",
+  "  const catalog = await getPrintfulShopCatalog();",
+  "  const map = new Map(catalog.map(p => [p.slug, p]));",
+  "  return items.map(raw => {",
+  "    const slug = clean(raw.slug, 100);",
+  "    const variantId = clean(raw.variant_id || raw.variant || '', 60);",
+  "    const quantity = Math.max(1, Math.min(10, Number(raw.quantity || 1)));",
+  "    const product = map.get(slug);",
+  "    const variant = product?.variants?.find(v => v.id === variantId);",
+  "    if (!product || !variant || !Number.isInteger(variant.price)) throw new Error('invalid_product_variant');",
+  "    return { slug, name: product.name, variant_id: variant.id, variant_label: variant.label, sync_variant_id: variant.sync_variant_id, quantity, unit_price: variant.price };",
+  "  });",
+  '}',
+].join('\n');
+s = s.slice(0, ns) + normaliseNew + s.slice(ne);
+
+const shopStart = "app.get('/api/shop/products'";
+const seasonStart = "app.get('/api/season'";
+const ss = s.indexOf(shopStart);
+const se = s.indexOf(seasonStart, ss);
+if (ss < 0 || se < 0) throw new Error('Dynamic Printful patch marker missing: shop routes');
+const shopRoutes = [
+  "app.get('/api/shop/products', async (_q,res) => {",
+  "  const catalog = await getPrintfulShopCatalog();",
+  "  return res.json({",
+  "    products: catalog.map(p => ({ slug:p.slug,name:p.name,description:p.description,price:p.price,price_from:p.price_from,image_url:p.image_url,stock:null,featured:p.featured,collection:p.collection,variants:p.variants.map(v => ({id:v.id,label:v.label,price:v.price})) })),",
+  "    delivery_price:SHOP_DELIVERY_GBP,",
+  "    currency:'GBP',",
+  "    checkout_live:SHOP_CHECKOUT_LIVE && catalog.length > 0,",
+  "    checkout_requested:SHOP_CHECKOUT_REQUESTED,",
+  "    stripe_live:STRIPE_LIVE_KEY,",
+  "    printful_connected:!!PRINTFUL_API_TOKEN,",
+  "    catalogue_source:'printful',",
+  "    catalogue_refreshed_at:SHOP_CATALOG_CACHE_AT ? new Date(SHOP_CATALOG_CACHE_AT).toISOString() : null,",
+  "    fulfilment_live:PRINTFUL_FULFILMENT_LIVE",
+  "  });",
+  "});",
+  '',
+  "app.post('/api/shop/checkout', async (req,res,next) => {",
+  "  if (!Array.isArray(req.body?.items)) return next();",
+  "  if (!stripe) return res.status(503).json({ error:'stripe_not_configured' });",
+  "  if (!SHOP_CHECKOUT_LIVE) return res.status(503).json({ error:'shop_not_live', detail: STRIPE_LIVE_KEY ? 'Merchandise checkout is not enabled yet.' : 'Merchandise checkout is ready but live Stripe payments have not been enabled yet.' });",
+  "  let items;",
+  "  try { items = await normaliseShopItems(req.body.items); } catch (e) { return res.status(400).json({ error:e.message==='empty_basket'?'empty_basket':'invalid_product_variant' }); }",
+  "  const total = items.reduce((n,x) => n + x.unit_price * x.quantity, 0);",
+  "  const id = token('ord');",
+  "  try {",
+  "    await pool.query(\"INSERT INTO orders(public_id,status,total,items,stock_reserved,provider,fulfilment_status) VALUES($1,'pending',$2,$3::jsonb,false,'printful','awaiting_payment')\", [id,total,JSON.stringify(items)]);",
+  "    const lines = items.map(x => ({ quantity:x.quantity, price_data:{currency:'gbp',unit_amount:x.unit_price,tax_behavior:'exclusive',product_data:{name:x.name + ' — ' + x.variant_label}} }));",
+  "    const session = await stripe.checkout.sessions.create({",
+  "      mode:'payment',",
+  "      success_url:SITE_URL + '/shop-success.html?order=' + id + '&session_id={CHECKOUT_SESSION_ID}',",
+  "      cancel_url:SITE_URL + '/shop.html?cancelled=1',",
+  "      automatic_tax:{enabled:true},",
+  "      billing_address_collection:'required',",
+  "      shipping_address_collection:{allowed_countries:['GB']},",
+  "      shipping_options:[{shipping_rate_data:{type:'fixed_amount',fixed_amount:{amount:SHOP_DELIVERY_GBP,currency:'gbp'},display_name:'UK delivery'}}],",
+  "      phone_number_collection:{enabled:true},",
+  "      line_items:lines,",
+  "      metadata:{kind:'shop_order',order_id:id},",
+  "      payment_intent_data:{metadata:{kind:'shop_order',order_id:id}}",
+  "    }, {idempotencyKey:'shop_' + id});",
+  "    await pool.query('UPDATE orders SET stripe_checkout_session_id=$1,updated_at=now() WHERE public_id=$2',[session.id,id]);",
+  "    return res.json({order_id:id,checkout_url:session.url,delivery_price:SHOP_DELIVERY_GBP});",
+  "  } catch (e) {",
+  "    console.error('Shop checkout',e);",
+  "    await pool.query(\"UPDATE orders SET status='failed',fulfilment_error=$1,updated_at=now() WHERE public_id=$2\",[clean(e.message,1000),id]).catch(()=>{});",
+  "    return res.status(500).json({error:'checkout_creation_failed'});",
+  "  }",
+  "});",
+  '',
+  "app.get('/api/shop/orders/:id', async (req,res) => {",
+  "  const {rows} = await pool.query('SELECT public_id,status,total,customer_email,provider,printful_order_id,fulfilment_status,tracking_number,tracking_url,fulfilment_error,created_at,updated_at FROM orders WHERE public_id=$1 LIMIT 1',[req.params.id]);",
+  "  if (!rows[0]) return res.status(404).json({error:'not_found'});",
+  "  res.json(rows[0]);",
+  "});",
+  '',
+].join('\n');
+s = s.slice(0, ss) + shopRoutes + s.slice(se);
+
+fs.writeFileSync(path, s);
+console.log('Applied dynamic Printful catalogue patch');

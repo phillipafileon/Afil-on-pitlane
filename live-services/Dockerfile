@@ -56,6 +56,8 @@ RUN node runtime_discount_webhook_patch.cjs
 RUN node runtime_discount_scope_margin_patch.cjs
 RUN node runtime_admin_ops_patch.cjs
 RUN node runtime_admin_password_login_patch.cjs
+COPY runtime_printful_dynamic_catalogue.cjs ./
+RUN node runtime_printful_dynamic_catalogue.cjs
 ENV NODE_ENV=production
 EXPOSE 3000
 # Afiléon transactional email, promo codes, secure password admin and Printful integrations

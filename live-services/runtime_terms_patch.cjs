@@ -29,11 +29,17 @@ replaceOnce(
   'explicit terms acceptance'
 );
 
-replaceOnce(
-  "!!b.safe_work_area_confirmed,'2026-09-15']);",
-  "!!b.safe_work_area_confirmed,TERMS_VERSION]);",
-  'terms version storage'
-);
+if (!s.includes('TERMS_VERSION]);')) {
+  const oldTerms = "!!b.safe_work_area_confirmed,'2026-09-15']);";
+  const newTerms = "!!b.safe_work_area_confirmed,TERMS_VERSION]);";
+  if (s.includes(oldTerms)) s=s.replace(oldTerms,newTerms,1);
+  else if (s.includes("!!b.safe_work_area_confirmed, '2026-09-26-v9']);")) s=s.replace("!!b.safe_work_area_confirmed, '2026-09-26-v9']);",newTerms,1);
+  else if (s.includes('terms_version')) {
+    // Current backend already stores the live terms version; leave it intact.
+  } else {
+    throw new Error('Patch marker missing: terms version storage');
+  }
+}
 
 s = s.replace(" consent_collection:{terms_of_service:'required'},", "");
 if (s.includes("consent_collection:{terms_of_service:'required'}")) throw new Error('Stripe terms consent removal failed');

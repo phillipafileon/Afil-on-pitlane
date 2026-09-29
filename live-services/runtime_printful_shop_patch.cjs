@@ -223,11 +223,13 @@ app.get('/api/shop/orders/:id', async (req,res) => {
   'Printful shop routes'
 );
 
-replaceOnce(
-  "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_document_versions: TERMS_DOCUMENT_VERSIONS, damage_security_amount_pence: E46_DAMAGE_SECURITY_PENCE || null, terms_url: TERMS_URL, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });",
-  "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_document_versions: TERMS_DOCUMENT_VERSIONS, damage_security_amount_pence: E46_DAMAGE_SECURITY_PENCE || null, terms_url: TERMS_URL, shop_checkout_live: SHOP_CHECKOUT_LIVE, printful_connected: !!PRINTFUL_API_TOKEN, printful_fulfilment_live: PRINTFUL_FULFILMENT_LIVE, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });",
-  'config shop state'
-);
+if (!s.includes('shop_checkout_live: SHOP_CHECKOUT_LIVE')) {
+  replaceOnce(
+    "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_document_versions: TERMS_DOCUMENT_VERSIONS, damage_security_amount_pence: E46_DAMAGE_SECURITY_PENCE || null, terms_url: TERMS_URL, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the General Booking Terms v9 and applicable consumer law. Customer-caused cancellation or failed eligibility may result in retention of the booking deposit, limited to reasonable direct net loss and unrecoverable committed costs. Contact Afiléon Motorsport as soon as possible if plans change.' });",
+    "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_document_versions: TERMS_DOCUMENT_VERSIONS, damage_security_amount_pence: E46_DAMAGE_SECURITY_PENCE || null, terms_url: TERMS_URL, shop_checkout_live: SHOP_CHECKOUT_LIVE, printful_connected: !!PRINTFUL_API_TOKEN, printful_fulfilment_live: PRINTFUL_FULFILMENT_LIVE, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the General Booking Terms v9 and applicable consumer law. Customer-caused cancellation or failed eligibility may result in retention of the booking deposit, limited to reasonable direct net loss and unrecoverable committed costs. Contact Afiléon Motorsport as soon as possible if plans change.' });",
+    'config shop state'
+  );
+}
 
 replaceOnce(
   "migrate().then(()=>app.listen(port,'0.0.0.0',()=>console.log(`Afiléon Live Services v3 listening on ${port}`))).catch(e=>{console.error(e);process.exit(1)});",

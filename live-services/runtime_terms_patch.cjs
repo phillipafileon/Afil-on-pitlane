@@ -14,11 +14,14 @@ replaceOnce(
   'terms constants'
 );
 
-replaceOnce(
-  "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: '2026-09-15', cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });",
-  "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_document_versions: TERMS_DOCUMENT_VERSIONS, damage_security_amount_pence: E46_DAMAGE_SECURITY_PENCE || null, terms_url: TERMS_URL, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });",
-  'config terms URL'
-);
+if (!s.includes('terms_url: TERMS_URL')) {
+  const oldConfig = "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: '2026-09-15', cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the booking terms and applicable consumer law. Contact Afiléon Motorsport as soon as possible if plans change.' });";
+  const currentConfig = "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: '2026-09-26-v9', cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the General Booking Terms v9 and applicable consumer law. Customer-caused cancellation or failed eligibility may result in retention of the booking deposit, limited to reasonable direct net loss and unrecoverable committed costs. Contact Afiléon Motorsport as soon as possible if plans change.' });";
+  const newConfig = "r.json({ services: SERVICES.map(publicService), season: rows[0] || null, rolling_months: 6, currency: 'GBP', licence_email: LICENCE_EMAIL, terms_version: TERMS_VERSION, terms_document_versions: TERMS_DOCUMENT_VERSIONS, damage_security_amount_pence: E46_DAMAGE_SECURITY_PENCE || null, terms_url: TERMS_URL, cancellation_note: 'Cancellation, rescheduling and refund rights are governed by the General Booking Terms v9 and applicable consumer law. Customer-caused cancellation or failed eligibility may result in retention of the booking deposit, limited to reasonable direct net loss and unrecoverable committed costs. Contact Afiléon Motorsport as soon as possible if plans change.' });";
+  if (s.includes(oldConfig)) s=s.replace(oldConfig,newConfig,1);
+  else if (s.includes(currentConfig)) s=s.replace(currentConfig,newConfig,1);
+  else throw new Error('Patch marker missing: config terms URL');
+}
 
 replaceOnce(
   "if (!clean(b.customer_name,120) || !clean(b.customer_email,200) || !clean(b.customer_phone,60)) return res.status(400).json({ error: 'contact_details_required' });",

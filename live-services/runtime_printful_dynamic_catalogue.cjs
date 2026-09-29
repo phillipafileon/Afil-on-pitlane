@@ -91,7 +91,7 @@ const dynamicBlock = [
 "  return variants.map(v => {",
 "    const key = String(v.color || '').trim().toLowerCase() || String(v.catalog_variant_id);",
 "    const visual = visuals.get(key);",
-"    return { ...v, color: visual?.color || v.color || null, size: visual?.size || v.size || null, image_url: visual?.image_url || v.image_url || null };",
+"    return { ...v, color: visual?.color || v.color || null, size: v.size || visual?.size || null, image_url: visual?.image_url || v.image_url || null };",
 "  });",
 "}",
 "",

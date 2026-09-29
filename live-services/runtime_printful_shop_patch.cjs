@@ -68,7 +68,7 @@ replaceOnce(
 async function ensurePrintfulWebhook() {
   if (!PRINTFUL_API_TOKEN || !PRINTFUL_WEBHOOK_KEY || !PRINTFUL_STORE_ID) return;
   try {
-    const url = \`${API_PUBLIC_URL}/api/printful/webhook?key=\${encodeURIComponent(PRINTFUL_WEBHOOK_KEY)}\`;
+    const url = \`\${API_PUBLIC_URL}/api/printful/webhook?key=\${encodeURIComponent(PRINTFUL_WEBHOOK_KEY)}\`;
     await printfulRequest('POST','/webhooks',{ url, types:['package_shipped','package_returned','order_failed'] });
     console.log('Printful webhook configured');
   } catch (e) {

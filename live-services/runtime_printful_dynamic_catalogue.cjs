@@ -154,7 +154,7 @@ const shopRoutes = [
   "app.get('/api/shop/products', async (_q,res) => {",
   "  const catalog = await getPrintfulShopCatalog();",
   "  return res.json({",
-  "    products: catalog.map(p => ({ slug:p.slug,name:p.name,description:p.description,price:p.price,price_from:p.price_from,image_url:p.image_url,stock:null,featured:p.featured,collection:p.collection,variants:p.variants.map(v => ({id:v.id,label:v.label,price:v.price})) })),",
+  "    products: catalog.map(p => ({ slug:p.slug,name:p.name,description:p.description,price:p.price,price_from:p.price_from,image_url:p.image_url,stock:null,featured:p.featured,collection:p.collection,variants:p.variants.map(v => ({id:v.id,label:v.label,color:v.color||null,size:v.size||null,image_url:v.image_url||p.image_url||null,price:v.price})) })),",
   "    delivery_price:SHOP_DELIVERY_GBP,",
   "    currency:'GBP',",
   "    checkout_live:SHOP_CHECKOUT_LIVE && catalog.length > 0,",

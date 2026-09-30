@@ -233,6 +233,7 @@ const dynamicBlock = [
 "",
 "  const mineResponse = await printfulRequest('GET', '/v2/products?limit=100');",
 "  const mine = Array.isArray(mineResponse.data) ? mineResponse.data : [];",
+"  console.log('PRINTFUL_MY_PRODUCTS_DEBUG ' + JSON.stringify(mine.map(my => ({ id:my?.id, external_id:my?.external_id, catalog_product_id:my?.catalog_product_id, name:my?.name, published_to_stores:my?.published_to_stores, placements_count:Array.isArray(my?.placements)?my.placements.length:0 }))));",
 "  const bySync = new Map();",
 "  for (const my of mine) {",
 "    for (const pub of Array.isArray(my?.published_to_stores) ? my.published_to_stores : []) {",

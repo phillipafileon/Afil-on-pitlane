@@ -1,0 +1,76 @@
+/* Afiléon Pitlane — Energy theme layer v0.5.9
+   Visual-only layer: no IDs, storage keys, buttons or update logic are changed. */
+
+:root{
+  --energy-navy:#071423;
+  --energy-navy-2:#0b1d31;
+  --energy-pink:#ff3ca6;
+  --energy-yellow:#ffd62e;
+  --energy-cream:#f6f1e7;
+  --energy-muted:#aeb9c5;
+  --energy-line:#24384c;
+}
+
+html,body{
+  background:var(--energy-navy)!important;
+  color:var(--energy-cream)!important;
+}
+body{
+  background:
+    radial-gradient(circle at 85% 8%,rgba(255,60,166,.12),transparent 28%),
+    radial-gradient(circle at 8% 92%,rgba(255,214,46,.08),transparent 25%),
+    var(--energy-navy)!important;
+}
+.app{background:transparent!important}
+.top{
+  background:linear-gradient(180deg,var(--energy-navy-2),rgba(7,20,35,.92))!important;
+  border-bottom:1px solid var(--energy-line)!important;
+}
+.badge,.eyebrow{color:var(--energy-yellow)!important}
+h1,h2,h3,b,strong{color:var(--energy-cream)!important}
+.muted,.tiny,.manualWarn{color:var(--energy-muted)!important}
+.panel,.card,.stat,.timer,.modal{
+  background:linear-gradient(180deg,rgba(11,29,49,.96),rgba(7,20,35,.96))!important;
+  border-color:var(--energy-line)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.18)!important;
+}
+.btn{
+  background:var(--energy-pink)!important;
+  color:#fff!important;
+  border-color:var(--energy-pink)!important;
+}
+.btn.alt{
+  background:transparent!important;
+  color:var(--energy-yellow)!important;
+  border-color:var(--energy-yellow)!important;
+}
+.btn.ghost{
+  background:transparent!important;
+  color:var(--energy-muted)!important;
+}
+.btn.danger{background:#d82f63!important;color:#fff!important;border-color:#d82f63!important}
+.status.ok{border-color:var(--energy-yellow)!important;color:var(--energy-yellow)!important}
+.status.warn{border-color:var(--energy-pink)!important;color:#ffd0e9!important}
+input,select{
+  background:#071423!important;
+  color:var(--energy-cream)!important;
+  border-color:var(--energy-line)!important;
+}
+.nav{
+  background:rgba(7,20,35,.97)!important;
+  border-top:1px solid var(--energy-line)!important;
+}
+.nav button{color:var(--energy-muted)!important}
+.nav button.on{color:var(--energy-yellow)!important}
+.hero{
+  background:
+    linear-gradient(135deg,rgba(255,60,166,.09),rgba(255,214,46,.04)),
+    rgba(11,29,49,.8)!important;
+  border-color:var(--energy-line)!important;
+}
+.bigLap{
+  background:var(--energy-yellow)!important;
+  color:#071423!important;
+}
+.overlay,.manualOverlay{background:rgba(2,8,15,.84)!important}
+a{color:var(--energy-yellow)!important}

@@ -222,7 +222,7 @@ const dynamicBlock = [
 "      const productOnly = flatMockups.get(Number(v.catalog_variant_id)) || null;",
 "      return { ...v, product_only_url:productOnly, mockup_url:productOnly || v.mockup_url || null, image_url:productOnly || v.mockup_url || v.image_url || null };",
 "    });",
-"    const prices = variants.map(v => v.price);"
+"    const prices = variants.map(v => v.price);",
 "    products.push({",
 "      slug: 'pf-' + String(product.id || summary.id),",
 "      name: String(product.name || summary.name || 'Afiléon Motorsport Product').trim(),",

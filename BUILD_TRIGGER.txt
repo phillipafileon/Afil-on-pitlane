@@ -1,2 +1,2 @@
-Pitlane v0.2.1 public release build - 2026-09-18T22:14Z
-Printful live catalogue deployment trigger - 2026-09-29T11:15+01:00
+Pitlane v0.2.2-r5 redesign rebuild
+Triggered 2026-09-30T21:43:19.871Z

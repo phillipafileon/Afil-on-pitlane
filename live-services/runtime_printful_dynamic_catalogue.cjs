@@ -496,6 +496,14 @@ const ss = s.indexOf(shopStart);
 const se = s.indexOf(seasonStart, ss);
 if (ss < 0 || se < 0) throw new Error('Dynamic Printful patch marker missing: shop routes');
 const shopRoutes = [
+  "app.get('/api/shop/printful-map-debug', async (_q,res) => {",
+  "  try {",
+  "    const j = await printfulRequest('GET','/v2/products?limit=100');",
+  "    const rows = Array.isArray(j.data) ? j.data : [];",
+  "    return res.json({ count:rows.length, products:rows.map(x => ({ id:x?.id||null, external_id:x?.external_id||null, name:x?.name||null, catalog_product_id:x?.catalog_product_id||null, available_catalog_variant_ids:x?.available_catalog_variant_ids||[], published_to_stores:x?.published_to_stores||[], placements:Array.isArray(x?.placements)?x.placements.map(p=>({placement:p?.placement||null,technique:p?.technique||null,layers:Array.isArray(p?.layers)?p.layers.length:0})):[] })) });",
+  "  } catch(e) { return res.status(500).json({error:'printful_map_debug_failed',detail:String(e.message||e)}); }",
+  "});",
+  "",
   "app.get('/api/shop/products', async (_q,res) => {",
   "  const catalog = await getPrintfulShopCatalog();",
   "  return res.json({",

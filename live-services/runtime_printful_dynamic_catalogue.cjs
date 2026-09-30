@@ -209,7 +209,7 @@ const dynamicBlock = [
 "          color: meta.color,",
 "          size: meta.size,",
 "          design_files: printfulDesignFiles(v.files),",
-"          mockup_url: printfulSyncVariantMockup(v),"
+"          mockup_url: printfulSyncVariantMockup(v),",
 "          image_url: printfulSyncVariantMockup(v),",
 "          price: printfulPriceToPence(v.retail_price)",
 "        };",

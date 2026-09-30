@@ -231,7 +231,7 @@ const dynamicBlock = [
 "      price_from: Math.min(...prices),",
 "      product_only_url: variants.find(v => v.product_only_url)?.product_only_url || null,",
 "      mockup_url: variants.find(v => v.product_only_url)?.product_only_url || variants.find(v => v.mockup_url)?.mockup_url || product.thumbnail_url || summary.thumbnail_url || null,",
-"      image_url: variants.find(v => v.product_only_url)?.product_only_url || variants.find(v => v.mockup_url)?.mockup_url || product.thumbnail_url || summary.thumbnail_url || null,"
+"      image_url: variants.find(v => v.product_only_url)?.product_only_url || variants.find(v => v.mockup_url)?.mockup_url || product.thumbnail_url || summary.thumbnail_url || null,",
 "      stock: null,",
 "      featured: true,",
 "      collection: 'teamwear',",

@@ -61,7 +61,7 @@ replaceOnce(
   const r = await fetch(\`https://api.printful.com\${endpoint}\`, { method, headers, body: body == null ? undefined : JSON.stringify(body) });
   let j = {};
   try { j = await r.json(); } catch {}
-  if (!r.ok) throw new Error(\`Printful \${r.status}: \${j?.error?.message || j?.error || j?.result || 'request_failed'}\`);
+  if (!r.ok) throw new Error(\`Printful \${r.status} \${method} \${endpoint}: \${j?.error?.message || j?.error || j?.result || 'request_failed'}\`);
   return j;
 }
 

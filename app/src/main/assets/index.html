@@ -95,7 +95,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
   </div>
   <div class="grid">
     <button class="card" data-go="team" style="color:var(--text);text-align:left"><div class="eyebrow">AFILÉON MOTORSPORT</div><b>Team & services</b><p class="muted">Race programme, support services and partners.</p></button>
-    <button class="card" data-go="shop" style="color:var(--text);text-align:left"><div class="eyebrow">SHOP</div><b>Merchandise</b><p class="muted">Afiléon gear — coming soon.</p></button>
+    <button class="card" data-open-shop style="color:var(--text);text-align:left"><div class="eyebrow">SHOP</div><b>Merchandise</b><p class="muted">Open the live Afiléon Motorsport shop on the website.</p></button>
   </div>
 </section>
 
@@ -173,12 +173,6 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
   <div class="panel" style="margin-top:10px"><div class="eyebrow">CONTACT</div><p class="muted">Website: afileonmotorsport.co.uk<br>Email: team@afileonmotorsport.co.uk</p></div>
 </section>
 
-<section id="shop" class="view">
-  <h1>Afiléon Shop</h1>
-  <div class="panel"><div class="eyebrow">MERCHANDISE // COMING SOON</div><p class="muted">Afiléon Motorsport clothing, paddock gear and small accessories are being prepared. Tap any item for a Pitlane status update.</p></div>
-  <div class="shop" id="shopGrid" style="margin-top:10px"></div>
-</section>
-
 <section id="profile" class="view">
   <h1>Driver</h1>
   <div class="panel">
@@ -199,7 +193,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
   <button data-go="track">Track</button>
   <button data-go="garage">Garage</button>
   <button data-go="team">Motorsport</button>
-  <button data-go="shop">Shop</button>
+  <button data-open-shop>Shop</button>
 </nav>
 <div id="toast" class="toast"></div>
 
@@ -308,7 +302,12 @@ function nav(id){
   if(id==='home')home();
   if(id==='track'){refreshLayouts();refreshPB();refreshProfileState();}
 }
-$$('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));
+$('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));
+function openShop(){
+  if(window.PitlaneNative&&PitlaneNative.openShopPage){PitlaneNative.openShopPage();return}
+  window.open('https://afileonmotorsport.co.uk/shop','_blank');
+}
+$('[data-open-shop]').forEach(b=>b.onclick=openShop);
 
 function selectedTrack(){return $('#trackName').value.trim()||'Unnamed circuit'}
 function selectedLayout(){
@@ -373,11 +372,6 @@ function renderCars(){
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 $('#addCar').onclick=()=>{const name=$('#carName').value.trim();if(!name)return toast('Enter a car name');data.cars.push({id:now(),name,tyres:$('#carTyres').value.trim(),torque:$('#carTorque').value.trim()});save();renderCars();home();toast('Car added')};
-
-const products=['Polo','Hoodie','Crewneck jumper','T-shirt','Pencil set','Pencil case','Cap','Sticker pack'];
-const msgs=['Still in the paddock — green light soon.','Not on pole yet. Coming soon.','Currently in parc fermé.','Pit crew are still working on it.','Red lights on. Launch coming soon.','Tyres warm. Merch nearly ready.','Still on the formation lap.','Garage doors open soon.','Flat out in development.','Awaiting race control approval.','Not race-ready just yet.','Hold position — drop incoming.'];
-$('#shopGrid').innerHTML=products.map(p=>`<button class="card" data-product="${p}" style="color:var(--text);text-align:left"><b>${p}</b><div class="soon">COMING SOON</div></button>`).join('');
-$$('[data-product]').forEach(b=>b.onclick=()=>toast(msgs[Math.floor(Math.random()*msgs.length)]));
 
 $('#driverName').value=data.profile.name||'';$('#driverCountry').value=data.profile.country||'';$('#driverId').textContent=`Local driver ID: ${data.profile.id}`;
 $('#saveProfile').onclick=()=>{data.profile.name=$('#driverName').value.trim();data.profile.country=$('#driverCountry').value.trim();save();toast('Driver profile saved locally')};

@@ -129,6 +129,18 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public void openShopPage() {
+            runOnUiThread(() -> {
+                try {
+                    Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("https://afileonmotorsport.co.uk/shop"));
+                    startActivity(browser);
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "No browser is available to open the Afiléon shop.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void installPendingUpdate() {
             runOnUiThread(() -> {
                 if (pendingUpdateFile != null && pendingUpdateFile.exists()) {

@@ -403,7 +403,7 @@ const dynamicBlock = [
 "      variants",
 "    });",
 "  }",
-"  return await enrichPrintfulFlatProductMockups(products);",
+"  return products;",
 "}",
 "",
 "async function getPrintfulShopCatalog(force = false) {",

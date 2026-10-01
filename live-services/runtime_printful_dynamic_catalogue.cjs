@@ -170,7 +170,7 @@ const dynamicBlock = [
 "let PRINTFUL_FLAT_BATCH_REFRESH = null;",
 "",
 "function printfulNeedsGarmentOnlyMockup(name) {",
-"  return /(?:t-?shirt|\\btee\\b|hoodie|jumper|sweatshirt|sweater|windbreaker|jacket|polo|jersey|tank|shirt|top)/i.test(String(name || ''));",
+"  return /(?:t-?shirt|\\btee\\b|hoodie|jumper|sweatshirt|sweater|windbreaker|jacket|polo|jersey|tank|shirt|top|backpack|\\bbag\\b|sticker|cap|hat|beanie)/i.test(String(name || ''));",
 "}",
 "",
 "function printfulVariantColourKey(v) {",

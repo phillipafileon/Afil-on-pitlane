@@ -28,5 +28,22 @@ function decorate(){
   });
 }
 decorate();
+// Shop: call the native bridge, then fall back to opening the site if nothing happened.
+const SHOP='https://afileonmotorsport.co.uk/shop';
+function openShopSafe(){
+  let left=false;const mark=()=>{left=true};
+  document.addEventListener('visibilitychange',mark,{once:true});
+  window.addEventListener('pagehide',mark,{once:true});
+  try{if(window.PitlaneNative&&PitlaneNative.openShopPage)PitlaneNative.openShopPage()}catch(_){}
+  setTimeout(()=>{
+    if(left||document.hidden)return;
+    try{const a=document.createElement('a');a.href=SHOP;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}catch(_){}
+    setTimeout(()=>{if(!left&&!document.hidden)location.href=SHOP},700);
+  },600);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-open-shop]');if(!b)return;
+  e.preventDefault();e.stopImmediatePropagation();openShopSafe();
+},true);
 new MutationObserver(decorate).observe(document.querySelector('.nav')||document.body,{childList:true,subtree:true});
 })();

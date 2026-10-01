@@ -501,7 +501,7 @@ const shopRoutes = [
   "    const j = await printfulRequest('GET','/product-templates?limit=100');",
   "    const items = Array.isArray(j?.result?.items) ? j.result.items : [];",
   "    return res.json({ count:items.length, templates:items.map(x => ({ id:x?.id||null, product_id:x?.product_id||null, external_product_id:x?.external_product_id||null, title:x?.title||null, mockup_file_url:x?.mockup_file_url||x?.mockup_file?.imageURL||null, colors:x?.colors||[], sizes:x?.sizes||[], placements:x?.placements||[], available_variant_ids:x?.available_variant_ids||[] })) });",
-  "  } catch(e) { return res.status(500).json({error:'printful_template_debug_failed',detail:String(e.message||e)}); }",
+  "  } catch(e) { return res.json({ok:false,error:'printful_template_debug_failed',detail:String(e.message||e)}); }",
   "});",
   "",
   "app.get('/api/shop/printful-map-debug', async (_q,res) => {",

@@ -31,7 +31,7 @@ input,select,textarea{background:var(--navy)!important;border:0!important;border
 input:focus,select:focus,textarea:focus{outline:0;border-bottom-color:var(--yel)!important}
 :focus-visible{outline:3px solid var(--yel);outline-offset:2px}
 /* Bottom navigation */
-.nav{display:flex!important;grid-template-columns:none!important;background:var(--navy)!important;border-top:0!important;box-shadow:0 -4px 0 var(--hot),0 -14px 30px rgba(0,0,0,.45)!important;padding:0 0 env(safe-area-inset-bottom)!important;z-index:50!important}
+.nav{display:flex!important;grid-template-columns:none!important;background:var(--navy)!important;border-top:0!important;box-shadow:0 -4px 0 var(--hot),0 -14px 30px rgba(0,0,0,.45)!important;padding:0!important;bottom:0!important;z-index:50!important}
 .nav:before{display:none!important}
 .nav button{flex:1 1 0;min-width:0;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;
 min-height:58px;padding:9px 2px 8px!important;background:none!important;color:var(--mut)!important;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
@@ -41,7 +41,11 @@ min-height:58px;padding:9px 2px 8px!important;background:none!important;color:va
 .nav button.on svg{transform:translateY(-1px) scale(1.12)}
 .nav button.on:after{content:"";position:absolute;top:0;left:22%;right:22%;height:4px;background:var(--yel);transform:skewX(-30deg)}
 .nav button:active svg{transform:scale(.9)}
-.app{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+.app{padding-bottom:84px!important}
 .view.active{animation:pl-in .22s ease-out}
 @keyframes pl-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* v0.6.1: nav sits flush to the bottom; no extra safe-area padding (WebView already sits above the system bar) */
+.nav{padding-bottom:0!important;margin-bottom:0!important}
+.nav button{min-height:56px}

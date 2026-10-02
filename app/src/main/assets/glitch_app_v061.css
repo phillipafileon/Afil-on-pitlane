@@ -1,0 +1,47 @@
+/* Afiléon Pitlane v0.6.1 — cyberpunk glitch layer. Visual only; loads after redbull_app_v060.css.
+   Scoped to html.gx, which glitch_app_v061.js adds. Palette unchanged (pink / cyan / yellow already in the app). */
+@media(prefers-reduced-motion:no-preference){
+.gx h1.gl-title,.gx h2.gl-title{animation:cpa-title 1s steps(1,end) both}
+@keyframes cpa-title{
+0%{opacity:0}
+8%{opacity:1;transform:translate(-7px,0) skewX(-8deg);text-shadow:-5px 0 var(--hot,#ff3bd4),5px 0 var(--c,#3fcfff);clip-path:inset(0 0 66% 0)}
+16%{transform:translate(9px,0) skewX(4deg);text-shadow:5px 0 var(--hot,#ff3bd4),-5px 0 var(--c,#3fcfff);clip-path:inset(34% 0 30% 0)}
+24%{opacity:.3;transform:none;text-shadow:none;clip-path:inset(0)}
+34%{opacity:1;transform:translate(-4px,1px);text-shadow:-3px 0 var(--hot,#ff3bd4),3px 0 var(--c,#3fcfff);clip-path:inset(58% 0 0 0)}
+46%{transform:translate(5px,0);clip-path:inset(0 0 44% 0)}
+56%{transform:none;text-shadow:none;clip-path:inset(0)}
+72%{transform:translate(-2px,0);text-shadow:2px 0 var(--hot,#ff3bd4),-2px 0 var(--c,#3fcfff)}
+82%{transform:none;text-shadow:none}
+100%{opacity:1;transform:none;text-shadow:none;clip-path:inset(0)}}
+.gx .gl-shake{animation:cpa-shake .6s steps(1,end) both}
+.gx .header-logo.gl-shake{filter:drop-shadow(-3px 0 var(--hot,#ff3bd4)) drop-shadow(3px 0 var(--c,#3fcfff))}
+@keyframes cpa-shake{
+0%{transform:none}
+10%{transform:translate(-5px,2px) skewX(-3deg);text-shadow:-3px 0 var(--hot,#ff3bd4),3px 0 var(--c,#3fcfff)}
+22%{transform:translate(4px,-2px);text-shadow:3px 0 var(--hot,#ff3bd4),-3px 0 var(--c,#3fcfff)}
+34%{transform:translate(-3px,0) skewX(2deg);text-shadow:-2px 0 var(--hot,#ff3bd4),2px 0 var(--c,#3fcfff)}
+48%{transform:translate(5px,1px)}
+62%{transform:translate(-2px,-1px);text-shadow:none}
+78%{transform:translate(2px,0);text-shadow:-2px 0 var(--hot,#ff3bd4),2px 0 var(--c,#3fcfff)}
+100%{transform:none;text-shadow:none}}
+.gx .gl-tear{animation:cpa-tear .7s steps(1,end) both}
+@keyframes cpa-tear{
+0%{clip-path:inset(0);transform:none}
+12%{clip-path:inset(8% 0 62% 0);transform:translateX(-10px)}
+24%{clip-path:inset(54% 0 18% 0);transform:translateX(12px)}
+36%{clip-path:inset(0);transform:translateX(-3px)}
+48%{clip-path:inset(30% 0 40% 0);transform:translateX(9px)}
+60%{clip-path:inset(0);transform:none}
+74%{clip-path:inset(72% 0 4% 0);transform:translateX(-7px)}
+86%{clip-path:inset(0);transform:none}
+100%{clip-path:inset(0);transform:none}}
+.gx .gl-flicker{animation:cpa-flicker .9s steps(1,end) both}
+@keyframes cpa-flicker{
+0%{opacity:1}
+14%{opacity:.55;transform:translateX(3px)}
+30%{opacity:1;transform:none}
+52%{opacity:.6;transform:translateX(-3px)}
+68%{opacity:1;transform:none}
+100%{opacity:1}}
+}
+@media(prefers-reduced-motion:reduce){.gx *{animation:none!important}}

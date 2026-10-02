@@ -70,6 +70,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
 <link rel="stylesheet" href="app_theme_v059.css">
 <link rel="stylesheet" href="factory_layout_v057.css">
 <link rel="stylesheet" href="redbull_app_v060.css">
+<link rel="stylesheet" href="glitch_app_v061.css">
 </head>
 <body>
 <div class="app">
@@ -304,7 +305,7 @@ function nav(id){
   if(id==='home')home();
   if(id==='track'){refreshLayouts();refreshPB();refreshProfileState();}
 }
-$('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));
+$$('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));
 function openShop(){
   if(window.PitlaneNative&&PitlaneNative.openShopPage){PitlaneNative.openShopPage();return}
   window.open('https://afileonmotorsport.co.uk/shop','_blank');
@@ -527,5 +528,6 @@ renderLaps();renderCars();home();refreshPB();refreshProfileState();
 })();
 </script>
 <script src="redbull_app_v060.js"></script>
+<script src="glitch_app_v061.js"></script>
 </body>
 </html>

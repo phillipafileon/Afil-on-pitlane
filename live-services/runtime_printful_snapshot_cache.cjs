@@ -131,7 +131,7 @@ if (normaliseStart < 0 || normaliseEnd < 0) throw new Error('Printful snapshot p
 let normalise = s.slice(normaliseStart, normaliseEnd + 2);
 normalise = normalise.replace(
   '  const catalog = await getPrintfulShopCatalog();',
-  "  const catalog = await getPrintfulShopCatalog(true);\n  if (!printfulCatalogueCheckoutFresh()) throw new Error('catalogue_refresh_required');"
+  "  const catalog = await getPrintfulShopCatalog(printfulCatalogAgeMs() >= SHOP_CATALOG_TTL_MS);\n  if (!printfulCatalogueCheckoutFresh()) throw new Error('catalogue_refresh_required');"
 );
 s = s.slice(0, normaliseStart) + normalise + s.slice(normaliseEnd + 2);
 

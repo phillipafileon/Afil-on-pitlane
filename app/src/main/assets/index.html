@@ -304,7 +304,7 @@ function nav(id){
   if(id==='home')home();
   if(id==='track'){refreshLayouts();refreshPB();refreshProfileState();}
 }
-$('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));
+$$('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));
 function openShop(){
   if(window.PitlaneNative&&PitlaneNative.openShopPage){PitlaneNative.openShopPage();return}
   window.open('https://afileonmotorsport.co.uk/shop','_blank');

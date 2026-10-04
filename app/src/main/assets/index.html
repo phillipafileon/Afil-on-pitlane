@@ -71,6 +71,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
 <link rel="stylesheet" href="factory_layout_v057.css">
 <link rel="stylesheet" href="redbull_app_v060.css">
 <link rel="stylesheet" href="glitch_app_v061.css">
+<link rel="stylesheet" href="pitlane_pro_v070.css">
 </head>
 <body>
 <div class="app">
@@ -86,6 +87,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
     <p class="muted">Offline-first track-day logging, GPS lap timing, setup notes, pressures, garage history and Afiléon Motorsport.</p>
     <button class="btn wide" data-go="track">Start track day</button>
   </div>
+  <button class="card proCard" id="proOpenHome" type="button" style="margin-top:10px"><div class="eyebrow">ANALYSIS</div><b>Laps, sensors &amp; backup</b><p class="muted" id="proHomeText">Lap analysis, sensors and backup.</p></button>
   <div class="grid">
     <div class="stat"><span>Personal best</span><b id="hBest">—</b></div>
     <div class="stat"><span>Recorded laps</span><b id="hLaps">0</b></div>
@@ -139,6 +141,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
     <button id="openManual" class="btn alt">Passenger / crew manual timing</button>
     <button id="finish" class="btn danger">Finish & save</button>
   </div>
+  <div class="actions"><button id="proOpenTrack" class="btn alt wide" type="button">Lap analysis · sensors · backup</button></div>
 
   <div class="panel" style="margin-top:10px">
     <div class="eyebrow">LAPS</div>
@@ -214,7 +217,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
     <h2>Your responsibility</h2>
     <p class="muted">You remain responsible for safe driving, vehicle condition, device mounting, circuit compliance and deciding whether it is safe and lawful to use the app. Stop using Pitlane if it interferes with safe operation of the vehicle.</p>
     <h2>Location & privacy</h2>
-    <p class="muted">During an active automatic timing session Pitlane processes precise location on the device. Full route history is not saved. For learned layouts Pitlane may save only the start/finish anchor and two derived checkpoint anchors, together with lap/session results. Location is not used for advertising.</p>
+    <p class="muted">During an active automatic timing session Pitlane processes precise location on the device. Full route history is not saved. For learned layouts Pitlane may save only the start/finish anchor and two derived checkpoint anchors, together with lap/session results. If you switch on “Save driven line” in Analysis (off by default), the position, speed and timing of completed laps are also stored on this device only. Location is not used for advertising.</p>
     <h2>Liability</h2>
     <p class="muted">Pitlane is provided as a convenience tool and may contain errors or become unavailable. To the extent permitted by law, Afiléon Motorsport is not responsible for losses caused by reliance on approximate timing or by use contrary to these safety instructions. Nothing in these terms excludes or restricts liability where the law does not permit that exclusion or restriction.</p>
     <label class="checkrow"><input id="termsCheck" type="checkbox"> <span>I have read and agree to the Terms & Safety notice, and I understand that the driver must not interact with the app while the vehicle is moving.</span></label>
@@ -227,7 +230,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
     <div class="eyebrow">PRECISE LOCATION DISCLOSURE</div>
     <h1>GPS timing needs location.</h1>
     <p class="muted">During an active GPS timing session, Afiléon Pitlane uses your precise location to detect start/finish and checkpoint crossings and calculate lap times. The full route is processed temporarily in memory and discarded; Pitlane saves lap results and a small number of circuit anchor points, not your continuous location history.</p>
-    <p class="muted">Pitlane does not use location for advertising. This build requests location only while you are using the app.</p>
+    <p class="muted">Unless you switch on “Save driven line” in Analysis (off by default), nothing but those anchors is kept. Pitlane does not use location for advertising. This build requests location only while you are using the app.</p>
     <div class="actions"><button id="locationContinue" class="btn">Continue</button><button id="locationCancel" class="btn ghost">Not now</button></div>
   </div>
 </div>
@@ -440,7 +443,7 @@ function learnFromLap(candidate){
  }
  data.trackProfiles[key]=p;save();refreshProfileState();return p;
 }
-function finishLap(ms){
+function finishLap(ms,crossT){
  const p=getProfile();
  const cand=candidateFromTrace(currentTrace);
  let status='learning',reason='';
@@ -450,13 +453,18 @@ function finishLap(ms){
  }
  const lap={id:`L${now()}-${Math.random().toString(36).slice(2,7)}`,ms,source:'gps',status,reason,candidate:cand};
  laps.push(lap);
+ try{window.PitlanePro&&PitlanePro.lap(lap.id,ms,status,selectedTrack(),selectedLayout())}catch(_){}
  const learned=learnFromLap(cand);
  if(learned.confirmed){laps.forEach(l=>{if(l.source==='gps'&&l.candidate&&candidatesMatch(profileCandidate(learned),l.candidate))l.status='valid'})}
- lapStart=now();currentTrace=[];outsideStart=false;cp1Hit=false;cp2Hit=false;renderLaps();refreshPB();
+ lapStart=crossT||now();currentTrace=[];outsideStart=false;cp1Hit=false;cp2Hit=false;renderLaps();refreshPB();
  toast(`${status==='invalid'?'Lap stored — validation failed':'GPS lap'} • ${fmt(ms)}`);
 }
 function onPos(p){
- pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy};
+ let drop=false;try{drop=window.PitlanePro&&PitlanePro.intercept(p)}catch(_){}
+ if(drop)return;
+ const prevFix=pos&&pos.ts?pos:null;
+ pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,ts:p.timestamp||now()};
+ try{window.PitlanePro&&PitlanePro.point(p)}catch(_){}
  $('#gps').className='status ok';$('#gps').textContent=`GPS live • ±${Math.round(pos.acc)} m`;
  if(!running)return;
  currentTrace.push({lat:pos.lat,lon:pos.lon}); if(currentTrace.length>5000)currentTrace.shift();
@@ -466,7 +474,12 @@ function onPos(p){
  if(ds>55)outsideStart=true;
  if(prof?.cp1&&!cp1Hit&&hav(pos,prof.cp1)<65)cp1Hit=true;
  if(prof?.cp2&&cp1Hit&&!cp2Hit&&hav(pos,prof.cp2)<65)cp2Hit=true;
- if(outsideStart&&ds<24&&now()-lapStart>18000&&traceDistance(currentTrace)>250){finishLap(now()-lapStart)}
+ let dsx=ds,cr=1;
+ if(prevFix&&pos.ts>prevFix.ts&&window.PitlanePro&&PitlanePro.segClosest){try{const sg=PitlanePro.segClosest(start,prevFix,pos);if(sg.d<dsx){dsx=sg.d;cr=sg.r}}catch(_){}}
+ if(outsideStart&&dsx<24&&now()-lapStart>18000&&traceDistance(currentTrace)>250){
+   const ct=prevFix?now()-(1-cr)*(pos.ts-prevFix.ts):now();
+   finishLap(ct-lapStart,ct);
+ }
 }
 function startTick(){clearInterval(tick);tick=setInterval(()=>$('#current').textContent=fmt(now()-lapStart),100)}
 $('#start').onclick=()=>{
@@ -477,7 +490,7 @@ $('#start').onclick=()=>{
      prof={...(prof||{}),track:selectedTrack(),layout:selectedLayout(),start:{...pos},confirmations:0,confirmed:false};
      data.trackProfiles[pkey()]=prof;save();toast('No saved line — start / finish set here for this first session');
    }
-   startAnchor={...prof.start};running=true;sessionStart=lapStart=now();laps=[];currentTrace=[];outsideStart=false;cp1Hit=false;cp2Hit=false;renderLaps();startTick();
+   startAnchor={...prof.start};running=true;sessionStart=lapStart=now();laps=[];try{window.PitlanePro&&PitlanePro.reset()}catch(_){}currentTrace=[];outsideStart=false;cp1Hit=false;cp2Hit=false;renderLaps();startTick();
    watch=navigator.geolocation.watchPosition(onPos,()=>{$('#gps').className='status bad';$('#gps').textContent='GPS signal lost — session remains active'},{enableHighAccuracy:true,maximumAge:0,timeout:12000});
    $('#gps').className='status ok';$('#gps').textContent='GPS session running';
  });
@@ -494,7 +507,8 @@ function renderLaps(){
 function saveSession(source='gps'){
  const track=selectedTrack(),layout=selectedLayout();
  data.sessions.push({id:`S${now()}`,track,layout,date:new Date().toISOString(),source,laps:laps.map(l=>{const x={...l};if(getProfile()?.confirmed)delete x.candidate;return x})});
- save();home();refreshPB();toast('Session saved locally — no full route stored');
+ save();home();refreshPB();try{PitlanePro.sessionSaved()}catch(_){}
+ toast(window.PitlanePro&&PitlanePro.settings.record?'Session saved locally — driven lines kept on this device':'Session saved locally — no full route stored');
 }
 $('#finish').onclick=()=>{
  if(!running)return toast('No active GPS session');
@@ -519,7 +533,7 @@ $('#manualClose').onclick=()=>{
  clearInterval(manualTick);manualTick=null;
  if(manualLaps.length){
    data.sessions.push({id:`S${now()}`,track:selectedTrack(),layout:selectedLayout(),date:new Date().toISOString(),source:'manual',laps:manualLaps});
-   save();home();refreshPB();toast('Manual session saved locally');
+   save();home();refreshPB();try{PitlanePro.sessionSaved()}catch(_){}toast('Manual session saved locally');
  }
  manualRunning=false;$('#manualOverlay').classList.remove('show');
 };
@@ -529,5 +543,6 @@ renderLaps();renderCars();home();refreshPB();refreshProfileState();
 </script>
 <script src="redbull_app_v060.js"></script>
 <script src="glitch_app_v061.js"></script>
+<script src="pitlane_pro_v070.js"></script>
 </body>
 </html>

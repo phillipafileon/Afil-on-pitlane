@@ -226,6 +226,8 @@ public class MainActivity extends AppCompatActivity {
                         "})()",
                         null);
 
+                view.evaluateJavascript(PitlaneProBundle.script(), null);
+
                 ensureUpdateStatusUi();
                 checkForUpdates(true, false);
             }

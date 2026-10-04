@@ -2,7 +2,7 @@ name: Build Afileon Pitlane APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, chatgpt/pitlane-v0.7.1-build ]
     paths:
       - 'app/**'
       - 'build.gradle'

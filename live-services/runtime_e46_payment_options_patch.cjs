@@ -59,7 +59,7 @@ if(!s.includes('// E46_PAYMENT_OPTIONS_V12')){
     'balance invoice due timing'
   );
 
-  const balanceCronResponse="  const damageSecuritySweep=await refreshDamageSecurityExpiries();\\n  res.json({processed:results.length,results,recovery_processed:recovery.length,recovery,damage_security:damageSecuritySweep});";
+  const balanceCronResponse="  const damageSecuritySweep=await refreshDamageSecurityExpiries();\n  res.json({processed:results.length,results,recovery_processed:recovery.length,recovery,damage_security:damageSecuritySweep});";
   if(s.includes(balanceCronResponse) && !s.includes('overdue_balance_cancellations')){
     const overdueBlock=`  const damageSecuritySweep=await refreshDamageSecurityExpiries();
   // overdue_balance_cancellations

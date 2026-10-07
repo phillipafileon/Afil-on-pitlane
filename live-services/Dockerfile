@@ -59,10 +59,15 @@ RUN node runtime_admin_password_login_patch.cjs
 COPY runtime_printful_dynamic_catalogue.cjs ./
 COPY runtime_printful_snapshot_cache.cjs ./
 COPY runtime_dynamic_pricing_patch.cjs ./
+COPY runtime_damage_security_helpers.inc ./
+COPY runtime_damage_security_public.inc ./
+COPY runtime_damage_security_admin.inc ./
+COPY runtime_damage_security_patch.cjs ./
 COPY runtime_priority_recovery_patch.cjs ./
 RUN node runtime_printful_dynamic_catalogue.cjs
 RUN node runtime_printful_snapshot_cache.cjs
 RUN node runtime_dynamic_pricing_patch.cjs
+RUN node runtime_damage_security_patch.cjs
 RUN node runtime_priority_recovery_patch.cjs
 ENV NODE_ENV=production
 EXPOSE 3000

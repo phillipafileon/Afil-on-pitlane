@@ -66,6 +66,7 @@ COPY runtime_damage_security_patch.cjs ./
 COPY runtime_priority_recovery_patch.cjs ./
 COPY runtime_master_availability_patch.cjs ./
 COPY runtime_e46_payment_options_patch.cjs ./
+COPY runtime_availability_enforcement_patch.cjs ./
 RUN node runtime_printful_dynamic_catalogue.cjs
 RUN node runtime_printful_snapshot_cache.cjs
 RUN node runtime_dynamic_pricing_patch.cjs
@@ -73,6 +74,7 @@ RUN node runtime_damage_security_patch.cjs
 RUN node runtime_priority_recovery_patch.cjs
 RUN node runtime_master_availability_patch.cjs
 RUN node runtime_e46_payment_options_patch.cjs
+RUN node runtime_availability_enforcement_patch.cjs
 ENV NODE_ENV=production
 EXPOSE 3000
 # Afiléon transactional email, promo codes, secure password admin and Printful integrations

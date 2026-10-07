@@ -61,6 +61,47 @@ if(!s.includes('damage_security_status TEXT')){
 }
 
 if(!s.includes('function damageSecurityPublicView('))before("app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {",HELPERS,'helpers');
+
+if(!s.includes("'reauthorisation_replacement'")){
+  const oldBlock=`  if(b.stripe_damage_security_payment_intent_id&&b.damage_security_status==='authorised'){
+    const synced=await syncDamageSecurityPaymentIntent(b.stripe_damage_security_payment_intent_id,'checkout_recheck');
+    if(synced&&damageSecurityPublicView(synced).release_ready)return {already_authorised:true,status:damageSecurityPublicView(synced)};
+  }`;
+  const newBlock=`  if(b.stripe_damage_security_payment_intent_id&&b.damage_security_status==='authorised'){
+    const synced=await syncDamageSecurityPaymentIntent(b.stripe_damage_security_payment_intent_id,'checkout_recheck');
+    if(synced&&damageSecurityPublicView(synced).release_ready)return {already_authorised:true,status:damageSecurityPublicView(synced)};
+    if(synced&&synced.damage_security_status==='authorised'){
+      await stripe.paymentIntents.cancel(synced.stripe_damage_security_payment_intent_id);
+      await syncDamageSecurityPaymentIntent(synced.stripe_damage_security_payment_intent_id,'reauthorisation_replacement');
+      b.damage_security_status='expired';
+    }
+  }`;
+  if(!s.includes(oldBlock))throw new Error('Damage security patch marker missing: reauthorisation replacement');
+  s=s.replace(oldBlock,newBlock);
+}
+
+if(!s.includes('damage_security_webhook_sync')){
+  const marker='    const o = event.data.object;';
+  if(!s.includes(marker))throw new Error('Damage security patch marker missing: webhook object');
+  const hook=`
+    // damage_security_webhook_sync
+    if (event.type === 'checkout.session.completed' && o.metadata?.kind === 'e46_damage_security') {
+      await pool.query(\`UPDATE bookings SET stripe_damage_security_checkout_session_id=$1,stripe_damage_security_payment_intent_id=COALESCE($2,stripe_damage_security_payment_intent_id),damage_security_updated_at=now(),updated_at=now() WHERE public_id=$3\`,[o.id,typeof o.payment_intent==='string'?o.payment_intent:null,o.metadata.booking_id]);
+      if(o.payment_intent) await syncDamageSecurityPaymentIntent(typeof o.payment_intent==='string'?o.payment_intent:o.payment_intent.id,'webhook_checkout_completed');
+    }
+    if (event.type === 'checkout.session.expired' && o.metadata?.kind === 'e46_damage_security') {
+      await pool.query(\`UPDATE bookings SET damage_security_status=CASE WHEN damage_security_status='awaiting_customer' THEN 'not_authorised' ELSE damage_security_status END,damage_security_failure_reason=CASE WHEN damage_security_status='awaiting_customer' THEN 'checkout_session_expired' ELSE damage_security_failure_reason END,damage_security_updated_at=now(),updated_at=now() WHERE public_id=$1\`,[o.metadata.booking_id]);
+    }
+    if (['payment_intent.amount_capturable_updated','payment_intent.succeeded','payment_intent.canceled','payment_intent.payment_failed'].includes(event.type) && o.metadata?.kind === 'e46_damage_security') {
+      await syncDamageSecurityPaymentIntent(o.id,'webhook_'+event.type);
+    }`;
+  s=s.replace(marker,marker+hook);
+}
+if(!s.includes("'payment_intent.amount_capturable_updated'")){
+  const marker="    'invoice.payment_failed',\n    'charge.refunded'";
+  if(!s.includes(marker))throw new Error('Damage security patch marker missing: webhook event list');
+  s=s.replace(marker,"    'invoice.payment_failed',\n    'payment_intent.amount_capturable_updated',\n    'payment_intent.succeeded',\n    'payment_intent.canceled',\n    'payment_intent.payment_failed',\n    'charge.refunded'");
+}
 if(!s.includes("app.get('/api/bookings/:id/damage-security'"))before("app.get('/api/availability', async (req, res) => {",PUBLIC_ROUTES,'public routes');
 if(!s.includes("app.get('/api/admin/bookings/:id/damage-security'"))before("app.get('/api/admin/summary'",ADMIN_ROUTES,'admin routes');
 

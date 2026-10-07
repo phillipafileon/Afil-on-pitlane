@@ -81,7 +81,7 @@ if(!s.includes("'reauthorisation_replacement'")){
 }
 
 if(!s.includes('damage_security_webhook_sync')){
-  const marker='    const o = event.data.object;';
+  const marker=s.includes('    const o = event.data.object;')?'    const o = event.data.object;':s.includes('  const o = event.data.object;')?'  const o = event.data.object;':'const o = event.data.object;';
   if(!s.includes(marker))throw new Error('Damage security patch marker missing: webhook object');
   const hook=`
     // damage_security_webhook_sync

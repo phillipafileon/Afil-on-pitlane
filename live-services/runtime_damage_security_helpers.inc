@@ -108,6 +108,7 @@ async function createDamageSecurityCheckout(b){
   if(!openAt||now<openAt)throw Object.assign(new Error('damage_security_too_early'),{statusCode:409,availableFrom:openAt?.toISOString?.()||null});
   if(hireEnd&&now>hireEnd)throw Object.assign(new Error('damage_security_window_closed'),{statusCode:409});
   if(!['confirmed','confirmed_pending_licence'].includes(String(b.status||'')))throw Object.assign(new Error('booking_not_confirmed'),{statusCode:409});
+  if(['partially_captured','fully_captured'].includes(String(b.damage_security_status||'')))throw Object.assign(new Error('damage_security_already_closed'),{statusCode:409});
   if(Number(b.amount_total||0)>0&&Number(b.amount_paid||0)<Number(b.amount_total||0))throw Object.assign(new Error('booking_balance_not_paid'),{statusCode:409});
 
   if(b.stripe_damage_security_payment_intent_id&&b.damage_security_status==='authorised'){
@@ -119,7 +120,7 @@ async function createDamageSecurityCheckout(b){
     try{const existing=await stripe.checkout.sessions.retrieve(b.stripe_damage_security_checkout_session_id);if(existing.status==='open'&&existing.url)return {checkout_url:existing.url,session_id:existing.id,reused:true};}catch{}
   }
 
-  const mark=await pool.query(`UPDATE bookings SET damage_security_status='creating_checkout',damage_security_required_amount=$1,damage_security_attempt=COALESCE(damage_security_attempt,0)+1,damage_security_failure_reason=NULL,damage_security_updated_at=now(),updated_at=now() WHERE public_id=$2 AND damage_security_status<>'creating_checkout' RETURNING *`,[required,b.public_id]);
+  const mark=await pool.query(`UPDATE bookings SET damage_security_status='creating_checkout',damage_security_required_amount=$1,damage_security_attempt=COALESCE(damage_security_attempt,0)+1,damage_security_failure_reason=NULL,stripe_damage_security_checkout_session_id=NULL,stripe_damage_security_payment_intent_id=NULL,damage_security_capturable_amount=0,damage_security_capture_before=NULL,damage_security_updated_at=now(),updated_at=now() WHERE public_id=$2 AND damage_security_status<>'creating_checkout' RETURNING *`,[required,b.public_id]);
   if(!mark.rows[0])throw Object.assign(new Error('damage_security_checkout_being_created'),{statusCode:409});
   const current=mark.rows[0],attempt=Number(current.damage_security_attempt||1);
   const params={
@@ -136,7 +137,7 @@ async function createDamageSecurityCheckout(b){
   if(b.stripe_customer_id)params.customer=b.stripe_customer_id;else{params.customer_email=b.customer_email||undefined;params.customer_creation='always';}
   try{
     const session=await stripe.checkout.sessions.create(params,{idempotencyKey:`e46_damage_security_${b.public_id}_${attempt}`});
-    await pool.query(`UPDATE bookings SET damage_security_status='awaiting_customer',stripe_damage_security_checkout_session_id=$1,stripe_damage_security_payment_intent_id=COALESCE($2,stripe_damage_security_payment_intent_id),damage_security_updated_at=now(),updated_at=now() WHERE public_id=$3`,[session.id,typeof session.payment_intent==='string'?session.payment_intent:null,b.public_id]);
+    await pool.query(`UPDATE bookings SET damage_security_status='awaiting_customer',stripe_damage_security_checkout_session_id=$1,stripe_damage_security_payment_intent_id=$2,damage_security_updated_at=now(),updated_at=now() WHERE public_id=$3`,[session.id,typeof session.payment_intent==='string'?session.payment_intent:null,b.public_id]);
     await recordDamageSecurityEvent(b.public_id,'checkout_created',current.damage_security_status,'awaiting_customer',required,{session_id:session.id,attempt},'customer',null);
     return {checkout_url:session.url,session_id:session.id};
   }catch(e){

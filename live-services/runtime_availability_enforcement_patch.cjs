@@ -14,21 +14,50 @@ function insertBefore(anchor,block,label){
   s=s.slice(0,i)+block+'\n'+s.slice(i);
 }
 
-if(!s.includes('// AVAILABILITY_ENFORCEMENT_V1')){
+if(!s.includes('// AVAILABILITY_ENFORCEMENT_V2')){
   const holdOld="    const block = await client.query(\`SELECT 1 FROM availability_blocks WHERE block_date=$1 LIMIT 1\`, [b.booking_date]);";
-  const holdNew="    const block = await client.query(\`SELECT 1 FROM availability_blocks WHERE block_date=$1 AND (service_id IS NULL OR service_id='' OR service_id='*' OR service_id=$2) LIMIT 1\`, [b.booking_date,service.id]);";
+  const holdNew="    const block = await client.query(\`SELECT 1 FROM availability_blocks WHERE block_date=$1 AND (service_id IS NULL OR service_id='' OR service_id='*' OR service_id=$2 OR EXISTS (SELECT 1 FROM availability_blocks legacy WHERE legacy.block_date=$1 AND legacy.service_id IN ('vehicle_hire_day','track_day_support','vehicle_transport') GROUP BY legacy.block_date HAVING COUNT(DISTINCT legacy.service_id)=3)) LIMIT 1\`, [b.booking_date,service.id]);";
   replaceOnce(holdOld,holdNew,'service-specific booking hold block check');
 
   const checkoutAnchor="  const service = SERVICE_MAP.get(b.service_id), variant = variantFor(service, b.variant_id);\n  if (!service || !variant || !b.booking_payment_amount) return res.status(400).json({ error: 'quote_required' });";
-  const checkoutReplacement="  const service = SERVICE_MAP.get(b.service_id), variant = variantFor(service, b.variant_id);\n  if (!service || !variant || !b.booking_payment_amount) return res.status(400).json({ error: 'quote_required' });\n  const checkoutClosure=await masterClosureState(isoDate(b.booking_date));\n  if(checkoutClosure.closed_now||checkoutClosure.requested_date_closed) return res.status(409).json({error:'business_temporarily_closed',detail:'Online booking is unavailable for this date.'});\n  const checkoutBlock=await pool.query(\`SELECT 1 FROM availability_blocks WHERE block_date=$1 AND (service_id IS NULL OR service_id='' OR service_id='*' OR service_id=$2) LIMIT 1\`,[isoDate(b.booking_date),b.service_id]);\n  if(checkoutBlock.rowCount) return res.status(409).json({error:'date_unavailable',detail:'This service is no longer available on the selected date. No payment has been taken.'});";
+  const checkoutReplacement="  const service = SERVICE_MAP.get(b.service_id), variant = variantFor(service, b.variant_id);\n  if (!service || !variant || !b.booking_payment_amount) return res.status(400).json({ error: 'quote_required' });\n  const checkoutClosure=await masterClosureState(isoDate(b.booking_date));\n  if(checkoutClosure.closed_now||checkoutClosure.requested_date_closed) return res.status(409).json({error:'business_temporarily_closed',detail:'Online booking is unavailable for this date.'});\n  const checkoutBlock=await pool.query(\`SELECT 1 FROM availability_blocks WHERE block_date=$1 AND (service_id IS NULL OR service_id='' OR service_id='*' OR service_id=$2 OR EXISTS (SELECT 1 FROM availability_blocks legacy WHERE legacy.block_date=$1 AND legacy.service_id IN ('vehicle_hire_day','track_day_support','vehicle_transport') GROUP BY legacy.block_date HAVING COUNT(DISTINCT legacy.service_id)=3)) LIMIT 1\`,[isoDate(b.booking_date),b.service_id]);\n  if(checkoutBlock.rowCount) return res.status(409).json({error:'date_unavailable',detail:'This service is no longer available on the selected date. No payment has been taken.'});";
   replaceOnce(checkoutAnchor,checkoutReplacement,'checkout availability recheck');
+
+  const legacyOverlay = `
+app.use('/api/availability', async (_req,res,next) => {
+  const priorJson=res.json.bind(res);
+  res.json=body=>{
+    try{
+      if(body&&Array.isArray(body.busy)){
+        const byDate=new Map();
+        for(const row of body.busy){
+          if(String(row.status||'').toLowerCase()!=='blocked') continue;
+          const date=String(row.date||row.block_date||'').slice(0,10);
+          const sid=String(row.service_id||'');
+          if(!date) continue;
+          if(!byDate.has(date)) byDate.set(date,new Set());
+          byDate.get(date).add(sid);
+        }
+        const core=['vehicle_hire_day','track_day_support','vehicle_transport'];
+        for(const [date,ids] of byDate){
+          if(ids.has('')||ids.has('*')) continue;
+          if(core.every(id=>ids.has(id))) body.busy.push({date,service_id:'',status:'blocked',kind:'legacy_all_services',label:'Unavailable'});
+        }
+      }
+    }catch(e){console.error('legacy all-services availability overlay failed',e)}
+    return priorJson(body);
+  };
+  next();
+});
+`;
+  insertBefore("app.get('/api/availability'",legacyOverlay,'public availability route');
 
   const quoteGuard = `
 app.use('/api/quotes', async (req,res,next) => {
   try {
     const b=req.body||{};
     if(!isDate(b.requested_date)||!b.service_id) return next();
-    const blocked=await pool.query(\`SELECT 1 FROM availability_blocks WHERE block_date=$1 AND (service_id IS NULL OR service_id='' OR service_id='*' OR service_id=$2) LIMIT 1\`,[b.requested_date,String(b.service_id)]);
+    const blocked=await pool.query(\`SELECT 1 FROM availability_blocks WHERE block_date=$1 AND (service_id IS NULL OR service_id='' OR service_id='*' OR service_id=$2 OR EXISTS (SELECT 1 FROM availability_blocks legacy WHERE legacy.block_date=$1 AND legacy.service_id IN ('vehicle_hire_day','track_day_support','vehicle_transport') GROUP BY legacy.block_date HAVING COUNT(DISTINCT legacy.service_id)=3)) LIMIT 1\`,[b.requested_date,String(b.service_id)]);
     if(blocked.rowCount) return res.status(409).json({error:'date_unavailable',detail:'This service is unavailable on the requested date.'});
     next();
   } catch(e) {
@@ -89,4 +118,4 @@ app.post('/api/admin/availability-range', admin, async (req,res) => {
 }
 
 fs.writeFileSync(path,s);
-console.log('Applied transactional all-services availability and server-side availability enforcement.');
+console.log('Applied transactional all-services availability, legacy block compatibility and server-side enforcement.');

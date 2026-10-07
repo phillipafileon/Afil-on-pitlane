@@ -14,6 +14,10 @@ if (!s.includes('async function ensureStripeWebhookEvents()')) {
     'checkout.session.expired',
     'invoice.paid',
     'invoice.payment_failed',
+    'payment_intent.amount_capturable_updated',
+    'payment_intent.succeeded',
+    'payment_intent.canceled',
+    'payment_intent.payment_failed',
     'charge.refunded'
   ];
   try {

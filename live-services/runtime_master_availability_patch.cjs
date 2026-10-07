@@ -117,8 +117,10 @@ insertBefore("app.post('/api/quotes'", guard, 'quote route anchor');
 
 const publicRoute = `
 app.get('/api/business-availability', async (_req,res) => {
-  try { res.json(await masterClosureState()); }
-  catch (e) { console.error(e); res.status(503).json({error:'business_availability_unavailable'}); }
+  try {
+    const x=await masterClosureState();
+    res.json({configured:x.configured,closed_now:x.closed_now,status:x.status,start_date:x.start_date,end_date:x.end_date,reopens_on:x.reopens_on,public_message:x.public_message,today:x.today});
+  } catch (e) { console.error(e); res.status(503).json({error:'business_availability_unavailable'}); }
 });
 `;
 insertBefore("app.get('/api/season'", publicRoute, 'season route anchor');

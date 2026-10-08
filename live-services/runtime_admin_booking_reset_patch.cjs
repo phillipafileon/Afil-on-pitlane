@@ -106,8 +106,8 @@ app.post('/api/admin/availability/clear-all',admin,async(req,res)=>{
 `;
   insertBefore("app.post('/api/admin/block-date'",routes,'admin block-date routes');
 
-  const startup="migrate().then(()=>app.listen(port,'0.0.0.0',()=>console.log(\`Afiléon Live Services v3 listening on \${port}\`))).catch(e=>{console.error(e);process.exit(1)});";
-  const startupNew="migrate().then(async()=>{await maybeOneTimeBookingReset();app.listen(port,'0.0.0.0',()=>console.log(\`Afiléon Live Services v3 listening on \${port}\`))}).catch(e=>{console.error(e);process.exit(1)});";
+  const startup="migrate().then(async()=>{\n  await ensurePrintfulWebhook();\n  await ensureStripeWebhookEvents();\n  setInterval(expirePastCutoffSessions, 10000);\n  await expirePastCutoffSessions();\n  app.listen(port,'0.0.0.0',()=>console.log(\`Afiléon Live Services v3 listening on \${port}\`));\n}).catch(e=>{console.error(e);process.exit(1)});";
+  const startupNew="migrate().then(async()=>{\n  await ensurePrintfulWebhook();\n  await ensureStripeWebhookEvents();\n  setInterval(expirePastCutoffSessions, 10000);\n  await expirePastCutoffSessions();\n  await maybeOneTimeBookingReset();\n  app.listen(port,'0.0.0.0',()=>console.log(\`Afiléon Live Services v3 listening on \${port}\`));\n}).catch(e=>{console.error(e);process.exit(1)});";
   replaceOnce(startup,startupNew,'startup');
 }
 

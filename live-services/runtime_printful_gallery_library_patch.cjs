@@ -8,223 +8,225 @@ let s = fs.readFileSync(file,'utf8');
 const start = s.indexOf("app.get('/api/shop/gallery/:slug'");
 const stop = s.indexOf("app.post('/api/shop/checkout'", start);
 if(start<0||stop<start)throw new Error('Gallery library patch: expected routes unavailable');
-const install = String.raw`
-const GALLERYLIB_CRYPTO=require('node:crypto');
-const GALLERYLIB_IMAGE_MAX=7*1024*1024;
-const GALLERYLIB_SWEEP_MS=15*60*1000;
-const GALLERYLIB_RETRY_MS=6*60*60*1000;
-const GALLERYLIB_IMAGE_BASE='/api/shop/gallery-image/';
-let GALLERYLIB_READY=null;
-let GALLERYLIB_SCAN=null;
-let GALLERYLIB_WORKING=false;
-const GALLERYLIB_QUEUE=new Map();
-function galleryLibKey(p,v){return String(p.slug)+':'+String(v.color||v.catalog_variant_id||v.id||'').trim().toLowerCase()}
-function galleryLibSignature(p,v){
-  const files=(Array.isArray(v.design_files)?v.design_files:[]).map(x=>({placement:x.placement,image_url:x.image_url,position:x.position||null}));
-  return GALLERYLIB_CRYPTO.createHash('sha256').update(JSON.stringify({
-    slug:p.slug,name:p.name,colour:v.color||'',variant:v.catalog_variant_id||v.id,
-    catalog:v.catalog_product_id||0,files,preview:v.mockup_url||v.image_url||''
-  })).digest('hex');
-}
-function galleryLibTables(){
-  if(!GALLERYLIB_READY){
-    GALLERYLIB_READY=(async()=>{
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS shop_gallery_image_copies (
-          image_hash VARCHAR(64) PRIMARY KEY,
-          mime_type TEXT NOT NULL,
-          image_bytes BYTEA NOT NULL,
-          byte_size INTEGER NOT NULL,
-          stored_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )`);
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS shop_gallery_library (
-          gallery_key TEXT PRIMARY KEY,
-          product_slug TEXT NOT NULL,
-          colour TEXT NOT NULL,
-          signature VARCHAR(64) NOT NULL,
-          images JSONB NOT NULL DEFAULT '[]'::jsonb,
-          last_checked TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          last_rendered TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          retry_after TIMESTAMPTZ,
-          last_error TEXT
-        )`);
-    })().catch(e=>{GALLERYLIB_READY=null;throw e});
-  }
-  return GALLERYLIB_READY;
-}
-function galleryLibAllowedRemote(url){
-  try{
-    const u=new URL(url);
-    return u.protocol==='https:'&&(
-      u.hostname==='files.cdn.printful.com'||
-      u.hostname==='printful-upload.s3-accelerate.amazonaws.com'||
-      u.hostname==='printful-upload.s3.amazonaws.com'||
-      u.hostname==='printful-upload.s3.us-east-1.amazonaws.com'
-    );
-  }catch{return false}
-}
-async function galleryLibCopyImage(url){
-  if(!galleryLibAllowedRemote(url))throw Error('non_printful_image_source');
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),30000);
-  try{
-    const r=await fetch(url,{signal:controller.signal,redirect:'error'});
-    if(!r.ok)throw Error('image_fetch_'+r.status);
-    const announced=Number(r.headers.get('content-length')||0);
-    if(announced>GALLERYLIB_IMAGE_MAX)throw Error('image_exceeds_size_limit');
-    const kind=String(r.headers.get('content-type')||'').split(';')[0].toLowerCase();
-    const type=kind==='image/png'?'image/png':kind==='image/webp'?'image/webp':kind==='image/jpeg'||kind==='image/jpg'?'image/jpeg':null;
-    if(!type)throw Error('unsupported_image_type');
-    const bytes=Buffer.from(await r.arrayBuffer());
-    if(bytes.length===0||bytes.length>GALLERYLIB_IMAGE_MAX)throw Error('invalid_image_length');
-    const valid=type==='image/jpeg'&&bytes[0]===0xff&&bytes[1]===0xd8||
-       type==='image/png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))||
-       type==='image/webp'&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP';
-    if(!valid)throw Error('invalid_image_signature');
-    const hash=GALLERYLIB_CRYPTO.createHash('sha256').update(bytes).digest('hex');
-    await pool.query('INSERT INTO shop_gallery_image_copies(image_hash,mime_type,image_bytes,byte_size) VALUES($1,$2,$3,$4) ON CONFLICT(image_hash) DO NOTHING',[hash,type,bytes,bytes.length]);
-    return GALLERYLIB_IMAGE_BASE+hash;
-  }finally{clearTimeout(timer)}
-}
-function galleryLibBaseline(v){
-  const base=String(v.mockup_url||v.product_only_url||v.image_url||'');
-  return galleryLibAllowedRemote(base)?[{mockup_url:base,view:'Product view',color:v.color||null}]:[];
-}
-async function galleryLibStore(p,v,images,signature,error=null){
-  const key=galleryLibKey(p,v);
-  const saved=[],seen=new Set();
-  for(const m of images){
-    const remote=String(m.mockup_url||'');
-    if(!remote||seen.has(remote))continue;
-    seen.add(remote);
-    try{
-      const copied=await galleryLibCopyImage(remote);
-      if(saved.some(x=>x.mockup_url===copied))continue;
-      saved.push({mockup_url:'https://afileon-live-api-production.up.railway.app'+copied,view:String(m.view||'Product view').slice(0,64),color:v.color||null});
-    }catch(e){console.warn('Gallery image copy skipped',p.slug,String(e?.message||e).slice(0,130))}
-  }
-  if(!saved.length)throw Error('no_valid_copies_saved');
-  await pool.query(`
-    INSERT INTO shop_gallery_library(gallery_key,product_slug,colour,signature,images,last_checked,last_rendered,retry_after,last_error)
-    VALUES($1,$2,$3,$4,$5::jsonb,NOW(),NOW(),$6,$7)
-    ON CONFLICT(gallery_key) DO UPDATE SET
-      product_slug=EXCLUDED.product_slug,colour=EXCLUDED.colour,signature=EXCLUDED.signature,
-      images=EXCLUDED.images,last_checked=NOW(),last_rendered=NOW(),
-      retry_after=EXCLUDED.retry_after,last_error=EXCLUDED.last_error
-  `,[key,p.slug,String(v.color||''),signature,JSON.stringify(saved),error?new Date(Date.now()+GALLERYLIB_RETRY_MS):null,error]);
-  return saved;
-}
-function galleryLibEnqueue(p,v,signature){
-  const key=galleryLibKey(p,v);
-  if(GALLERYLIB_QUEUE.has(key))return;
-  GALLERYLIB_QUEUE.set(key,{p,v,signature});
-  if(!GALLERYLIB_WORKING)void galleryLibRunQueue();
-}
-async function galleryLibRunQueue(){
-  if(GALLERYLIB_WORKING)return;
-  GALLERYLIB_WORKING=true;
-  try{
-    while(GALLERYLIB_QUEUE.size){
-      const [key,item]=GALLERYLIB_QUEUE.entries().next().value;
-      GALLERYLIB_QUEUE.delete(key);
-      const {p,v,signature}=item;
-      try{
-        await galleryLibTables();
-        const current=await pool.query('SELECT signature,retry_after,images FROM shop_gallery_library WHERE gallery_key=$1 LIMIT 1',[key]);
-        const row=current.rows[0];
-        if(row?.signature===signature&&(!row.retry_after||Date.parse(row.retry_after)>Date.now()))continue;
-        let images=galleryLibBaseline(v),error=null;
-        try{
-          const generated=await generatePrintfulGallery(p,v);
-          if(Array.isArray(generated))images=images.concat(generated);
-        }catch(e){
-          error=String(e?.message||e).slice(0,180);
-          console.warn('Gallery background render delayed',key,error);
-          // Keep previously downloaded, working galleries unchanged on errors.
-          if(row&&Array.isArray(row.images)&&row.images.length){
-            await pool.query('UPDATE shop_gallery_library SET last_checked=NOW(),retry_after=$2,last_error=$3 WHERE gallery_key=$1',
-              [key,new Date(Date.now()+GALLERYLIB_RETRY_MS),error]);
-            continue;
-          }
-        }
-        const saved=await galleryLibStore(p,v,images,signature,error);
-        console.log('Gallery library saved',key,saved.length,'copies',error?'retry_later':'ready');
-      }catch(e){console.error('Gallery library background job failed',key,String(e?.message||e).slice(0,180))}
-    }
-  }finally{GALLERYLIB_WORKING=false}
-}
-async function galleryLibSweep(){
-  if(GALLERYLIB_SCAN)return GALLERYLIB_SCAN;
-  GALLERYLIB_SCAN=(async()=>{
-    await galleryLibTables();
-    const products=await getPrintfulShopCatalog(true);
-    if(!Array.isArray(products)||!products.length)return;
-    let candidates=0;
-    for(const p of products){
-      const unique=new Set();
-      for(const v of p.variants||[]){
-        const key=galleryLibKey(p,v);
-        if(unique.has(key))continue;
-        unique.add(key);
-        const signature=galleryLibSignature(p,v);
-        const result=await pool.query('SELECT signature,retry_after,images FROM shop_gallery_library WHERE gallery_key=$1 LIMIT 1',[key]);
-        const old=result.rows[0];
-        if(old?.signature===signature){
-          if(!old.retry_after||Date.parse(old.retry_after)>Date.now())continue;
-        }
-        galleryLibEnqueue(p,v,signature);
-        candidates++;
-      }
-    }
-    console.log('Gallery library sweep',products.length,'products',candidates,'colours queued');
-  })().catch(e=>console.error('Gallery library sweep failed',String(e?.message||e).slice(0,200))).finally(()=>{GALLERYLIB_SCAN=null});
-  return GALLERYLIB_SCAN;
-}
-app.get('/api/shop/gallery-image/:hash',async(req,res)=>{
-  const hash=String(req.params.hash||'');
-  if(!/^[a-f0-9]{64}$/.test(hash))return res.status(404).end();
-  try{
-    await galleryLibTables();
-    const q=await pool.query('SELECT mime_type,image_bytes,byte_size FROM shop_gallery_image_copies WHERE image_hash=$1',[hash]);
-    if(!q.rows.length)return res.status(404).end();
-    const row=q.rows[0];
-    res.set('Content-Type',row.mime_type);
-    res.set('Content-Length',String(row.byte_size));
-    res.set('Cache-Control','public, max-age=31536000, immutable');
-    res.set('X-Content-Type-Options','nosniff');
-    return res.status(200).end(row.image_bytes);
-  }catch(e){console.error('Gallery image read failed',String(e?.message||e));return res.status(503).end()}
-});
-app.get('/api/shop/gallery/:slug',async(req,res)=>{
-  const slug=String(req.params.slug||'');
-  if(!/^pf-\d+$/.test(slug))return res.status(400).json({error:'invalid_product'});
-  try{
-    const products=await getPrintfulShopCatalog();
-    const p=products.find(x=>x.slug===slug);
-    if(!p)return res.status(404).json({error:'product_not_found'});
-    const variantId=String(req.query.variant_id||'');
-    const v=(p.variants||[]).find(x=>String(x.id)===variantId)||(p.variants||[])[0];
-    if(!v)return res.status(404).json({error:'variant_not_found'});
-    const sig=galleryLibSignature(p,v);
-    const key=galleryLibKey(p,v);
-    let row=null;
-    try{
-      await galleryLibTables();
-      const q=await pool.query('SELECT signature,images,retry_after FROM shop_gallery_library WHERE gallery_key=$1 LIMIT 1',[key]);
-      row=q.rows[0]||null;
-    }catch(e){console.warn('Gallery fast lookup unavailable',String(e?.message||e).slice(0,150))}
-    const saved=Array.isArray(row?.images)?row.images:[];
-    if(!row||row.signature!==sig||(row.retry_after&&Date.parse(row.retry_after)<=Date.now()))galleryLibEnqueue(p,v,sig);
-    const mockups=saved.length?saved:galleryLibBaseline(v);
-    // Always reply immediately. Generation happens independently of this request.
-    res.set('Cache-Control','public, max-age=30, stale-while-revalidate=60');
-    return res.json({mockups,pending:false,gallery_available:mockups.length>1,cached:!!saved.length});
-  }catch(e){console.error('Gallery fast response failed',String(e?.message||e));return res.status(503).json({mockups:[],pending:false,gallery_available:false})}
-});
-setTimeout(()=>{void galleryLibSweep()},8000).unref?.();
-setInterval(()=>{void galleryLibSweep()},GALLERYLIB_SWEEP_MS).unref?.();
-`;
+const install = [
+  "",
+  "const GALLERYLIB_CRYPTO=require('node:crypto');",
+  "const GALLERYLIB_IMAGE_MAX=7*1024*1024;",
+  "const GALLERYLIB_SWEEP_MS=15*60*1000;",
+  "const GALLERYLIB_RETRY_MS=6*60*60*1000;",
+  "const GALLERYLIB_IMAGE_BASE='/api/shop/gallery-image/';",
+  "let GALLERYLIB_READY=null;",
+  "let GALLERYLIB_SCAN=null;",
+  "let GALLERYLIB_WORKING=false;",
+  "const GALLERYLIB_QUEUE=new Map();",
+  "function galleryLibKey(p,v){return String(p.slug)+':'+String(v.color||v.catalog_variant_id||v.id||'').trim().toLowerCase()}",
+  "function galleryLibSignature(p,v){",
+  "  const files=(Array.isArray(v.design_files)?v.design_files:[]).map(x=>({placement:x.placement,image_url:x.image_url,position:x.position||null}));",
+  "  return GALLERYLIB_CRYPTO.createHash('sha256').update(JSON.stringify({",
+  "    slug:p.slug,name:p.name,colour:v.color||'',variant:v.catalog_variant_id||v.id,",
+  "    catalog:v.catalog_product_id||0,files,preview:v.mockup_url||v.image_url||''",
+  "  })).digest('hex');",
+  "}",
+  "function galleryLibTables(){",
+  "  if(!GALLERYLIB_READY){",
+  "    GALLERYLIB_READY=(async()=>{",
+  "      await pool.query(`",
+  "        CREATE TABLE IF NOT EXISTS shop_gallery_image_copies (",
+  "          image_hash VARCHAR(64) PRIMARY KEY,",
+  "          mime_type TEXT NOT NULL,",
+  "          image_bytes BYTEA NOT NULL,",
+  "          byte_size INTEGER NOT NULL,",
+  "          stored_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+  "        )`);",
+  "      await pool.query(`",
+  "        CREATE TABLE IF NOT EXISTS shop_gallery_library (",
+  "          gallery_key TEXT PRIMARY KEY,",
+  "          product_slug TEXT NOT NULL,",
+  "          colour TEXT NOT NULL,",
+  "          signature VARCHAR(64) NOT NULL,",
+  "          images JSONB NOT NULL DEFAULT '[]'::jsonb,",
+  "          last_checked TIMESTAMPTZ NOT NULL DEFAULT NOW(),",
+  "          last_rendered TIMESTAMPTZ NOT NULL DEFAULT NOW(),",
+  "          retry_after TIMESTAMPTZ,",
+  "          last_error TEXT",
+  "        )`);",
+  "    })().catch(e=>{GALLERYLIB_READY=null;throw e});",
+  "  }",
+  "  return GALLERYLIB_READY;",
+  "}",
+  "function galleryLibAllowedRemote(url){",
+  "  try{",
+  "    const u=new URL(url);",
+  "    return u.protocol==='https:'&&(",
+  "      u.hostname==='files.cdn.printful.com'||",
+  "      u.hostname==='printful-upload.s3-accelerate.amazonaws.com'||",
+  "      u.hostname==='printful-upload.s3.amazonaws.com'||",
+  "      u.hostname==='printful-upload.s3.us-east-1.amazonaws.com'",
+  "    );",
+  "  }catch{return false}",
+  "}",
+  "async function galleryLibCopyImage(url){",
+  "  if(!galleryLibAllowedRemote(url))throw Error('non_printful_image_source');",
+  "  const controller=new AbortController();",
+  "  const timer=setTimeout(()=>controller.abort(),30000);",
+  "  try{",
+  "    const r=await fetch(url,{signal:controller.signal,redirect:'error'});",
+  "    if(!r.ok)throw Error('image_fetch_'+r.status);",
+  "    const announced=Number(r.headers.get('content-length')||0);",
+  "    if(announced>GALLERYLIB_IMAGE_MAX)throw Error('image_exceeds_size_limit');",
+  "    const kind=String(r.headers.get('content-type')||'').split(';')[0].toLowerCase();",
+  "    const type=kind==='image/png'?'image/png':kind==='image/webp'?'image/webp':kind==='image/jpeg'||kind==='image/jpg'?'image/jpeg':null;",
+  "    if(!type)throw Error('unsupported_image_type');",
+  "    const bytes=Buffer.from(await r.arrayBuffer());",
+  "    if(bytes.length===0||bytes.length>GALLERYLIB_IMAGE_MAX)throw Error('invalid_image_length');",
+  "    const valid=type==='image/jpeg'&&bytes[0]===0xff&&bytes[1]===0xd8||",
+  "       type==='image/png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))||",
+  "       type==='image/webp'&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP';",
+  "    if(!valid)throw Error('invalid_image_signature');",
+  "    const hash=GALLERYLIB_CRYPTO.createHash('sha256').update(bytes).digest('hex');",
+  "    await pool.query('INSERT INTO shop_gallery_image_copies(image_hash,mime_type,image_bytes,byte_size) VALUES($1,$2,$3,$4) ON CONFLICT(image_hash) DO NOTHING',[hash,type,bytes,bytes.length]);",
+  "    return GALLERYLIB_IMAGE_BASE+hash;",
+  "  }finally{clearTimeout(timer)}",
+  "}",
+  "function galleryLibBaseline(v){",
+  "  const base=String(v.mockup_url||v.product_only_url||v.image_url||'');",
+  "  return galleryLibAllowedRemote(base)?[{mockup_url:base,view:'Product view',color:v.color||null}]:[];",
+  "}",
+  "async function galleryLibStore(p,v,images,signature,error=null){",
+  "  const key=galleryLibKey(p,v);",
+  "  const saved=[],seen=new Set();",
+  "  for(const m of images){",
+  "    const remote=String(m.mockup_url||'');",
+  "    if(!remote||seen.has(remote))continue;",
+  "    seen.add(remote);",
+  "    try{",
+  "      const copied=await galleryLibCopyImage(remote);",
+  "      if(saved.some(x=>x.mockup_url===copied))continue;",
+  "      saved.push({mockup_url:'https://afileon-live-api-production.up.railway.app'+copied,view:String(m.view||'Product view').slice(0,64),color:v.color||null});",
+  "    }catch(e){console.warn('Gallery image copy skipped',p.slug,String(e?.message||e).slice(0,130))}",
+  "  }",
+  "  if(!saved.length)throw Error('no_valid_copies_saved');",
+  "  await pool.query(`",
+  "    INSERT INTO shop_gallery_library(gallery_key,product_slug,colour,signature,images,last_checked,last_rendered,retry_after,last_error)",
+  "    VALUES($1,$2,$3,$4,$5::jsonb,NOW(),NOW(),$6,$7)",
+  "    ON CONFLICT(gallery_key) DO UPDATE SET",
+  "      product_slug=EXCLUDED.product_slug,colour=EXCLUDED.colour,signature=EXCLUDED.signature,",
+  "      images=EXCLUDED.images,last_checked=NOW(),last_rendered=NOW(),",
+  "      retry_after=EXCLUDED.retry_after,last_error=EXCLUDED.last_error",
+  "  `,[key,p.slug,String(v.color||''),signature,JSON.stringify(saved),error?new Date(Date.now()+GALLERYLIB_RETRY_MS):null,error]);",
+  "  return saved;",
+  "}",
+  "function galleryLibEnqueue(p,v,signature){",
+  "  const key=galleryLibKey(p,v);",
+  "  if(GALLERYLIB_QUEUE.has(key))return;",
+  "  GALLERYLIB_QUEUE.set(key,{p,v,signature});",
+  "  if(!GALLERYLIB_WORKING)void galleryLibRunQueue();",
+  "}",
+  "async function galleryLibRunQueue(){",
+  "  if(GALLERYLIB_WORKING)return;",
+  "  GALLERYLIB_WORKING=true;",
+  "  try{",
+  "    while(GALLERYLIB_QUEUE.size){",
+  "      const [key,item]=GALLERYLIB_QUEUE.entries().next().value;",
+  "      GALLERYLIB_QUEUE.delete(key);",
+  "      const {p,v,signature}=item;",
+  "      try{",
+  "        await galleryLibTables();",
+  "        const current=await pool.query('SELECT signature,retry_after,images FROM shop_gallery_library WHERE gallery_key=$1 LIMIT 1',[key]);",
+  "        const row=current.rows[0];",
+  "        if(row?.signature===signature&&(!row.retry_after||Date.parse(row.retry_after)>Date.now()))continue;",
+  "        let images=galleryLibBaseline(v),error=null;",
+  "        try{",
+  "          const generated=await generatePrintfulGallery(p,v);",
+  "          if(Array.isArray(generated))images=images.concat(generated);",
+  "        }catch(e){",
+  "          error=String(e?.message||e).slice(0,180);",
+  "          console.warn('Gallery background render delayed',key,error);",
+  "          // Keep previously downloaded, working galleries unchanged on errors.",
+  "          if(row&&Array.isArray(row.images)&&row.images.length){",
+  "            await pool.query('UPDATE shop_gallery_library SET last_checked=NOW(),retry_after=$2,last_error=$3 WHERE gallery_key=$1',",
+  "              [key,new Date(Date.now()+GALLERYLIB_RETRY_MS),error]);",
+  "            continue;",
+  "          }",
+  "        }",
+  "        const saved=await galleryLibStore(p,v,images,signature,error);",
+  "        console.log('Gallery library saved',key,saved.length,'copies',error?'retry_later':'ready');",
+  "      }catch(e){console.error('Gallery library background job failed',key,String(e?.message||e).slice(0,180))}",
+  "    }",
+  "  }finally{GALLERYLIB_WORKING=false}",
+  "}",
+  "async function galleryLibSweep(){",
+  "  if(GALLERYLIB_SCAN)return GALLERYLIB_SCAN;",
+  "  GALLERYLIB_SCAN=(async()=>{",
+  "    await galleryLibTables();",
+  "    const products=await getPrintfulShopCatalog(true);",
+  "    if(!Array.isArray(products)||!products.length)return;",
+  "    let candidates=0;",
+  "    for(const p of products){",
+  "      const unique=new Set();",
+  "      for(const v of p.variants||[]){",
+  "        const key=galleryLibKey(p,v);",
+  "        if(unique.has(key))continue;",
+  "        unique.add(key);",
+  "        const signature=galleryLibSignature(p,v);",
+  "        const result=await pool.query('SELECT signature,retry_after,images FROM shop_gallery_library WHERE gallery_key=$1 LIMIT 1',[key]);",
+  "        const old=result.rows[0];",
+  "        if(old?.signature===signature){",
+  "          if(!old.retry_after||Date.parse(old.retry_after)>Date.now())continue;",
+  "        }",
+  "        galleryLibEnqueue(p,v,signature);",
+  "        candidates++;",
+  "      }",
+  "    }",
+  "    console.log('Gallery library sweep',products.length,'products',candidates,'colours queued');",
+  "  })().catch(e=>console.error('Gallery library sweep failed',String(e?.message||e).slice(0,200))).finally(()=>{GALLERYLIB_SCAN=null});",
+  "  return GALLERYLIB_SCAN;",
+  "}",
+  "app.get('/api/shop/gallery-image/:hash',async(req,res)=>{",
+  "  const hash=String(req.params.hash||'');",
+  "  if(!/^[a-f0-9]{64}$/.test(hash))return res.status(404).end();",
+  "  try{",
+  "    await galleryLibTables();",
+  "    const q=await pool.query('SELECT mime_type,image_bytes,byte_size FROM shop_gallery_image_copies WHERE image_hash=$1',[hash]);",
+  "    if(!q.rows.length)return res.status(404).end();",
+  "    const row=q.rows[0];",
+  "    res.set('Content-Type',row.mime_type);",
+  "    res.set('Content-Length',String(row.byte_size));",
+  "    res.set('Cache-Control','public, max-age=31536000, immutable');",
+  "    res.set('X-Content-Type-Options','nosniff');",
+  "    return res.status(200).end(row.image_bytes);",
+  "  }catch(e){console.error('Gallery image read failed',String(e?.message||e));return res.status(503).end()}",
+  "});",
+  "app.get('/api/shop/gallery/:slug',async(req,res)=>{",
+  "  const slug=String(req.params.slug||'');",
+  "  if(!/^pf-\\d+$/.test(slug))return res.status(400).json({error:'invalid_product'});",
+  "  try{",
+  "    const products=await getPrintfulShopCatalog();",
+  "    const p=products.find(x=>x.slug===slug);",
+  "    if(!p)return res.status(404).json({error:'product_not_found'});",
+  "    const variantId=String(req.query.variant_id||'');",
+  "    const v=(p.variants||[]).find(x=>String(x.id)===variantId)||(p.variants||[])[0];",
+  "    if(!v)return res.status(404).json({error:'variant_not_found'});",
+  "    const sig=galleryLibSignature(p,v);",
+  "    const key=galleryLibKey(p,v);",
+  "    let row=null;",
+  "    try{",
+  "      await galleryLibTables();",
+  "      const q=await pool.query('SELECT signature,images,retry_after FROM shop_gallery_library WHERE gallery_key=$1 LIMIT 1',[key]);",
+  "      row=q.rows[0]||null;",
+  "    }catch(e){console.warn('Gallery fast lookup unavailable',String(e?.message||e).slice(0,150))}",
+  "    const saved=Array.isArray(row?.images)?row.images:[];",
+  "    if(!row||row.signature!==sig||(row.retry_after&&Date.parse(row.retry_after)<=Date.now()))galleryLibEnqueue(p,v,sig);",
+  "    const mockups=saved.length?saved:galleryLibBaseline(v);",
+  "    // Always reply immediately. Generation happens independently of this request.",
+  "    res.set('Cache-Control','public, max-age=30, stale-while-revalidate=60');",
+  "    return res.json({mockups,pending:false,gallery_available:mockups.length>1,cached:!!saved.length});",
+  "  }catch(e){console.error('Gallery fast response failed',String(e?.message||e));return res.status(503).json({mockups:[],pending:false,gallery_available:false})}",
+  "});",
+  "setTimeout(()=>{void galleryLibSweep()},8000).unref?.();",
+  "setInterval(()=>{void galleryLibSweep()},GALLERYLIB_SWEEP_MS).unref?.();",
+  ""
+].join('\n');
 s=s.slice(0,start)+install+'\n'+s.slice(stop);
 fs.writeFileSync(file,s);
 console.log('Applied persistent first-party Printful gallery library and timed warmup');

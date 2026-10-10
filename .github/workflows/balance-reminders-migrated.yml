@@ -1,0 +1,25 @@
+# Prepared but NOT scheduled. Do not enable until Railway's hourly cron is disabled.
+name: Afileon balance reminders — migration standby
+on:
+  workflow_dispatch:
+# After a verified cutover, add:
+#   schedule:
+#     - cron: "0 * * * *"
+jobs:
+  notify-balances:
+    if: ${{ vars.AF_MIGRATED_CRON_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call balance reminder API (secrets never printed)
+        env:
+          LIVE_API_URL: ${{ secrets.LIVE_API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -eu
+          test -n "$LIVE_API_URL"
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --connect-timeout 10 --max-time 200 \
+            --retry 2 --retry-delay 5 -X POST \
+            -H "x-cron-secret: $CRON_SECRET" \
+            "${LIVE_API_URL%/}/api/cron/balances" > /dev/null

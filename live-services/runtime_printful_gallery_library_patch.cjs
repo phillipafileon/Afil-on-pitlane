@@ -10,7 +10,7 @@ const stop = s.indexOf("app.post('/api/shop/checkout'", start);
 if(start<0||stop<start)throw new Error('Gallery library patch: expected routes unavailable');
 const install = [
   "",
-  "const GALLERYLIB_CRYPTO=require('node:crypto');",
+  "const GALLERYLIB_CRYPTO=await import('node:crypto');",
   "const GALLERYLIB_IMAGE_MAX=7*1024*1024;",
   "const GALLERYLIB_SWEEP_MS=15*60*1000;",
   "const GALLERYLIB_RETRY_MS=6*60*60*1000;",

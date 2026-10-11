@@ -3,13 +3,18 @@
   "version": "1.2.2",
   "private": true,
   "type": "module",
-  "engines": {"node": ">=20"},
-  "scripts": {"start": "node boot_v311.js"},
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node boot_v311.js"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "nodemailer": "^6.10.1",
     "pg": "^8.13.1",
-    "stripe": "^17.7.0"
+    "stripe": "^17.7.0",
+    "sharp": "^0.34.4"
   }
 }

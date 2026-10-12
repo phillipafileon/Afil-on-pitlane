@@ -35,7 +35,7 @@ const install = [
   "    slug:p.slug,name:p.name,colour:v.color||'',variant:v.catalog_variant_id||v.id,",
   "    catalog:v.catalog_product_id||0,files,preview:v.mockup_url||v.image_url||'',",
   "    view_revision:files.some(f=>/^(default|front|embroidery_front)/.test(String(f.placement||'')))&&files.some(f=>/back/.test(String(f.placement||'')))?'restore-front-back-v2':'normal',",
-  "    image_restore_revision:['pf-479880345','pf-476263905','pf-476249314','pf-475870137'].includes(p.slug)?'retain-distinct-printful-views-v3':'normal'",
+  "    ...(['pf-479880345','pf-476263905','pf-476249314','pf-475870137'].includes(p.slug)?{image_restore_revision:'retain-distinct-printful-views-v3'}:{})",
   "  })).digest('hex');",
   "}",
   "function galleryLibTables(){",

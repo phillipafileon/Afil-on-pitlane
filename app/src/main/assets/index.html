@@ -96,7 +96,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
   </div>
   <div class="panel" style="margin-top:10px">
     <div class="eyebrow">PRIVACY BY DESIGN</div>
-    <p class="muted">During automatic timing, GPS points are processed live. The full driven route is not saved. Pitlane stores lap results and, when a circuit is learned, only a start/finish anchor plus two checkpoint anchors.</p>
+    <p class="muted">During automatic timing, GPS points are processed live. The full driven route is not saved. Pitlane stores lap results and, when a circuit is learned, a start/finish anchor and time-spaced checkpoint anchors.</p>
   </div>
   <div class="grid">
     <button class="card" data-go="team" style="color:var(--text);text-align:left"><div class="eyebrow">AFILÉON MOTORSPORT</div><b>Team & services</b><p class="muted">Race programme, support services and partners.</p></button>
@@ -127,7 +127,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
       <button id="start" class="btn">Start GPS session</button>
     </div>
     <div id="gps" class="status">GPS idle</div>
-    <p class="tiny">First visit to a new layout: set the start/finish while stationary. Pitlane learns two checkpoint anchors from completed laps. It does not need a stored map of the whole circuit.</p>
+    <p class="tiny">First visit to a new layout: set the start/finish while stationary. Pitlane learns at least four time-spaced checkpoints, adding more at roughly 10-second intervals on longer laps. It does not need a stored map of the whole circuit.</p>
   </div>
 
   <div class="timers">
@@ -150,7 +150,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
 
   <div class="panel" style="margin-top:10px">
     <div class="eyebrow">HOW CIRCUIT LEARNING WORKS</div>
-    <p class="muted">The first completed lap creates provisional ⅓ and ⅔ checkpoint anchors. Repeated laps confirm them. If two later laps consistently follow another path, Pitlane can replace a bad provisional learning lap while keeping the earlier lap in history.</p>
+    <p class="muted">The first completed lap learns time-spaced checkpoints (at least four). Repeated laps confirm their positions and order. If two later laps consistently follow another path, Pitlane can replace a bad provisional learning lap while keeping the earlier lap in history.</p>
   </div>
 </section>
 
@@ -217,7 +217,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
     <h2>Your responsibility</h2>
     <p class="muted">You remain responsible for safe driving, vehicle condition, device mounting, circuit compliance and deciding whether it is safe and lawful to use the app. Stop using Pitlane if it interferes with safe operation of the vehicle.</p>
     <h2>Location & privacy</h2>
-    <p class="muted">During an active automatic timing session Pitlane processes precise location on the device. Full route history is not saved. For learned layouts Pitlane may save only the start/finish anchor and two derived checkpoint anchors, together with lap/session results. If you switch on “Save driven line” in Analysis (off by default), the position, speed and timing of completed laps are also stored on this device only. Location is not used for advertising.</p>
+    <p class="muted">During an active automatic timing session Pitlane processes precise location on the device. Full route history is not saved. For learned layouts Pitlane may save only the start/finish anchor and a variable number of time-spaced checkpoint anchors, together with lap/session results. If you switch on “Save driven line” in Analysis (off by default), the position, speed and timing of completed laps are also stored on this device only. Location is not used for advertising.</p>
     <h2>Liability</h2>
     <p class="muted">Pitlane is provided as a convenience tool and may contain errors or become unavailable. To the extent permitted by law, Afiléon Motorsport is not responsible for losses caused by reliance on approximate timing or by use contrary to these safety instructions. Nothing in these terms excludes or restricts liability where the law does not permit that exclusion or restriction.</p>
     <label class="checkrow"><input id="termsCheck" type="checkbox"> <span>I have read and agree to the Terms & Safety notice, and I understand that the driver must not interact with the app while the vehicle is moving.</span></label>
@@ -359,10 +359,14 @@ function refreshPB(){
 }
 function refreshProfileState(){
  const p=getProfile();
- if(!p){$('#profileState').className='status warn';$('#profileState').textContent='Layout not learned yet — set start/finish while stationary, then complete a lap.';return}
- const c=p.confirmations||1;
- if(p.confirmed){$('#profileState').className='status ok';$('#profileState').textContent=`Circuit anchors learned locally • start/finish + 2 checkpoints • ${c} matching laps`;return}
- $('#profileState').className='status warn';$('#profileState').textContent=`Learning circuit anchors • ${c}/3 matching laps • provisional profile`;
+ if(!p?.checkpoints?.length){
+   $('#profileState').className='status warn';
+   $('#profileState').textContent=p?.cp1?'Old layout preserved — complete a lap to relearn with timed checkpoints.':'Layout not learned yet — set start/finish while stationary, then complete a lap.';
+   return;
+ }
+ const c=p.confirmations||1,count=p.checkpoints.length;
+ if(p.confirmed){$('#profileState').className='status ok';$('#profileState').textContent=`Circuit learned locally • start/finish + ${count} timed checkpoints • ${c} matching laps`;return}
+ $('#profileState').className='status warn';$('#profileState').textContent=`Learning ${count} timed checkpoints • ${c}/3 matching laps • provisional profile`;
 }
 
 function home(){
@@ -393,7 +397,7 @@ function withLocationDisclosure(cb){
 $('#locationContinue').onclick=()=>{data.locationDisclosure=true;save();$('#locationOverlay').classList.remove('show');const f=pendingLocationAction;pendingLocationAction=null;f&&f()};
 $('#locationCancel').onclick=()=>{$('#locationOverlay').classList.remove('show');pendingLocationAction=null};
 
-let watch=null,pos=null,running=false,sessionStart=0,lapStart=0,laps=[],tick=null,currentTrace=[],outsideStart=false,cp1Hit=false,cp2Hit=false,startAnchor=null;
+let watch=null,pos=null,running=false,sessionStart=0,lapStart=0,laps=[],tick=null,currentTrace=[],outsideStart=false,nextCheckpoint=0,lastCheckpointAt=0,startAnchor=null;
 function ensureGPS(cb){
  withLocationDisclosure(()=>{
    if(!navigator.geolocation)return toast('GPS unavailable on this device');
@@ -405,58 +409,102 @@ function ensureGPS(cb){
 }
 $('#setLine').onclick=()=>ensureGPS(()=>{
  const key=pkey(); const old=data.trackProfiles[key]||{};
+ const moved=old.start&&hav(old.start,pos)>40;
+ if(moved){delete old.checkpoints;delete old.cp1;delete old.cp2;old.confirmations=0;old.confirmed=false;old.altCandidate=null;old.altCount=0}
  data.trackProfiles[key]={...old,track:selectedTrack(),layout:selectedLayout(),start:{...pos},confirmations:old.confirmations||0,confirmed:old.confirmed||false};
  save();startAnchor={...pos};refreshProfileState();toast('Start / finish saved locally');
 });
 
+// Circuit anchors are sampled by lap time rather than a fraction of driven distance.
+const CP_INTERVAL_MS=10000,MIN_CHECKPOINTS=4,MAX_CHECKPOINTS=240;
 function traceDistance(trace){let d=0;for(let i=1;i<trace.length;i++)d+=hav(trace[i-1],trace[i]);return d}
-function pointAtFraction(trace,f){
- if(trace.length<2)return trace[0]||null;
- const total=traceDistance(trace); if(!total)return trace[Math.floor((trace.length-1)*f)];
- const target=total*f; let acc=0;
- for(let i=1;i<trace.length;i++){const seg=hav(trace[i-1],trace[i]);if(acc+seg>=target){const r=(target-acc)/(seg||1);return {lat:trace[i-1].lat+(trace[i].lat-trace[i-1].lat)*r,lon:trace[i-1].lon+(trace[i].lon-trace[i-1].lon)*r}}acc+=seg}
- return trace.at(-1);
+function checkpointOffsets(ms){
+ const count=Math.min(MAX_CHECKPOINTS,Math.max(MIN_CHECKPOINTS,Math.ceil(ms/CP_INTERVAL_MS)-1));
+ return Array.from({length:count},(_,i)=>ms>=50000?(i+1)*CP_INTERVAL_MS:ms*(i+1)/(count+1));
 }
-function candidateFromTrace(trace){return {cp1:pointAtFraction(trace,1/3),cp2:pointAtFraction(trace,2/3),distance:traceDistance(trace)}}
+function pointAtTime(trace,target){
+ if(!trace.length)return null;
+ if(target<=trace[0].ts)return {lat:trace[0].lat,lon:trace[0].lon};
+ for(let i=1;i<trace.length;i++){
+   const a=trace[i-1],b=trace[i];
+   if(target<=b.ts){const f=Math.max(0,Math.min(1,(target-a.ts)/Math.max(1,b.ts-a.ts)));
+     return {lat:a.lat+(b.lat-a.lat)*f,lon:a.lon+(b.lon-a.lon)*f};}
+ }
+ const last=trace.at(-1);return {lat:last.lat,lon:last.lon};
+}
+function candidateFromTrace(trace,ms,crossT){
+ const start={lat:startAnchor?.lat??trace[0]?.lat,lon:startAnchor?.lon??trace[0]?.lon,ts:lapStart};
+ const points=[start,...trace.filter(x=>Number.isFinite(x.ts)&&x.ts>lapStart&&x.ts<crossT),{lat:start.lat,lon:start.lon,ts:crossT}];
+ points.sort((a,b)=>a.ts-b.ts);
+ const offsets=checkpointOffsets(ms);
+ return {checkpoints:offsets.map(t=>pointAtTime(points,lapStart+t)),intervalMs:CP_INTERVAL_MS,distance:traceDistance(points),duration:ms};
+}
+function closestSegmentMetres(anchor,a,b){
+ if(!a||!b||!anchor)return Infinity;
+ const toXY=x=>({x:(x.lon-anchor.lon)*111320*Math.cos(anchor.lat*Math.PI/180),y:(x.lat-anchor.lat)*111320});
+ const u=toXY(a),v=toXY(b),dx=v.x-u.x,dy=v.y-u.y;
+ const f=Math.max(0,Math.min(1,-(u.x*dx+u.y*dy)/(dx*dx+dy*dy||1)));
+ return Math.hypot(u.x+f*dx,u.y+f*dy);
+}
 function candidatesMatch(a,b){
- if(!a||!b||!a.cp1||!b.cp1)return false;
- const distOk=Math.abs((a.distance||1)-(b.distance||1))/Math.max(a.distance||1,b.distance||1)<.18;
- return distOk&&hav(a.cp1,b.cp1)<90&&hav(a.cp2,b.cp2)<90;
+ if(!a?.checkpoints?.length||!b?.checkpoints?.length)return false;
+ if(a.checkpoints.length<MIN_CHECKPOINTS||b.checkpoints.length<MIN_CHECKPOINTS)return false;
+ const ad=a.distance||0,bd=b.distance||0;
+ if(ad>0&&bd>0&&Math.abs(ad-bd)/Math.max(ad,bd)>.18)return false;
+ const A=a.checkpoints,B=b.checkpoints,window=Math.max(3,Math.ceil(B.length*.14));
+ let matches=0,previous=0;
+ for(let i=0;i<A.length;i++){
+   const expected=(i+1)*(B.length+1)/(A.length+1)-1;
+   const low=Math.max(previous,Math.floor(expected-window)),high=Math.min(B.length-2,Math.ceil(expected+window));
+   let best=-1,metres=Infinity;
+   for(let j=low;j<=high;j++){
+     const d=closestSegmentMetres(A[i],B[j],B[j+1]);if(d<metres){metres=d;best=j}
+   }
+   if(best>=0&&metres<=100){matches++;previous=best}
+ }
+ return matches>=Math.ceil(A.length*.8);
 }
-function profileCandidate(p){return p?.cp1?{cp1:p.cp1,cp2:p.cp2,distance:p.distance}:null}
+function profileCandidate(p){return p?.checkpoints?.length?{checkpoints:p.checkpoints,distance:p.distance,duration:p.duration}:null}
 function learnFromLap(candidate){
- const key=pkey(); let p=data.trackProfiles[key]||{track:selectedTrack(),layout:selectedLayout(),start:startAnchor||{...pos},confirmations:0,confirmed:false};
+ const key=pkey();let p=data.trackProfiles[key]||{track:selectedTrack(),layout:selectedLayout(),start:startAnchor||{...pos},confirmations:0,confirmed:false};
  const current=profileCandidate(p);
  if(!current){
-   p.cp1=candidate.cp1;p.cp2=candidate.cp2;p.distance=candidate.distance;p.confirmations=1;p.confirmed=false;p.altCandidate=null;p.altCount=0;
+   p.checkpoints=candidate.checkpoints;p.distance=candidate.distance;p.duration=candidate.duration;
+   p.confirmations=1;p.confirmed=false;p.altCandidate=null;p.altCount=0;delete p.cp1;delete p.cp2;
  } else if(candidatesMatch(current,candidate)){
-   p.confirmations=(p.confirmations||1)+1; p.altCandidate=null;p.altCount=0;
+   p.confirmations=(p.confirmations||1)+1;p.altCandidate=null;p.altCount=0;
    if(p.confirmations>=3)p.confirmed=true;
- } else {
-   if(p.altCandidate&&candidatesMatch(p.altCandidate,candidate)){p.altCount=(p.altCount||1)+1}
+ } else if(!p.confirmed){
+   if(p.altCandidate&&candidatesMatch(p.altCandidate,candidate))p.altCount=(p.altCount||1)+1;
    else {p.altCandidate=candidate;p.altCount=1}
    if(p.altCount>=2){
-     p.cp1=p.altCandidate.cp1;p.cp2=p.altCandidate.cp2;p.distance=p.altCandidate.distance;p.confirmations=2;p.confirmed=false;p.altCandidate=null;p.altCount=0;
-     laps.forEach(l=>{if(l.candidate&&candidatesMatch({cp1:p.cp1,cp2:p.cp2,distance:p.distance},l.candidate))l.status='learning'});
-     toast('Pitlane replaced the provisional circuit path with two matching laps');
+     p.checkpoints=p.altCandidate.checkpoints;p.distance=p.altCandidate.distance;p.duration=p.altCandidate.duration;
+     p.confirmations=2;p.confirmed=false;p.altCandidate=null;p.altCount=0;
+     laps.forEach(l=>{if(l.status!=='invalid'&&l.candidate&&candidatesMatch(profileCandidate(p),l.candidate))l.status='learning'});
+     toast('Pitlane relearned the provisional circuit path from two matching laps');
    }
  }
  data.trackProfiles[key]=p;save();refreshProfileState();return p;
 }
+
 function finishLap(ms,crossT){
- const p=getProfile();
- const cand=candidateFromTrace(currentTrace);
+ const p=getProfile(),cand=candidateFromTrace(currentTrace,ms,crossT);
  let status='learning',reason='';
- if(p?.cp1){
-   if(cp1Hit&&cp2Hit)status=p.confirmed?'valid':'learning';
-   else {status='invalid';reason='Checkpoint sequence not confirmed'}
+ if(p?.checkpoints?.length){
+   if(nextCheckpoint>=p.checkpoints.length)status=p.confirmed?'valid':'learning';
+   else {status='invalid';reason=`Checkpoint sequence incomplete (${nextCheckpoint}/${p.checkpoints.length})`}
  }
  const lap={id:`L${now()}-${Math.random().toString(36).slice(2,7)}`,ms,source:'gps',status,reason,candidate:cand};
  laps.push(lap);
  try{window.PitlanePro&&PitlanePro.lap(lap.id,ms,status,selectedTrack(),selectedLayout())}catch(_){}
- const learned=learnFromLap(cand);
- if(learned.confirmed){laps.forEach(l=>{if(l.source==='gps'&&l.candidate&&candidatesMatch(profileCandidate(learned),l.candidate))l.status='valid'})}
- lapStart=crossT||now();currentTrace=[];outsideStart=false;cp1Hit=false;cp2Hit=false;renderLaps();refreshPB();
+ if(status!=='invalid'){
+   const learned=learnFromLap(cand);
+   if(learned.confirmed){laps.forEach(l=>{
+     if(l.source==='gps'&&l.status!=='invalid'&&l.candidate&&candidatesMatch(profileCandidate(learned),l.candidate))l.status='valid';
+   })}
+ }
+ lapStart=crossT||now();currentTrace=[];outsideStart=false;nextCheckpoint=0;lastCheckpointAt=0;
+ renderLaps();refreshPB();
  toast(`${status==='invalid'?'Lap stored — validation failed':'GPS lap'} • ${fmt(ms)}`);
 }
 function onPos(p){
@@ -467,20 +515,29 @@ function onPos(p){
  try{window.PitlanePro&&PitlanePro.point(p)}catch(_){}
  $('#gps').className='status ok';$('#gps').textContent=`GPS live • ±${Math.round(pos.acc)} m`;
  if(!running)return;
- currentTrace.push({lat:pos.lat,lon:pos.lon}); if(currentTrace.length>5000)currentTrace.shift();
- const prof=getProfile(), start=prof?.start||startAnchor;
+ if(!Number.isFinite(pos.ts))return;
+ currentTrace.push({lat:pos.lat,lon:pos.lon,ts:pos.ts});if(currentTrace.length>30000)currentTrace.shift();
+ const prof=getProfile(),start=prof?.start||startAnchor;
  if(!start)return;
  const ds=hav(pos,start);
  if(ds>55)outsideStart=true;
- if(prof?.cp1&&!cp1Hit&&hav(pos,prof.cp1)<65)cp1Hit=true;
- if(prof?.cp2&&cp1Hit&&!cp2Hit&&hav(pos,prof.cp2)<65)cp2Hit=true;
+ if(prof?.checkpoints?.length&&nextCheckpoint<prof.checkpoints.length){
+   const cp=prof.checkpoints[nextCheckpoint];
+   const tolerance=Math.max(25,Math.min(65,20+2*(Number.isFinite(pos.acc)?pos.acc:20)));
+   const d=Math.min(hav(pos,cp),closestSegmentMetres(cp,prevFix,pos));
+   if(d<tolerance&&pos.ts-lastCheckpointAt>1500){nextCheckpoint++;lastCheckpointAt=pos.ts}
+ }
  let dsx=ds,cr=1;
- if(prevFix&&pos.ts>prevFix.ts&&window.PitlanePro&&PitlanePro.segClosest){try{const sg=PitlanePro.segClosest(start,prevFix,pos);if(sg.d<dsx){dsx=sg.d;cr=sg.r}}catch(_){}}
+ if(prevFix&&pos.ts>prevFix.ts){
+   const local=closestSegmentMetres(start,prevFix,pos);if(local<dsx)dsx=local;
+   if(window.PitlanePro&&PitlanePro.segClosest){try{const sg=PitlanePro.segClosest(start,prevFix,pos);if(sg.d<dsx){dsx=sg.d;cr=sg.r}}catch(_){}}
+ }
  if(outsideStart&&dsx<24&&now()-lapStart>18000&&traceDistance(currentTrace)>250){
-   const ct=prevFix?now()-(1-cr)*(pos.ts-prevFix.ts):now();
+   const ct=prevFix&&pos.ts>prevFix.ts?pos.ts-(1-cr)*(pos.ts-prevFix.ts):now();
    finishLap(ct-lapStart,ct);
  }
 }
+
 function startTick(){clearInterval(tick);tick=setInterval(()=>$('#current').textContent=fmt(now()-lapStart),100)}
 $('#start').onclick=()=>{
  if(running)return toast('Session already running');
@@ -490,7 +547,7 @@ $('#start').onclick=()=>{
      prof={...(prof||{}),track:selectedTrack(),layout:selectedLayout(),start:{...pos},confirmations:0,confirmed:false};
      data.trackProfiles[pkey()]=prof;save();toast('No saved line — start / finish set here for this first session');
    }
-   startAnchor={...prof.start};running=true;sessionStart=lapStart=now();laps=[];try{window.PitlanePro&&PitlanePro.reset()}catch(_){}currentTrace=[];outsideStart=false;cp1Hit=false;cp2Hit=false;renderLaps();startTick();
+   startAnchor={...prof.start};running=true;sessionStart=lapStart=now();laps=[];try{window.PitlanePro&&PitlanePro.reset()}catch(_){}currentTrace=[];outsideStart=false;nextCheckpoint=0;lastCheckpointAt=0;renderLaps();startTick();
    watch=navigator.geolocation.watchPosition(onPos,()=>{$('#gps').className='status bad';$('#gps').textContent='GPS signal lost — session remains active'},{enableHighAccuracy:true,maximumAge:0,timeout:12000});
    $('#gps').className='status ok';$('#gps').textContent='GPS session running';
  });

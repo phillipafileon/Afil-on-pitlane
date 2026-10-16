@@ -20,6 +20,7 @@ EXPECTED_FILES = {
     "assets/shop.js",
     "assets/gift-vouchers.js",
     "assets/seasonal.js",
+    "_headers",
 }
 
 def main():

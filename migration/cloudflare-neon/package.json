@@ -1,0 +1,16 @@
+{
+  "name": "afileon-cloudflare-neon-migration-staging",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy:staging": "wrangler deploy",
+    "check:bundle": "wrangler deploy --dry-run"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

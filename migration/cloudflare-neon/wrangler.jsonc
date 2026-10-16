@@ -1,0 +1,10 @@
+{
+  // Isolated staging Worker. This is NOT the live Afiléon API.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "afileon-neon-migration-staging",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-16",
+  "workers_dev": true,
+  "triggers": { "crons": [] },
+  "observability": { "enabled": false }
+}

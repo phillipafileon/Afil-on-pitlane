@@ -1,0 +1,10 @@
+# Protect migration data and credentials
+*.dump
+*.backup
+*.sql.gz
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+node_modules/

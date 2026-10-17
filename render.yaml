@@ -1,0 +1,22 @@
+# Staging-only migration target. No Railway or Cloudflare resources are changed.
+# Source: Railway "Afileon Live API" -> live-services/Dockerfile.
+# Use the Render + Neon integrations to copy ALL Railway environment variables securely.
+# Do not cut production traffic to this free staging service before verification.
+services:
+  - type: web
+    name: afileon-live-api-staging
+    runtime: docker
+    plan: free
+    region: frankfurt
+    repo: https://github.com/phillipafileon/Afil-on-pitlane
+    dockerfilePath: ./live-services/Dockerfile
+    dockerContext: ./live-services
+    healthCheckPath: /health
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SITE_URL
+        value: https://afileonmotorsport.co.uk
+      - key: DATABASE_URL
+        sync: false

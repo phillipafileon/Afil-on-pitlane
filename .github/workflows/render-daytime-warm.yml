@@ -1,15 +1,17 @@
 # Temporary safety net for Afiléon Motorsport's Render Free API.
-# Sends harmless GET /health requests during the normal customer day.
+# Sends harmless GET /health requests throughout the day and night.
 # GitHub scheduled jobs are best-effort: this does not guarantee uptime.
-# Approx. 13 hours of pings per day, preserving free instance-hour allowance.
-name: Afiléon API daytime wake check
+# Five attempts per hour (minute 3, 17, 31, 45, 59): longest planned gap 14 minutes.
+# Render free workspace has 750 instance-hours/month: continuous uptime can use 744h in a 31-day month.
+# It can still sleep if GitHub's scheduler is late or drops a run; consider paid hosting for reliable payments.
+name: Afiléon API 24-hour wake check
 on:
   schedule:
-    - cron: "*/10 8-20 * * *"
+    - cron: "3,17,31,45,59 * * * *"
   workflow_dispatch:
 permissions: {}
 concurrency:
-  group: afileon-api-daytime-wake
+  group: afileon-api-24-hour-wake
   cancel-in-progress: false
 jobs:
   wake:

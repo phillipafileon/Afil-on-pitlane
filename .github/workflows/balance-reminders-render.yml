@@ -1,7 +1,7 @@
 # Afiléon Motorsport — migrated balance reminder runner.
 # On default branch so GitHub Actions can execute the schedule.
 # DISABLED until repository variable AF_MIGRATED_CRON_ENABLED is set to true
-# and secrets LIVE_API_URL and CRON_SECRET are configured.
+# and repository secret CRON_SECRET is configured.
 # Disable the old Railway balance cron first to avoid duplicate reminders.
 name: Afiléon balance reminders — Render
 on:
@@ -17,17 +17,11 @@ jobs:
     steps:
       - name: Call booking balance reminder API
         env:
-          LIVE_API_URL: ${{ secrets.LIVE_API_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -eu
-          test -n "$LIVE_API_URL"
           test -n "$CRON_SECRET"
-          case "$LIVE_API_URL" in
-            https://afileon-api-migration-staging.onrender.com|https://afileon-api-migration-staging.onrender.com/) ;;
-            *) echo "Unexpected live API URL (no request sent)" >&2; exit 1 ;;
-          esac
           curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 230 \
             --retry 2 --retry-delay 5 -X POST \
             -H "x-cron-secret: $CRON_SECRET" \
-            "${LIVE_API_URL%/}/api/cron/balances" >/dev/null
+            "https://afileon-api-migration-staging.onrender.com/api/cron/balances" >/dev/null

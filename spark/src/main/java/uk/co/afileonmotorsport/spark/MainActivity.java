@@ -1,6 +1,14 @@
 package uk.co.afileonmotorsport.spark;
 
 import android.app.Activity;
+import android.os.ParcelFileDescriptor;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -25,6 +33,11 @@ import java.util.regex.Pattern;
  * Not yet an on-device generative AI or offline voice recognizer.
  */
 public final class MainActivity extends Activity {
+    private static final int MODEL_PICK = 905;
+    private final ExecutorService inference = Executors.newSingleThreadExecutor();
+    private File gguf;
+    private TextView modelStatus;
+    private boolean busy = false;
     private static final String ADMIN = "https://afileonmotorsport.co.uk/admin.html";
     private SharedPreferences prefs;
     private EditText input;
@@ -50,6 +63,13 @@ public final class MainActivity extends Activity {
         TextView subtitle = new TextView(this);
         subtitle.setText("BALANCED AUTONOMY  •  OFFLINE COMMANDS");
         subtitle.setTextColor(Color.rgb(80,210,245));outer.addView(subtitle);
+        gguf=new File(getFilesDir(),"spark-instruct.gguf");
+        modelStatus=new TextView(this);
+        modelStatus.setTextColor(Color.LTGRAY);
+        modelStatus.setText(gguf.isFile()?"Offline AI model installed":"Import a GGUF model once to enable offline conversation");
+        outer.addView(modelStatus);
+        Button modelButton=button("IMPORT OFFLINE AI MODEL (GGUF)",outer);
+        modelButton.setOnClickListener(v->selectModel());
         ScrollView scrolling = new ScrollView(this);
         transcript = new TextView(this);
         transcript.setTextColor(Color.WHITE);transcript.setTextSize(16);transcript.setPadding(0,18,0,10);
@@ -183,14 +203,82 @@ public final class MainActivity extends Activity {
             catch(Exception ex){respond("Could not queue the note.");}
             return;
         }
-        respond("I can control Pitlane and prepare Booking Manager actions. The local conversational AI model is still to be added. Try 'prepare Brands Hatch|Indy' or 'block 2026-11-01'.");
+        if(gguf.isFile())chatOffline(command);
+        else respond("I can execute offline Pitlane commands now. Import a small instruction-tuned GGUF model to chat with me offline, boss.");
     }
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
         super.onRequestPermissionsResult(requestCode,permissions,results);
         if(requestCode==904 && results.length>0 && results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED
                 && offlineSpeech!=null)offlineSpeech.start();
     }
+
+    private void selectModel(){
+        Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        startActivityForResult(i,MODEL_PICK);
+    }
+    @Override protected void onActivityResult(int code,int status,Intent data){
+        super.onActivityResult(code,status,data);
+        if(code!=MODEL_PICK || status!=RESULT_OK || data==null || data.getData()==null)return;
+        android.net.Uri uri=data.getData();
+        modelStatus.setText("Importing GGUF model into offline phone storage…");
+        inference.execute(()->{
+            File part=new File(getFilesDir(),"spark-instruct.gguf.partial");
+            try{
+                long size=-1;
+                try(ParcelFileDescriptor d=getContentResolver().openFileDescriptor(uri,"r")){
+                    if(d!=null)size=d.getStatSize();
+                }
+                if(size>0 && size>getFilesDir().getUsableSpace()-100000000L)
+                    throw new IllegalStateException("Not enough free phone storage");
+                try(InputStream in=getContentResolver().openInputStream(uri);
+                    OutputStream out=new FileOutputStream(part)){
+                    if(in==null)throw new IllegalStateException("Cannot read model");
+                    byte[] buffer=new byte[1024*1024];int n;
+                    while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
+                }
+                if(part.length()<1024*1024)throw new IllegalStateException("File is too small");
+                try(FileInputStream in=new FileInputStream(part)){
+                    byte[] magic=new byte[4];
+                    if(in.read(magic)!=4 || magic[0]!='G'||magic[1]!='G'||magic[2]!='U'||magic[3]!='F')
+                        throw new IllegalStateException("File is not a GGUF model");
+                }
+                if(gguf.exists()&&!gguf.delete())throw new IllegalStateException("Cannot replace existing model");
+                if(!part.renameTo(gguf))throw new IllegalStateException("Cannot complete import");
+                runOnUiThread(()->{
+                    modelStatus.setText("Offline AI model installed • "+(gguf.length()/1000000)+" MB");
+                    respond("Model imported. I can now converse without Wi-Fi or mobile data.");
+                });
+            }catch(Exception e){
+                part.delete();
+                runOnUiThread(()->{modelStatus.setText("GGUF import failed");respond("Import failed: "+e.getMessage());});
+            }
+        });
+    }
+    private void chatOffline(String message){
+        if(busy){respond("Already thinking, boss. This isn't a server farm.");return;}
+        if(!LocalLlama.AVAILABLE){respond("The local AI runtime isn't installed in this build.");return;}
+        busy=true;
+        modelStatus.setText("SPARK thinking • entirely on phone");
+        inference.execute(()->{
+            String result;
+            try{
+                String system="You are SPARK, a sarcastic but reliable racing-team companion for Afiléon Motorsport. "
+                  +"The team races a Porsche 924. Be brief, energetic and helpful. Never falsely claim you performed "
+                  +"any booking, payment or app action. Do not invent mechanical torque figures. Safety matters.";
+                String prompt="<|im_start|>system\n"+system+"\n<|im_end|>\n<|im_start|>user\n"+
+                    message.substring(0,Math.min(message.length(),1500))+"\n<|im_end|>\n<|im_start|>assistant\n";
+                result=LocalLlama.generate(gguf.getAbsolutePath(),prompt,140);
+                if(result==null||result.trim().isEmpty())result="No reply was generated.";
+            }catch(Throwable e){result="The local model couldn't run: "+e.getMessage();}
+            String answer=result;
+            runOnUiThread(()->{busy=false;modelStatus.setText("SPARK • local model ready");respond(answer);});
+        });
+    }
+
     @Override protected void onDestroy(){
+        inference.shutdown();
         if(offlineSpeech!=null)offlineSpeech.close();
         if(speech!=null){speech.stop();speech.shutdown();}
         super.onDestroy();

@@ -30,6 +30,7 @@ public final class MainActivity extends Activity {
     private EditText input;
     private TextView transcript;
     private TextView pending;
+    private OfflineSpeech offlineSpeech;
     private TextToSpeech speech;
     private boolean voiceReady;
     private boolean muted = false;
@@ -59,6 +60,11 @@ public final class MainActivity extends Activity {
         input.setTextColor(Color.WHITE);input.setHintTextColor(Color.LTGRAY);
         input.setSingleLine(false);input.setHint("Tell SPARK what to do…");
         outer.addView(input);
+        offlineSpeech=new OfflineSpeech(this,
+            heard->{input.setText(heard);runCommand(heard);},
+            error->respond(error));
+        Button mic=button("MICROPHONE / OFFLINE LISTEN",outer);
+        mic.setOnClickListener(v->offlineSpeech.start());
         Button send = button("RUN COMMAND", outer);
         send.setOnClickListener(v->{String cmd=input.getText().toString().trim();input.setText("");runCommand(cmd);});
         Button pendingButton = button("OPEN NEXT BOOKING PROPOSAL",outer);
@@ -179,7 +185,13 @@ public final class MainActivity extends Activity {
         }
         respond("I can control Pitlane and prepare Booking Manager actions. The local conversational AI model is still to be added. Try 'prepare Brands Hatch|Indy' or 'block 2026-11-01'.");
     }
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
+        super.onRequestPermissionsResult(requestCode,permissions,results);
+        if(requestCode==904 && results.length>0 && results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED
+                && offlineSpeech!=null)offlineSpeech.start();
+    }
     @Override protected void onDestroy(){
+        if(offlineSpeech!=null)offlineSpeech.close();
         if(speech!=null){speech.stop();speech.shutdown();}
         super.onDestroy();
     }

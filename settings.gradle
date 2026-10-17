@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = 'AfileonPitlane'
 include ':app'
+include ':spark'
+include ':bookingmanager'

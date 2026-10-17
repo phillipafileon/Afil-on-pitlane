@@ -108,6 +108,9 @@ jobs:
               path.write_text(text, encoding='utf-8')
           PY
 
+      - name: Set up Android SDK tools
+        uses: android-actions/setup-android@v3
+
       - name: Install Android native toolchain
         shell: bash
         run: |
@@ -126,7 +129,7 @@ jobs:
           git -C spark/src/main/cpp/vendor/llama.cpp checkout --detach FETCH_HEAD
 
       - name: Build release APK
-        run: gradle --no-daemon :app:assembleRelease :spark:assembleRelease
+        run: gradle --no-daemon :app:assembleRelease :spark:assembleRelease :bookingmanager:assembleRelease
 
       - name: Verify finished APK signing identity
         shell: bash
@@ -222,6 +225,13 @@ jobs:
         with:
           name: SPARK-Balanced-APK
           path: spark/build/outputs/apk/release/spark-release.apk
+          if-no-files-found: error
+
+      - name: Upload Booking Manager test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Afileon-BookingManager-APK
+          path: bookingmanager/build/outputs/apk/release/bookingmanager-release.apk
           if-no-files-found: error
 
       - name: Publish automatic updater files to main

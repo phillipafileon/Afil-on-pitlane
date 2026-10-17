@@ -129,6 +129,17 @@ public final class MainActivity extends Activity {
             respond("Command sent to Pitlane. Check its screen for confirmation.");
         }catch(Exception ex){respond("I couldn't reach a compatible signed Pitlane version. Install the matching Pitlane update first.");}
     }
+    private void sendBookingManager(String operation,String value){
+        try{
+            Intent i=new Intent();
+            i.setComponent(new ComponentName("uk.co.afileonmotorsport.bookingmanager",
+                    "uk.co.afileonmotorsport.bookingmanager.SparkBridgeActivity"));
+            i.putExtra("operation",operation);
+            i.putExtra("value",value);
+            startActivity(i);
+            respond("Opening Booking Manager. Review and save customer details there.");
+        }catch(Exception e){respond("Install the compatible Afiléon Booking Manager APK before using this offline command.");}
+    }
     private JSONArray drafts(){
         try{return new JSONArray(prefs.getString("pendingProposals","[]"));}
         catch(Exception ignored){return new JSONArray();}
@@ -167,6 +178,15 @@ public final class MainActivity extends Activity {
         if(command.isEmpty())return;
         append("YOU: "+command);
         String lower=command.toLowerCase(Locale.UK);
+        if(lower.equals("booking manager")||lower.contains("open booking manager")){
+            sendBookingManager("open_jobs","");return;
+        }
+        if(lower.startsWith("new job ")){
+            String customer=command.substring(8).trim();
+            if(customer.length()>140){respond("The draft customer description is too long.");return;}
+            sendBookingManager("prepare_job",customer);return;
+        }
+        if(lower.equals("local jobs")||lower.equals("repair jobs")){sendBookingManager("open_jobs","");return;}
         if(lower.equals("garage")||lower.contains("open garage")){sendPitlane("open_garage","");return;}
         if(lower.equals("pitlane")||lower.contains("open pitlane")){sendPitlane("open_home","");return;}
         if(lower.contains("track mode")){sendPitlane("open_track","");return;}

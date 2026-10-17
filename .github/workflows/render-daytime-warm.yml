@@ -1,0 +1,23 @@
+# Temporary safety net for Afiléon Motorsport's Render Free API.
+# Sends harmless GET /health requests during the normal customer day.
+# GitHub scheduled jobs are best-effort: this does not guarantee uptime.
+# Approx. 13 hours of pings per day, preserving free instance-hour allowance.
+name: Afiléon API daytime wake check
+on:
+  schedule:
+    - cron: "*/10 8-20 * * *"
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: afileon-api-daytime-wake
+  cancel-in-progress: false
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Wake API safely with a read-only request
+        run: |
+          curl --fail --silent --show-error --location --connect-timeout 20 --max-time 115 --retry 1 --retry-delay 3 \
+            --output /dev/null \
+            'https://afileon-api-migration-staging.onrender.com/health'

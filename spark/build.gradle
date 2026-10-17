@@ -1,0 +1,30 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'uk.co.afileonmotorsport.spark'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'uk.co.afileonmotorsport.spark'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+    }
+    signingConfigs {
+        releaseStable {
+            storeFile file(System.getProperty('user.home') + '/.android/debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.releaseStable }
+        release { signingConfig signingConfigs.releaseStable; minifyEnabled false }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

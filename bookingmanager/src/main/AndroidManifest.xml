@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="uk.co.afileonmotorsport.pitlane.permission.SPARK_CONTROL" />
+    <permission android:name="uk.co.afileonmotorsport.bookingmanager.permission.SPARK_CONTROL" android:protectionLevel="signature" />
     <application android:label="Afiléon Booking Manager" android:allowBackup="false"
         android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
         <activity android:name=".SparkBridgeActivity" android:exported="true"
-            android:permission="uk.co.afileonmotorsport.pitlane.permission.SPARK_CONTROL"/>
+            android:permission="uk.co.afileonmotorsport.bookingmanager.permission.SPARK_CONTROL"/>
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

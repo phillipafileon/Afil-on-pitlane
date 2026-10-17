@@ -1,7 +1,6 @@
 # Afiléon Motorsport — migrated balance reminder runner.
 # On default branch so GitHub Actions can execute the schedule.
-# DISABLED until repository variable AF_MIGRATED_CRON_ENABLED is set to true
-# and repository secret CRON_SECRET is configured.
+# Sends no requests until the GitHub Actions secret CRON_SECRET is configured.
 # Disable the old Railway balance cron first to avoid duplicate reminders.
 name: Afiléon balance reminders — Render
 on:
@@ -11,7 +10,6 @@ on:
 permissions: {}
 jobs:
   send-reminders:
-    if: ${{ vars.AF_MIGRATED_CRON_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -20,7 +18,10 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -eu
-          test -n "$CRON_SECRET"
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not configured. Skipping without contacting the API."
+            exit 0
+          fi
           curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 230 \
             --retry 2 --retry-delay 5 -X POST \
             -H "x-cron-secret: $CRON_SECRET" \

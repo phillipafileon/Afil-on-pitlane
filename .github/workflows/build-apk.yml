@@ -6,6 +6,8 @@ on:
     paths:
       - 'app/**'
       - 'spark/**'
+      - 'bookingmanager/**'
+      - 'bookingmanager/**'
       - 'build.gradle'
       - 'settings.gradle'
       - 'gradle.properties'
@@ -106,8 +108,25 @@ jobs:
               path.write_text(text, encoding='utf-8')
           PY
 
+      - name: Install Android native toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1"
+
+      - name: Fetch pinned llama.cpp source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p spark/src/main/cpp/vendor/llama.cpp
+          git -C spark/src/main/cpp/vendor/llama.cpp init
+          git -C spark/src/main/cpp/vendor/llama.cpp remote add origin https://github.com/ggml-org/llama.cpp.git
+          git -C spark/src/main/cpp/vendor/llama.cpp fetch --depth 1 origin 9d1878a4354e743529fbe09e7350a957f5e39e9a
+          git -C spark/src/main/cpp/vendor/llama.cpp checkout --detach FETCH_HEAD
+
       - name: Build release APK
-        run: gradle --no-daemon assembleRelease
+        run: gradle --no-daemon :app:assembleRelease :spark:assembleRelease
 
       - name: Verify finished APK signing identity
         shell: bash

@@ -1,0 +1,31 @@
+name: Extract compiled Render public service catalogue (STAGING)
+on:
+  push:
+    branches:
+      - migration/cloudflare-workers-d1-2026-10-18
+    paths:
+      - 'cloudflare-core/tools/extract-public-service-contract.cjs'
+      - '.github/workflows/cloudflare-core-extract-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile-and-extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile final backend source using Docker RUN patch order (NO server boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/afileon-drycompile
+          cp live-services/server_v3.js live-services/*.cjs live-services/*.inc /tmp/afileon-drycompile/
+          cd /tmp/afileon-drycompile
+          while read -r script; do
+            echo "Applying $script"
+            node "$script"
+          done < <(grep -E '^RUN node .*\.cjs$' "$GITHUB_WORKSPACE/live-services/Dockerfile" | awk '{print $3}')
+      - name: Extract non-secret public catalogue from compiled server
+        run: |
+          cd /tmp/afileon-drycompile
+          node "$GITHUB_WORKSPACE/cloudflare-core/tools/extract-public-service-contract.cjs"

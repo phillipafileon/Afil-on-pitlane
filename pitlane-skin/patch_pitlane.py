@@ -6,6 +6,7 @@ The APK is resigned by the CI job using the SAME identity as the published
 """
 import hashlib
 import io
+import copy
 from pathlib import Path
 import struct
 import sys
@@ -87,7 +88,7 @@ def main(apk_file,css_file,out_file):
                 content=(manifest if name=="AndroidManifest.xml" else
                          updated if name=="assets/index.html" else
                          original.read(name))
-                dst.writestr(name,content,compress_type=info.compress_type)
+                dst.writestr(copy.copy(info),content)
             dst.writestr(CSS_ENTRY,css,compress_type=zipfile.ZIP_DEFLATED)
         with zipfile.ZipFile(out_file) as output:
             assert output.read(CSS_ENTRY)==css

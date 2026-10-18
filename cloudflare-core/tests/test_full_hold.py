@@ -6,10 +6,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Barrier
 import sqlite3
+import re
 
 ROOT=Path(__file__).resolve().parents[1]
 SCHEMA=(ROOT/"migrations/0001_neon_schema_draft.sql").read_text()
 SQL=(ROOT/"booking/atomic-booking-hold-full.sql").read_text()
+# Python 3.14 discourages binding sequences to numbered ?NNN placeholders.
+# The translated named bindings have the same semantics as the D1 ordered SQL.
+PYSQL=re.sub(r"\\?(\\d+)",lambda m: ":v"+m.group(1),SQL)
 DATE="2026-10-25"
 NOW="2026-10-18T07:00:00.000Z"
 TODAY="2026-10-18"
@@ -26,7 +30,7 @@ def fresh():
     db.executescript(SCHEMA)
     return db
 def reserve(db,pid,service="track_day_support"):
-    return db.execute(SQL,args(pid,service)).fetchone()
+    return db.execute(PYSQL,{f"v{i+1}":v for i,v in enumerate(args(pid,service))}).fetchone()
 def test_fields_and_preexisting_busy():
     db=fresh()
     first=reserve(db,"bk_1234567890abcdef")

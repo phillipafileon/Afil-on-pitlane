@@ -172,7 +172,8 @@ export default {
         ).first();
         const tables = Number(tableResult?.n ?? 0);
         const indexes = Number(indexResult?.n ?? 0);
-        const ok = tables === 25 && indexes === 13;
+        // Accept only the verified baseline and the planned webhook-inbox schema during staging rollout.
+        const ok = (tables === 25 && indexes === 13) || (tables === 26 && indexes === 14);
         return reply({
           ok,
           service: "Afileon Core staging",

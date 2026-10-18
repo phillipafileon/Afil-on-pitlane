@@ -2,7 +2,7 @@
 
 Prepared on 18 October 2026 from the existing Render and Neon configuration.
 
-**NOT DEPLOYED TO CLOUDFLARE. NOT A COMPLETED MIGRATION. NOT READY FOR BOOKINGS OR PAYMENTS.**
+**D1 STAGING SCHEMA CREATED AND VERIFIED; WORKER CODE NOT DEPLOYED. NOT A COMPLETED MIGRATION. NOT READY FOR BOOKINGS OR PAYMENTS.**
 The live Render, Neon, Cloudflare Pages website, payment webhooks and Android apps have not been redirected.
 
 ## Verified source
@@ -10,14 +10,15 @@ The live Render, Neon, Cloudflare Pages website, payment webhooks and Android ap
 - Existing Neon project: `Afileon Motorsport Migration Staging` (PostgreSQL 18).
 - Existing code: `live-services/server_v3.js` plus many Docker build-time patches in `live-services/`.
 - Neon public schema: 25 tables, 314 columns, 13 ordinary indexes plus primary/unique keys.
-- Draft D1 structural schema: `migrations/0001_neon_schema_draft.sql`; includes mapped unique constraints, FK and CHECK constraints. A credential-free GitHub Actions SQLite test on 18 October 2026 successfully created all 25 tables and counted all 314 columns. It still requires tests against Cloudflare D1, data parity and production query review.
+- D1 structural schema: `migrations/0001_neon_schema_draft.sql`; includes mapped unique constraints, FK and CHECK constraints. Credential-free GitHub Actions SQLite test on 18 October 2026 created all 25 tables and counted 314 columns. **Cloudflare owner confirmed on 18 October 2026 through D1 Console:** 12 staging-only schema batches all reported success; an independent read-only query to `sqlite_master` returned **25 application tables and 13 explicit indexes** in `afileon-core-staging`. Data parity, functional constraints and production query review remain outstanding.
 - Previous Railway PostgreSQL volume has **not** been proved exported. A nearly empty Neon database does not mean there are no historical Railway-only operational records.
 
 ## Implemented in this branch
 - A Workers/D1 scaffold with a fail-closed migration health endpoint `GET /__migration/health`.
 - Initial **staging-only** read-only base routes: `GET /api/season` and `GET /api/shop/products`. Runtime patches may change those routes, so full behavioural parity has NOT been confirmed.
 - All unported paths deliberately return HTTP 503 rather than silently calling Render or accepting Stripe/payment/admin writes.
-- Source schema conversion into initial D1 SQL: `0001_neon_schema_draft.sql`.
+- Source schema conversion into initial D1 SQL: `0001_neon_schema_draft.sql`. Staging D1 schema has been installed and independently counted (25 tables / 13 indexes); only structure was installed, not rows.
+- Manual 12-part D1 Console SQL import under `d1-console-batches/`, verified against owner screenshots. No production D1 or website touched.
 - Optional offline source-data export under `.private/`, which is Git-ignored and intentionally excludes live admin sessions, login challenges, login attempts and email verification records.
 
 ## Not yet ported
@@ -27,7 +28,7 @@ The live Render, Neon, Cloudflare Pages website, payment webhooks and Android ap
 - Stripe event signature verification, webhook event idempotency, retry logic, refunds, and Printful fulfilment and catalogue cache.
 - Email verification, transactional email, scheduled balance reminders and pending deposit/checkout expiry flows.
 - Full route inventory and **production frontend/mobile client behaviour** tests.
-- Cloudflare account provisioning, credentials, secrets, D1 database creation, domain binding and live DNS/webhook cutover.
+- Staging Worker **code deployment** and functional testing, secrets, domain binding and live DNS/webhook cutover. Cloudflare D1 database creation/binding and its schema installation are complete.
 
 ## Why this is a port rather than copying the server
 
@@ -37,7 +38,7 @@ Cloudflare supports Express on Workers with compatibility features, but that doe
 
 ## Staged deployment steps (once Cloudflare is authorised)
 1. **Completed manually (owner):** create the standalone staging Worker and D1 database `afileon-core-staging`; bind D1 as `DB`. GitHub `wrangler.jsonc` now contains the observed non-secret D1 database ID and staging Worker name; check against Cloudflare dashboard before deploying. The production Afiléon website remains separate.
-2. Verify `migrations/0001_neon_schema_draft.sql` locally with SQLite, test constraints and default timestamps, then apply it only to the new staging D1 database using Wrangler.
+2. **COMPLETED for schema creation:** GitHub SQL validation succeeded, and the owner manually imported 12 smaller SQL batches through Cloudflare D1 Console after Wrangler authentication failed. Final Console SELECT independently returned 25 application tables and 13 explicit indexes. File copies: `d1-console-batches/`; still test runtime constraints and default timestamps.
 3. Export the current Neon data *privately*. Never commit SQL containing customer information, credentials, cookies, hashes, email verification codes, or payment details. `tools/export-neon-to-d1.mjs` can prepare a private export from a trusted machine with `DATABASE_URL` set, and must be audited and run only after taking proper backups and establishing an empty destination.
 4. Port and test API routes **against final compiled Render behaviour**, not merely the base `server_v3.js`, using Stripe test mode and no live Printful fulfilment.
 5. Verify row counts, customer and operational settings, cookie/CORS policies, booking concurrency, Stripe webhook deduplication, and end-to-end Pitlane and owner-only Inspection App flows.

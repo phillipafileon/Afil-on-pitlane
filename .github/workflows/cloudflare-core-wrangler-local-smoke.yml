@@ -6,6 +6,7 @@ on:
     paths:
       - 'cloudflare-core/dashboard-staging-worker.js'
       - 'cloudflare-core/wrangler.jsonc'
+      - 'cloudflare-core/package.json'
       - 'cloudflare-core/migrations/**'
       - 'cloudflare-core/tests/smoke-local-worker.mjs'
       - '.github/workflows/cloudflare-core-wrangler-local-smoke.yml'

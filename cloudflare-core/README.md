@@ -64,3 +64,5 @@ Cloudflare Workers and D1 have free tiers, but these are quota-limited (includin
 
 ## Security
 No Cloudflare, Render, Neon, Stripe, Printful or SMTP credentials are stored in this migration branch. No live webhook endpoints or domain routes have been changed. Never add a secret owner 'backdoor'; use explicit authenticated and audited roles for privileged operations.
+
+- **Integrated local Wrangler D1 tests verified 19 Oct:** [run 39176850157](https://github.com/phillipafileon/Afil-on-pitlane/actions/runs/39176850157) passes a CI-only signed Stripe-style webhook through local D1, including replay suppression and 10 simultaneous notifications, then a private owner-only session test (valid, staff, expired, revoked, wrong-origin cases). [Unit tests run 39176850166](https://github.com/phillipafileon/Afil-on-pitlane/actions/runs/39176850166) passes 49 Node and 19 local SQLite tests. **These are NOT deployed payment/admin endpoints or real Stripe transactions.**

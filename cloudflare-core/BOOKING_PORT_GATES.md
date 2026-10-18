@@ -13,8 +13,8 @@ Reference: `live-services/server_v3.js` is modified by the scripts in `live-serv
 
 ## Source rules that MUST be preserved before enabling bookings
 
-1. **Service catalogue / dynamic prices:** reconcile the *compiled* `GET /api/services` and `GET /api/config` payloads with `runtime_service_consolidation_patch.cjs`, `runtime_dynamic_pricing_patch.cjs`, `runtime_booking_pricing*.cjs`, and venue/travel patches. Do not expose legacy unpublished services.
-2. **Booking window / UK local time:** next-day cutoffs and inspection slots from `runtime_booking_cutoffs_slots_patch.cjs` (E46 11:30 payment / 10:59 checkout start; track-day services 20:00 / 19:29; inspection slots 10:00–18:00 and same-day restrictions). Confirm final values after all patches and daylight-saving transitions.
+1. **Service catalogue / dynamic prices:** the compiled final code has four services, recorded in `compiled-public-service-snapshot.json` and explained in `PUBLIC_SERVICE_CATALOGUE_PARITY.md`; `GET /api/services` with D1 pricing overrides is prepared and unit-tested but not manually deployed yet. `GET /api/config` remains unported pending correct terms, live launch flags and payment/security checks. Do not expose removed legacy services.
+2. **Booking window / UK local time:** validated against the full compiled Docker patch chain (not intermediate scripts): E46 **11:30/11:30**, pre-track inspection **22:00/22:00**, and other track-day services **20:00/20:00** (payment / checkout start, Europe/London). Inspection slots are 10:00, 12:00, 14:00, 16:00 and 18:00. Pure date policy prototype and UK daylight-saving unit tests pass, but live payment-timing parity remains unverified.
 3. **Closure / service blocks / no double-booking:** honor `business_availability_settings`, date-scoped `availability_blocks`, service group conflicts, manual bookings, active holds, paid balances and checkout-time recheck. Reads are advisory only. Implement an **atomic** reservation mechanism in D1; PostgreSQL advisory locks and `SELECT FOR UPDATE` do not exist in D1.
 4. **Booking deposit policies:** final E46 payment-choice patch allows full payment or £250 deposit with 9-day notice / 3-day balance due under applicable booking rules; the patch also contains a near-date full-payment requirement. Verify behavior against the built runtime. Don't regress to the older 10/7 or 7/7 terms.
 5. **Vehicle hire damage security:** £2,500 authorisation, optional capture, release/expiration, notifications and signed webhook handling; do not reduce security to normal checkout.
@@ -27,8 +27,8 @@ Reference: `live-services/server_v3.js` is modified by the scripts in `live-serv
 ## Safe development order
 
 - **Gate A (current):** read-only health, season, products, availability, closure. Passed basic live staging smoke tests.
-- **Gate B:** compiled-runtime inventory and complete public services/config route parity; test expected JSON contracts and CORS.
-- **Gate C:** D1 atomic hold mechanism plus full cutoff/closure/conflict tests with mocked Stripe (booking writes only on isolated staging and only after explicit test data plan).
+- **Gate B (in progress):** compiled-runtime inventory and the staging `GET /api/services` port are prepared and tested; live stage smoke-test and `GET /api/config` parity remain outstanding.
+- **Gate C (prototype only):** `booking-policy-prototype.mjs` is isolated and its UK cutoff/DST/closure/block tests pass. `prototypes/atomic-booking-hold.sql` demonstrates SQLite single-statement reservation conditions and one winner under 10 simultaneous local connections; it is NOT deployed nor D1-validated. Still need complete field validation, real D1 concurrency verification, Stripe mocking, checkout recheck and legally valid terms before enabling writes.
 - **Gate D:** admin login/auth, RBAC, audit; private workshop/manual booking capabilities; run security reviews before real users.
 - **Gate E:** Stripe test-mode checkout/webhooks, security authorisation, refund and reconciliation. Idempotent D1 writes and webhook retries.
 - **Gate F:** priority recovery, Printful, email, gift vouchers, discounts, cron jobs, Android app/Pitlane parity.

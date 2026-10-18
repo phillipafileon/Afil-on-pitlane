@@ -1,0 +1,42 @@
+name: Cloudflare Core schema check
+
+on:
+  push:
+    branches:
+      - migration/cloudflare-workers-d1-2026-10-18
+    paths:
+      - 'cloudflare-core/**'
+      - '.github/workflows/cloudflare-core-schema-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate D1 schema structurally (no external credentials)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sqlite3
+
+          path = Path("cloudflare-core/migrations/0001_neon_schema_draft.sql")
+          script = path.read_text(encoding="utf-8")
+          db = sqlite3.connect(":memory:")
+          db.execute("PRAGMA foreign_keys = ON")
+          db.executescript(script)
+          tables = [r[0] for r in db.execute(
+              "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+          )]
+          column_count = sum(len(db.execute(
+              'PRAGMA table_info("' + name + '")'
+          ).fetchall()) for name in tables)
+          assert len(tables) == 25, (len(tables), tables)
+          assert column_count == 314, column_count
+          assert not db.execute("PRAGMA foreign_key_check").fetchall()
+          print(f"Validated {len(tables)} tables and {column_count} columns with SQLite.")
+          PY

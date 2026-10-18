@@ -28,8 +28,11 @@ jobs:
           account = (os.environ.get('CLOUDFLARE_ACCOUNT_ID') or '').strip()
           if not token or not account:
             sys.exit('Missing Cloudflare GitHub secret(s).')
+          expected_account = '32cd73f7c257f45d57b3153b4a158071'  # confirmed by account owner; not a secret
           if not re.fullmatch('[0-9a-fA-F]{32}', account):
             sys.exit('CLOUDFLARE_ACCOUNT_ID has the wrong format. It must be the 32-character Cloudflare account ID.')
+          matches = (account.lower() == expected_account)
+          print('GitHub Account ID matches owner-confirmed Account ID: '+str(matches))
           def check(url, label):
             try:
               with urlopen(Request(url, headers={'Authorization':'Bearer '+token,'Accept':'application/json'}), timeout=20) as f:
@@ -47,9 +50,11 @@ jobs:
           status,payload=check('https://api.cloudflare.com/client/v4/user/tokens/verify','Token verification')
           if status != 200 or not payload.get('success') or (payload.get('result') or {}).get('status')!='active':
             sys.exit('Cloudflare token is not active or not valid. STOP: no database changes were attempted.')
-          status,payload=check('https://api.cloudflare.com/client/v4/accounts/'+account+'/d1/database?per_page=100','D1 listing')
+          status,payload=check('https://api.cloudflare.com/client/v4/accounts/'+expected_account+'/d1/database?per_page=100','D1 listing for owner-confirmed account')
           if status!=200 or not payload.get('success'):
-            sys.exit('Valid token, but account D1 access is denied. Check account ID and D1 Edit permission.')
+            sys.exit('Valid token, but D1 access to the owner-confirmed account is denied. Check token account scope and D1 Edit permission.')
+          if not matches:
+            sys.exit('The token can access the correct account, but GitHub CLOUDFLARE_ACCOUNT_ID differs. Correct that GitHub secret before import.')
           ids=[str(x.get('uuid') or x.get('id') or '') for x in payload.get('result',[]) if isinstance(x,dict)]
           if 'ea8891e9-1fc4-4018-9032-428d359aae51' not in ids:
             sys.exit('Token valid but the staging database was not found in the selected Cloudflare account.')

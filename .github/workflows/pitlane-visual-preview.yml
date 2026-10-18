@@ -1,0 +1,14 @@
+name: Pitlane website visual update preview
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  theme-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify assets exist
+        run: |
+          test -s pitlane-skin/pitlane_website_skin_v073.css
+          test -s pitlane-skin/patch_pitlane.py

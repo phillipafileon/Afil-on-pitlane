@@ -1,0 +1,19 @@
+name: Staging Cloudflare API read-only tests
+on:
+  push:
+    branches:
+      - migration/cloudflare-workers-d1-2026-10-18
+    paths:
+      - 'cloudflare-core/dashboard-staging-worker.js'
+      - 'cloudflare-core/tests/**'
+      - '.github/workflows/cloudflare-core-readonly-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-only-api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Node.js compatibility tests
+        run: node --test cloudflare-core/tests/*.test.mjs

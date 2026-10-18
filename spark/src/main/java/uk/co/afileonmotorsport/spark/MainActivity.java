@@ -301,7 +301,7 @@ public final class MainActivity extends Activity {
         if(busy){respond("Already thinking, boss. This isn't a server farm.");return;}
         if(!LocalLlama.AVAILABLE){respond("The local AI runtime isn't installed in this build.");return;}
         busy=true;
-        modelStatus.setText("SPARK thinking • entirely on phone");
+        modelStatus.setText("SPARK thinking • local fast mode");
         inference.execute(()->{
             String result;
             try{
@@ -310,7 +310,7 @@ public final class MainActivity extends Activity {
                   +"any booking, payment or app action. Do not invent mechanical torque figures. Safety matters.";
                 String prompt="<|im_start|>system\n"+system+"\n<|im_end|>\n<|im_start|>user\n"+
                     message.substring(0,Math.min(message.length(),1500))+"\n<|im_end|>\n<|im_start|>assistant\n";
-                result=LocalLlama.generate(gguf.getAbsolutePath(),prompt,140);
+                result=LocalLlama.generate(gguf.getAbsolutePath(),prompt,96);
                 if(result==null||result.trim().isEmpty())result="No reply was generated.";
             }catch(Throwable e){result="The local model couldn't run: "+e.getMessage();}
             String answer=result;

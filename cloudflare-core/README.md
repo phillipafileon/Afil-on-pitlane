@@ -1,0 +1,53 @@
+# Afiléon Motorsport — Cloudflare Core migration (STAGING ONLY)
+
+Prepared on 18 October 2026 from the existing Render and Neon configuration.
+
+**NOT DEPLOYED TO CLOUDFLARE. NOT A COMPLETED MIGRATION. NOT READY FOR BOOKINGS OR PAYMENTS.**
+The live Render, Neon, Cloudflare Pages website, payment webhooks and Android apps have not been redirected.
+
+## Verified source
+- Existing Render Docker API: `afileon-api-migration-staging`.
+- Existing Neon project: `Afileon Motorsport Migration Staging` (PostgreSQL 18).
+- Existing code: `live-services/server_v3.js` plus many Docker build-time patches in `live-services/`.
+- Neon public schema: 25 tables, 314 columns, 13 ordinary indexes plus primary/unique keys.
+- Draft D1 structural schema: `migrations/0001_neon_schema_draft.sql`; includes mapped unique constraints, FK and CHECK constraints, but must be validated with SQLite/D1 and reviewed before production.
+- Previous Railway PostgreSQL volume has **not** been proved exported. A nearly empty Neon database does not mean there are no historical Railway-only operational records.
+
+## Implemented in this branch
+- A Workers/D1 scaffold with a fail-closed migration health endpoint `GET /__migration/health`.
+- Initial **staging-only** read-only base routes: `GET /api/season` and `GET /api/shop/products`. Runtime patches may change those routes, so full behavioural parity has NOT been confirmed.
+- All unported paths deliberately return HTTP 503 rather than silently calling Render or accepting Stripe/payment/admin writes.
+- Source schema conversion into initial D1 SQL: `0001_neon_schema_draft.sql`.
+- Optional offline source-data export under `.private/`, which is Git-ignored and intentionally excludes live admin sessions, login challenges, login attempts and email verification records.
+
+## Not yet ported
+- The full runtime-adjusted service catalogue, pricing and availability calculations; booking holds and appointment conflicts; quote requests; booking write and checkout flow.
+- Admin authentication, audit and admin scheduling, workshop records and signed inspection data; owner-only app sync.
+- Priority recovery and vehicle hire security pre-authorisations, captures/refunds and liability rules.
+- Stripe event signature verification, webhook event idempotency, retry logic, refunds, and Printful fulfilment and catalogue cache.
+- Email verification, transactional email, scheduled balance reminders and pending deposit/checkout expiry flows.
+- Full route inventory and **production frontend/mobile client behaviour** tests.
+- Cloudflare account provisioning, credentials, secrets, D1 database creation, domain binding and live DNS/webhook cutover.
+
+## Why this is a port rather than copying the server
+
+The Render image runs a conventional Express/Node server under Docker. It builds a modified `server_v3.js` by running many patch scripts and then writes a runtime module at boot. It uses `pg` and PostgreSQL features such as `$1` parameters, `::jsonb`, `FOR UPDATE`, `RETURNING` and PostgreSQL date math. D1 is SQLite, so queries, transactional lock behaviour, booleans, date comparisons and JSON fields require deliberate conversion.
+
+Cloudflare supports Express on Workers with compatibility features, but that does **not** make existing `pg` queries or Docker-based patch/bootstrap procedures operate unchanged.
+
+## Staged deployment steps (once Cloudflare is authorised)
+1. Create a new **staging** D1 database `afileon-core-staging` in the owner's Cloudflare account. Copy `wrangler.example.jsonc` to the ignored `wrangler.jsonc`, substitute the real database ID and set `SITE_ORIGIN` to the explicitly allowed frontend URL.
+2. Verify `migrations/0001_neon_schema_draft.sql` locally with SQLite, test constraints and default timestamps, then apply it only to the new staging D1 database using Wrangler.
+3. Export the current Neon data *privately*. Never commit SQL containing customer information, credentials, cookies, hashes, email verification codes, or payment details. `tools/export-neon-to-d1.mjs` can prepare a private export from a trusted machine with `DATABASE_URL` set, and must be audited and run only after taking proper backups and establishing an empty destination.
+4. Port and test API routes **against final compiled Render behaviour**, not merely the base `server_v3.js`, using Stripe test mode and no live Printful fulfilment.
+5. Verify row counts, customer and operational settings, cookie/CORS policies, booking concurrency, Stripe webhook deduplication, and end-to-end Pitlane and owner-only Inspection App flows.
+6. Only after a backup, a controlled write freeze and parity checks, deploy the finished Worker and switch Cloudflare Pages frontend URL, app API origins and relevant webhook URLs. Maintain rollback access and do not cancel Render/Neon immediately.
+
+## App permissions
+Customers get **Pitlane only**, with its limited assistant. The inspection/workshop app is for the owner alone. Never expose Master SPARK identity, tokens or private records to customer app clients.
+
+## Cost and limits
+Cloudflare Workers and D1 have free tiers, but these are quota-limited (including Workers CPU time, requests, and D1 rows). Confirm full booking/webhook functionality fits the current account plan; free does not mean unlimited capacity. Stripe, Printful and external transactional email remain external service integrations.
+
+## Security
+No Cloudflare, Render, Neon, Stripe, Printful or SMTP credentials are stored in this migration branch. No live webhook endpoints or domain routes have been changed. Never add a secret owner 'backdoor'; use explicit authenticated and audited roles for privileged operations.

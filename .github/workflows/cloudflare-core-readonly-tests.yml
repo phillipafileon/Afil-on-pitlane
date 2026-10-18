@@ -21,3 +21,4 @@ jobs:
         run: |
           python3 cloudflare-core/tests/test_atomic_hold.py
           python3 cloudflare-core/tests/test_full_hold.py
+          python3 cloudflare-core/tests/test_webhook_inbox.py

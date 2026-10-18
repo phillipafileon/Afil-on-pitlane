@@ -20,6 +20,7 @@ The live Render, Neon, Cloudflare Pages website, payment webhooks and Android ap
 - Source schema conversion into initial D1 SQL: `0001_neon_schema_draft.sql`. Staging D1 schema has been installed and independently counted (25 tables / 13 indexes); only structure was installed, not rows.
 - Manual 12-part D1 Console SQL import under `d1-console-batches/`, verified against owner screenshots. No production D1 or website touched.
 - **Staging Worker manually deployed and verified by owner 18 October 2026:** `dashboard-staging-worker.js` deployed in isolated `afileon-core-staging` Worker; live `/__migration/health` screenshot returned `{"ok":true,"service":"Afileon Core staging","database":"D1","tables":25,"indexes":13,"production_ready":false}`. This verifies D1 binding and schema visibility from the Worker only; it is NOT full API or client parity.
+- **Shop read route manually verified by owner 18 October 2026:** staging `/api/shop/products` responded with `{"products":[]}`. This confirms the Worker can query the empty D1 `shop_products` table; it does not prove that the live storefront catalogue or Printful sync has migrated.
 - Optional offline source-data export under `.private/`, which is Git-ignored and intentionally excludes live admin sessions, login challenges, login attempts and email verification records.
 
 ## Not yet ported

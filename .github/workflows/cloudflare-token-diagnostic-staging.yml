@@ -1,0 +1,57 @@
+name: Check Cloudflare staging token
+on:
+  push:
+    branches:
+      - migration/cloudflare-workers-d1-2026-10-18
+    paths:
+      - 'cloudflare-core/TOKEN_CHECK_REQUEST.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-cloudflare-access:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check authentication without exposing secrets or writing data
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, json, re, sys
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError, URLError
+          token = (os.environ.get('CLOUDFLARE_API_TOKEN') or '').strip()
+          account = (os.environ.get('CLOUDFLARE_ACCOUNT_ID') or '').strip()
+          if not token or not account:
+            sys.exit('Missing Cloudflare GitHub secret(s).')
+          if not re.fullmatch('[0-9a-fA-F]{32}', account):
+            sys.exit('CLOUDFLARE_ACCOUNT_ID has the wrong format. It must be the 32-character Cloudflare account ID.')
+          def check(url, label):
+            try:
+              with urlopen(Request(url, headers={'Authorization':'Bearer '+token,'Accept':'application/json'}), timeout=20) as f:
+                status=f.status
+                payload=json.load(f)
+            except HTTPError as e:
+              status=e.code
+              try: payload=json.loads(e.read())
+              except Exception: payload={}
+            except (URLError,TimeoutError):
+              sys.exit(label+': connection error')
+            codes=[str(x.get('code','unknown')) for x in payload.get('errors',[]) if isinstance(x,dict)]
+            print(label+': HTTP '+str(status)+', API success='+str(payload.get('success',False))+', error codes='+(','.join(codes) if codes else 'none'))
+            return status, payload
+          status,payload=check('https://api.cloudflare.com/client/v4/user/tokens/verify','Token verification')
+          if status != 200 or not payload.get('success') or (payload.get('result') or {}).get('status')!='active':
+            sys.exit('Cloudflare token is not active or not valid. STOP: no database changes were attempted.')
+          status,payload=check('https://api.cloudflare.com/client/v4/accounts/'+account+'/d1/database?per_page=100','D1 listing')
+          if status!=200 or not payload.get('success'):
+            sys.exit('Valid token, but account D1 access is denied. Check account ID and D1 Edit permission.')
+          ids=[str(x.get('uuid') or x.get('id') or '') for x in payload.get('result',[]) if isinstance(x,dict)]
+          if 'ea8891e9-1fc4-4018-9032-428d359aae51' not in ids:
+            sys.exit('Token valid but the staging database was not found in the selected Cloudflare account.')
+          print('Token valid, D1 listing permitted, target staging database found. No data changed.')
+          PY

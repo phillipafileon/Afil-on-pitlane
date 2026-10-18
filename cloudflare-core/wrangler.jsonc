@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "afileon-core-staging",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-18",
+  "vars": {
+    "ENVIRONMENT": "staging",
+    "SITE_ORIGIN": "https://afileonmotorsport.co.uk"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "afileon-core-staging",
+      "database_id": "ea8891e9-1fc4-4018-9032-428d359aae51",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

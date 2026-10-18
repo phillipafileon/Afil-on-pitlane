@@ -1,0 +1,69 @@
+name: Cloudflare Core Wrangler local D1 smoke (STAGING ONLY)
+on:
+  push:
+    branches:
+      - migration/cloudflare-workers-d1-2026-10-18
+    paths:
+      - 'cloudflare-core/dashboard-staging-worker.js'
+      - 'cloudflare-core/wrangler.jsonc'
+      - 'cloudflare-core/migrations/**'
+      - 'cloudflare-core/tests/smoke-local-worker.mjs'
+      - '.github/workflows/cloudflare-core-wrangler-local-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-worker-d1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install staging-only Cloudflare tooling (no deploy credentials)
+        working-directory: cloudflare-core
+        run: npm install --no-audit --no-fund
+      - name: Test baseline and expanded schemas using LOCAL Wrangler D1
+        shell: bash
+        working-directory: cloudflare-core
+        run: |
+          set -euo pipefail
+          STATE_DIR="$PWD/.wrangler/test-state"
+          mkdir -p "$STATE_DIR"
+          npx wrangler d1 execute afileon-core-staging --config wrangler.jsonc --local --persist-to "$STATE_DIR" --file=migrations/0001_neon_schema_draft.sql
+          start_worker() {
+            npx wrangler dev ./dashboard-staging-worker.js --config wrangler.jsonc --local --persist-to "$STATE_DIR" --ip 127.0.0.1 --port 8787 > /tmp/afileon-worker-smoke.log 2>&1 &
+            WORKER_PID=$!
+            local ready=0
+            for i in {1..45}; do
+              if ! kill -0 "$WORKER_PID" 2>/dev/null; then
+                cat /tmp/afileon-worker-smoke.log
+                return 1
+              fi
+              if curl -fsS http://127.0.0.1:8787/__migration/health > /tmp/afileon-health.json 2>/dev/null; then
+                ready=1
+                break
+              fi
+              sleep 1
+            done
+            if [[ "$ready" != "1" ]]; then
+              cat /tmp/afileon-worker-smoke.log
+              return 1
+            fi
+          }
+          stop_worker() {
+            if [[ -n "${WORKER_PID:-}" ]]; then
+              kill "$WORKER_PID" || true
+              wait "$WORKER_PID" || true
+              WORKER_PID=""
+            fi
+          }
+          trap stop_worker EXIT
+          start_worker
+          node tests/smoke-local-worker.mjs 25 13
+          stop_worker
+          npx wrangler d1 execute afileon-core-staging --config wrangler.jsonc --local --persist-to "$STATE_DIR" --file=migrations/0002_webhook_inbox_staging.sql
+          start_worker
+          node tests/smoke-local-worker.mjs 26 14
+          stop_worker

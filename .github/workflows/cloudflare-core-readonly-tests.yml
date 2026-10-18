@@ -18,4 +18,6 @@ jobs:
       - name: Run Node.js compatibility tests
         run: node --test cloudflare-core/tests/*.test.mjs
       - name: Test atomic date reservations using SQLite (STAGING prototype only)
-        run: python3 cloudflare-core/tests/test_atomic_hold.py
+        run: |
+          python3 cloudflare-core/tests/test_atomic_hold.py
+          python3 cloudflare-core/tests/test_full_hold.py

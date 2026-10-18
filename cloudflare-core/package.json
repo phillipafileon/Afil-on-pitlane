@@ -1,0 +1,17 @@
+{
+  "name": "afileon-core-cloudflare-staging",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.jsonc",
+    "deploy:staging": "wrangler deploy --config wrangler.jsonc",
+    "db:migrate:local": "wrangler d1 migrations apply afileon-core-staging --local --config wrangler.jsonc",
+    "db:migrate:remote": "wrangler d1 migrations apply afileon-core-staging --remote --config wrangler.jsonc"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20261001.0",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.0.0"
+  }
+}

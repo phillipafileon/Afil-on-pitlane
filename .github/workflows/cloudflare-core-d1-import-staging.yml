@@ -1,0 +1,68 @@
+name: Import Afileon Core STAGING D1 schema
+on:
+  push:
+    branches:
+      - migration/cloudflare-workers-d1-2026-10-18
+    paths:
+      - cloudflare-core/IMPORT_REQUEST.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: afileon-core-staging-d1-import
+  cancel-in-progress: false
+
+jobs:
+  import-staging-schema:
+    if: github.ref == 'refs/heads/migration/cloudflare-workers-d1-2026-10-18'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare-core
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check out migration branch
+        uses: actions/checkout@v4
+      - name: Validate Cloudflare credentials provided
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+      - name: Check staging target is exact
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          config=json.loads(Path('wrangler.jsonc').read_text())
+          assert config['name']=='afileon-core-staging'
+          assert len(config['d1_databases'])==1
+          assert config['d1_databases'][0]['binding']=='DB'
+          assert config['d1_databases'][0]['database_name']=='afileon-core-staging'
+          assert config['d1_databases'][0]['database_id']=='ea8891e9-1fc4-4018-9032-428d359aae51'
+          print('Staging target verified.')
+          PY
+      - name: Confirm schema parses locally
+        run: |
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          db=sqlite3.connect(':memory:')
+          db.executescript(Path('migrations/0001_neon_schema_draft.sql').read_text())
+          names=[x[0] for x in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+          assert len(names)==25, names
+          print('Validated 25 tables.')
+          PY
+      - name: Import ONLY staging D1 schema (no customer data)
+        run: |
+          npx --yes wrangler@4 d1 execute afileon-core-staging --remote \
+            --file=migrations/0001_neon_schema_draft.sql \
+            --config=wrangler.jsonc --yes
+      - name: Verify remote staging database tables
+        run: |
+          npx --yes wrangler@4 d1 execute afileon-core-staging --remote \
+            --command="SELECT count(*) AS application_tables FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%';" \
+            --config=wrangler.jsonc --yes

@@ -1,0 +1,4 @@
+Afiléon Core staging only
+Authorised 2026-10-18 after owner created Cloudflare API token and Account ID GitHub repository secrets.
+Target: afileon-core-staging D1.
+Action: CREATE TABLE / INDEX schema, no customer data, no site or webhook cutover.

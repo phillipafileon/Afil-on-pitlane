@@ -34,3 +34,18 @@ if(json.length > 20000)throw Error("Unexpectedly large public catalogue; inspect
 console.log("AFILEON_PUBLIC_CATALOGUE_BEGIN");
 console.log(json);
 console.log("AFILEON_PUBLIC_CATALOGUE_END");
+
+
+function routeSnippet(anchor) {
+  const start = server.indexOf(anchor);
+  if(start < 0) throw Error("Missing final route "+anchor);
+  // Only output the first handler body (the public route; don't expose admin / private data).
+  const end=server.indexOf("\n});",start);
+  if(end<0 || end-start>7000) throw Error("Unexpected final public handler length: "+anchor);
+  const snippet=server.slice(start,end+5);
+  console.log("AFILEON_ROUTE_"+(anchor.includes("/api/config")?"CONFIG":"SERVICES")+"_BEGIN");
+  console.log(snippet);
+  console.log("AFILEON_ROUTE_"+(anchor.includes("/api/config")?"CONFIG":"SERVICES")+"_END");
+}
+routeSnippet("app.get('/api/config'");
+routeSnippet("app.get('/api/services'");

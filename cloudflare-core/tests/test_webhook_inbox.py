@@ -11,7 +11,7 @@ SCHEMA=(ROOT/"migrations/0002_webhook_inbox_staging.sql").read_text()
 CLAIM=(ROOT/"webhooks/claim-stripe-event.sql").read_text()
 DONE=(ROOT/"webhooks/complete-stripe-event.sql").read_text()
 def named(sql):
-    return re.sub(r"\\?(\\d+)", lambda m: ":v"+m.group(1), sql)
+    return re.sub(r"\?(\d+)", lambda m: ":v"+m.group(1), sql)
 CLAIM=named(CLAIM)
 DONE=named(DONE)
 EVENT="evt_1234567890abcdef"

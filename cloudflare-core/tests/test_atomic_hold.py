@@ -28,7 +28,7 @@ def fresh():
     return db
 
 def reserve(db, id, service="track_day_support", date=DATE):
-    row = db.execute(SQL, args(id,service,date)).fetchone()
+    row = db.execute(PYSQL, {f"v{i+1}":v for i,v in enumerate(args(id,service,date))}).fetchone()
     return row[0] if row else None
 
 def test_no_double_hold():

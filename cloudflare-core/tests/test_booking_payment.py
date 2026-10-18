@@ -80,9 +80,13 @@ def test_mismatch_event_or_amount_is_never_acknowledged():
                    {"payment":"pi_other_12345678"},
                    {"amount":20000},{"approval":0}):
         db=fresh();assert claim(db)
+        # Checkout may not know the payment_intent until payment succeeds.
+        # When a known intent was stored, a *different* one must be rejected.
+        if "payment" in kwargs:
+            db.execute("UPDATE bookings SET stripe_payment_intent_id=? WHERE public_id=?",(PAYMENT,BOOKING))
         updated,ack=pair(db,bindings(**kwargs))
-        assert updated is None and ack is None
-        assert row(db)==("hold",0,None)
+        assert updated is None and ack is None,kwargs
+        assert row(db)==("hold",0,PAYMENT if "payment" in kwargs else None),kwargs
         assert db.execute("SELECT state FROM stripe_webhook_inbox").fetchone()==("processing",)
         db.close()
 def test_paid_event_after_hold_expiry_stays_pending_for_review():

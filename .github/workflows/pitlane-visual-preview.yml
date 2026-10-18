@@ -1,5 +1,10 @@
 name: Build Pitlane v0.7.3 Website Style Preview
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'Afileon-Pitlane-v0.7.2-ORIGINAL.apk'
+      - '.github/workflows/pitlane-visual-preview.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,18 +28,16 @@ jobs:
           test -s "$HOME/.android/debug.keystore" || { echo "Existing Pitlane signing key missing: no update created"; exit 1; }
           SIGNER=$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/.*SHA256: //p' | head -1 | tr -d ':' | tr '[:upper:]' '[:lower:]')
           test "$SIGNER" = '3ecf73f03717fdbe6e7adae2f959541526c18b5d736c385d2b3a1261d51655af'
-      - name: Retrieve pinned Pitlane v0.7.2 release
+      - name: Verify uploaded original Pitlane v0.7.2 APK
         shell: bash
         run: |
           set -euo pipefail
-          CHECKSUM='916734959964e1333d38a5af83d231c18f51386f76845816749576c44d915a7f'
-          for URL in 'https://afileonmotorsport.co.uk/downloads/Afileon-Pitlane.apk' 'https://www.afileonmotorsport.co.uk/downloads/Afileon-Pitlane.apk'; do
-            rm -f pitlane-v072.apk
-            curl -fLsS --retry 1 --connect-timeout 15 --max-time 120 --user-agent 'Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/125.0 Mobile Safari/537.36' -H 'Accept: application/vnd.android.package-archive,*/*' "$URL" -o pitlane-v072.apk || continue
-            printf '%s  pitlane-v072.apk\n' "$CHECKSUM" | sha256sum -c - && exit 0
-          done
-          echo "::error::Published APK cannot be fetched with matching SHA-256. Original files were not changed."
-          exit 1
+          test -s Afileon-Pitlane-v0.7.2-ORIGINAL.apk || {
+            echo "::error::Upload the verified original APK to the repository root to build the update."
+            exit 1
+          }
+          echo '916734959964e1333d38a5af83d231c18f51386f76845816749576c44d915a7f  Afileon-Pitlane-v0.7.2-ORIGINAL.apk' | sha256sum -c -
+          cp Afileon-Pitlane-v0.7.2-ORIGINAL.apk pitlane-v072.apk
       - name: Apply website skin without changing Pitlane function code
         run: python3 pitlane-skin/patch_pitlane.py pitlane-v072.apk pitlane-skin/pitlane_website_skin_v073.css pitlane-unsigned.apk
       - name: Android build tools

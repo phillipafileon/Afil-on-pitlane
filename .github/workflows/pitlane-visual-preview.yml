@@ -1,10 +1,5 @@
 name: Build Pitlane v0.7.3 Website Style Preview
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'pitlane-skin/**'
-      - '.github/workflows/pitlane-visual-preview.yml'
   workflow_dispatch:
 permissions:
   contents: read

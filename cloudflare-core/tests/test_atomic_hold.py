@@ -7,10 +7,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Barrier
 import sqlite3
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = (ROOT / "migrations/0001_neon_schema_draft.sql").read_text()
 SQL = (ROOT / "prototypes/atomic-booking-hold.sql").read_text()
+PYSQL = re.sub(r"\?(\d+)", lambda m: ":v"+m.group(1), SQL)
 UTC_NOW = "2026-10-18T12:00:00.000Z"
 UK_TODAY = "2026-10-18"
 DATE = "2026-10-20"

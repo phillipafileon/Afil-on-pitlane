@@ -9,6 +9,10 @@ on:
       - 'cloudflare-core/package.json'
       - 'cloudflare-core/migrations/**'
       - 'cloudflare-core/tests/smoke-local-worker.mjs'
+      - 'cloudflare-core/tests/harness-booking-worker.mjs'
+      - 'cloudflare-core/tests/stress-local-d1-booking.mjs'
+      - 'cloudflare-core/tools/generate-local-hold-sql.mjs'
+      - 'cloudflare-core/booking/atomic-booking-hold-full.sql'
       - '.github/workflows/cloudflare-core-wrangler-local-smoke.yml'
   workflow_dispatch:
 permissions:
@@ -67,4 +71,27 @@ jobs:
           npx wrangler d1 execute afileon-core-staging --config wrangler.jsonc --local --persist-to "$STATE_DIR" --file=migrations/0002_webhook_inbox_staging.sql
           start_worker
           node tests/smoke-local-worker.mjs 26 14
+          stop_worker
+          # Test the actual atomic SQL against the same local D1 engine.
+          # The harness is NEVER published and requires a CI-only opt-in var.
+          node tools/generate-local-hold-sql.mjs
+          npx wrangler dev ./tests/harness-booking-worker.mjs --config wrangler.jsonc --local --persist-to "$STATE_DIR" --var LOCAL_D1_TEST:only_action_runner --ip 127.0.0.1 --port 8788 > /tmp/afileon-booking-harness.log 2>&1 &
+          WORKER_PID=$!
+          ready=0
+          for i in {1..45}; do
+            if ! kill -0 "$WORKER_PID" 2>/dev/null; then
+              cat /tmp/afileon-booking-harness.log
+              exit 1
+            fi
+            if curl -fsS 'http://127.0.0.1:8788/__test__/count?date=2026-10-25' > /dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != "1" ]]; then
+            cat /tmp/afileon-booking-harness.log
+            exit 1
+          fi
+          node tests/stress-local-d1-booking.mjs
           stop_worker

@@ -35,3 +35,9 @@ Reference: `live-services/server_v3.js` is modified by the scripts in `live-serv
 - **Gate G:** backup, staging parity tests, rollback plan, external service/route migration, controlled cutover. Keep Render/Neon running until all live actions verified.
 
 **DO NOT** redirect `afileonmotorsport.co.uk` API clients, update Stripe live webhooks, connect customer Pitlane, or terminate Render/Neon during Gates A–F.
+
+### Stripe raw-body signature verification — prepared, not activated
+
+The pure Worker-compatible helper `stripe-signature.mjs` verifies the **raw bytes** of an incoming Stripe webhook using HMAC-SHA256, the `Stripe-Signature` header, and a strict five-minute tolerance. It rejects missing/wrong signing secrets, modified payloads and stale/future timestamps and supports valid `v1` signatures during secret rotation. It is **not imported by `dashboard-staging-worker.js`** and handles **no payment events**.
+
+Before enabling live or staging Stripe traffic, we still require Stripe test-mode secrets injected using Cloudflare encrypted secrets, a D1 event-deduplication table and atomic transition logic, verified cancellation/expiry/refunds, and proper customer-access restrictions. A valid signature alone does **not** prevent replay of the same authentic event within the tolerance window; idempotency is mandatory. Test against Stripe's actual test webhook events and retried deliveries before connecting Stripe. Never paste webhook secrets into GitHub or chat.

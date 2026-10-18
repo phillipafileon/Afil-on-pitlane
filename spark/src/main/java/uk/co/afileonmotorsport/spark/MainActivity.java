@@ -1,6 +1,8 @@
 package uk.co.afileonmotorsport.spark;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.text.InputType;
 import android.os.ParcelFileDescriptor;
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,6 +46,8 @@ public final class MainActivity extends Activity {
     private TextView transcript;
     private TextView pending;
     private OfflineSpeech offlineSpeech;
+    private HybridE2B cloud;
+    private TextView cloudStatus;
     private TextToSpeech speech;
     private boolean voiceReady;
     private boolean muted = false;
@@ -51,6 +55,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("spark_private_v1", MODE_PRIVATE);
+        cloud = new HybridE2B(this);
         if (!prefs.contains("autonomy")) prefs.edit().putString("autonomy", "Balanced").apply();
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
@@ -61,7 +66,7 @@ public final class MainActivity extends Activity {
         title.setTextSize(22);title.setTextColor(Color.rgb(255,229,0));
         outer.addView(title);
         TextView subtitle = new TextView(this);
-        subtitle.setText("BALANCED AUTONOMY  •  OFFLINE COMMANDS");
+        subtitle.setText("BALANCED HYBRID  •  OFFLINE FIRST / E2B BY APPROVAL");
         subtitle.setTextColor(Color.rgb(80,210,245));outer.addView(subtitle);
         gguf=new File(getFilesDir(),"spark-instruct.gguf");
         modelStatus=new TextView(this);
@@ -70,6 +75,13 @@ public final class MainActivity extends Activity {
         outer.addView(modelStatus);
         Button modelButton=button("IMPORT OFFLINE AI MODEL (GGUF)",outer);
         modelButton.setOnClickListener(v->selectModel());
+        cloudStatus = new TextView(this);
+        cloudStatus.setTextColor(Color.LTGRAY);
+        cloudStatus.setTextSize(12);
+        cloudStatus.setText(cloud.isConfigured() ? "E2B gateway paired • cloud runs need approval" : "E2B disconnected • offline AI still works");
+        outer.addView(cloudStatus);
+        Button cloudButton = button("E2B CLOUD / SETTINGS", outer);
+        cloudButton.setOnClickListener(v->showCloudMenu());
         ScrollView scrolling = new ScrollView(this);
         transcript = new TextView(this);
         transcript.setTextColor(Color.WHITE);transcript.setTextSize(16);transcript.setPadding(0,18,0,10);
@@ -178,6 +190,15 @@ public final class MainActivity extends Activity {
         if(command.isEmpty())return;
         append("YOU: "+command);
         String lower=command.toLowerCase(Locale.UK);
+        if(lower.startsWith("e2b python:") || lower.startsWith("cloud python:")) {
+            int colon = command.indexOf(':');
+            String program = command.substring(colon+1).trim();
+            requestCloudPython(program);
+            return;
+        }
+        if(lower.equals("e2b status") || lower.equals("cloud status")) {
+            cloudStatusCheck();return;
+        }
         if(lower.equals("booking manager")||lower.contains("open booking manager")){
             sendBookingManager("open_jobs","");return;
         }
@@ -294,6 +315,127 @@ public final class MainActivity extends Activity {
             }catch(Throwable e){result="The local model couldn't run: "+e.getMessage();}
             String answer=result;
             runOnUiThread(()->{busy=false;modelStatus.setText("SPARK • local model ready");respond(answer);});
+        });
+    }
+
+
+    // E2B execution is opt-in: the local LLM never silently delegates chat or private data.
+    private void showCloudMenu() {
+        new AlertDialog.Builder(this)
+            .setTitle("SPARK / E2B HYBRID")
+            .setItems(new String[]{"Configure secure gateway","Check connection","Disconnect E2B","Cloud command help"},
+                (dialog,selection)->{
+                    if(selection==0)editCloudSettings();
+                    if(selection==1)cloudStatusCheck();
+                    if(selection==2)new AlertDialog.Builder(this).setTitle("Disconnect cloud?")
+                        .setMessage("This deletes the saved gateway pairing from SPARK. Offline AI is unaffected.")
+                        .setNegativeButton("Keep",null)
+                        .setPositiveButton("Disconnect",(d,w)->{
+                            cloud.disconnect();
+                            cloudStatus.setText("E2B disconnected • offline AI still works");
+                            respond("Cloud pairing cleared. Offline mode is still yours.");
+                        }).show();
+                    if(selection==3)respond("Type: E2B python: print(2 + 2). You will review the code twice before an E2B sandbox is started. E2B may incur usage charges.");
+                }).show();
+    }
+    private void editCloudSettings() {
+        LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(32,8,32,8);
+        EditText endpoint=new EditText(this);
+        endpoint.setHint("https://your-secure-gateway.onrender.com");
+        endpoint.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        endpoint.setSingleLine(true);
+        endpoint.setText(cloud.gatewayUrl());layout.addView(endpoint);
+        EditText secret=new EditText(this);
+        secret.setHint("Pairing token (leave blank to keep current)");
+        secret.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        secret.setSingleLine(true);layout.addView(secret);
+        new AlertDialog.Builder(this).setTitle("E2B Gateway Pairing")
+            .setMessage("Enter your private gateway URL and its pairing token, NOT the E2B API key. The pairing token is encrypted in Android Keystore.")
+            .setView(layout).setNegativeButton("Cancel",null)
+            .setPositiveButton("Save",(d,w)->{
+                try{
+                    cloud.configure(endpoint.getText().toString(),secret.getText().toString());
+                    cloudStatus.setText("E2B gateway paired • approval required");
+                    respond("Cloud gateway saved. Offline SPARK still runs independently.");
+                }catch(Exception e){respond("Gateway settings rejected: "+e.getMessage());}
+            }).show();
+    }
+    private void cloudStatusCheck(){
+        if(!cloud.isConfigured()){respond("Cloud isn't paired. Open E2B settings; offline mode is unaffected.");return;}
+        cloudStatus.setText("Checking gateway…");
+        inference.execute(()->{
+            try{
+                JSONObject result=cloud.status();
+                runOnUiThread(()->{
+                    cloudStatus.setText(result.optBoolean("configured",false) ? "E2B gateway ready • approval required" : "Gateway online • E2B API key not set");
+                    respond(result.optBoolean("configured",false) ?
+                        "E2B gateway is ready, boss. No sandbox starts without your approval." :
+                        "Gateway is online, but needs a server-side E2B API key.");
+                });
+            }catch(Exception e){runOnUiThread(()->{
+                cloudStatus.setText("E2B unreachable • offline AI available");
+                respond("Cloud unavailable: "+e.getMessage()+". Offline functions remain available.");
+            });}
+        });
+    }
+    private void requestCloudPython(String program) {
+        if(program.length()<1 || program.length()>3000) {
+            respond("E2B Python code must be 1 to 3000 characters.");return;
+        }
+        if(!cloud.isConfigured()) {
+            respond("E2B is not paired. Open E2B settings. Local AI and Pitlane still work.");return;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("Send code to E2B cloud?")
+            .setMessage("This sends the following Python code to your gateway, but does NOT execute it yet:\n\n"+
+                 program.substring(0,Math.min(1200,program.length()))+
+                 "\n\nDon't include passwords, customer data or keys. Cloud execution may cost money.")
+            .setNegativeButton("Remain offline",null)
+            .setPositiveButton("Prepare",(dialog,which)->previewCloudPython(program))
+            .show();
+    }
+    private void previewCloudPython(String program){
+        cloudStatus.setText("Preparing cloud approval…");
+        inference.execute(()->{
+            try{
+                JSONObject preview=cloud.previewPython(program);
+                if(!program.equals(preview.optString("preview","")))throw new IllegalStateException("Server preview changed unexpectedly");
+                String id=preview.getString("approval_id");
+                runOnUiThread(()->{
+                    cloudStatus.setText("Cloud run awaiting your confirmation");
+                    new AlertDialog.Builder(this).setTitle("Approve billed E2B sandbox run?")
+                        .setMessage("Balanced autonomy: explicit approval required.\n\nPYTHON:\n"+
+                             program.substring(0,Math.min(1600,program.length()))+
+                             "\n\nIsolated sandbox, no website credentials; internet egress disabled.")
+                        .setNegativeButton("Cancel", (d,w)->cloudStatus.setText("Cloud execution cancelled"))
+                        .setPositiveButton("Run in E2B",(d,w)->executeCloudPython(id))
+                        .show();
+                });
+            }catch(Exception e){runOnUiThread(()->{
+                cloudStatus.setText("Cloud unavailable • offline AI available");
+                respond("E2B preview failed: "+e.getMessage());
+            });}
+        });
+    }
+    private void executeCloudPython(String approvalId) {
+        cloudStatus.setText("Executing approved sandbox task…");
+        inference.execute(()->{
+            try {
+                JSONObject result=cloud.execute(approvalId);
+                String output=result.optString("stdout","").trim();
+                String errors=result.optString("stderr","").trim();
+                int code=result.optInt("exit_code",-1);
+                runOnUiThread(()->{
+                    cloudStatus.setText("E2B finished • offline mode available");
+                    respond("E2B task finished with exit code "+code+".");
+                    if(!output.isEmpty())append("E2B output:\n"+output);
+                    if(!errors.isEmpty())append("E2B errors:\n"+errors);
+                });
+            }catch(Exception e){runOnUiThread(()->{
+                cloudStatus.setText("E2B failed • offline AI available");
+                respond("Cloud task failed: "+e.getMessage());
+            });}
         });
     }
 

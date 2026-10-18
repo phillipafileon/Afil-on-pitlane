@@ -36,7 +36,7 @@ The Render image runs a conventional Express/Node server under Docker. It builds
 Cloudflare supports Express on Workers with compatibility features, but that does **not** make existing `pg` queries or Docker-based patch/bootstrap procedures operate unchanged.
 
 ## Staged deployment steps (once Cloudflare is authorised)
-1. Create a new **staging** D1 database `afileon-core-staging` in the owner's Cloudflare account. Copy `wrangler.example.jsonc` to the ignored `wrangler.jsonc`, substitute the real database ID and set `SITE_ORIGIN` to the explicitly allowed frontend URL.
+1. **Completed manually (owner):** create the standalone staging Worker and D1 database `afileon-core-staging`; bind D1 as `DB`. GitHub `wrangler.jsonc` now contains the observed non-secret D1 database ID and staging Worker name; check against Cloudflare dashboard before deploying. The production Afiléon website remains separate.
 2. Verify `migrations/0001_neon_schema_draft.sql` locally with SQLite, test constraints and default timestamps, then apply it only to the new staging D1 database using Wrangler.
 3. Export the current Neon data *privately*. Never commit SQL containing customer information, credentials, cookies, hashes, email verification codes, or payment details. `tools/export-neon-to-d1.mjs` can prepare a private export from a trusted machine with `DATABASE_URL` set, and must be audited and run only after taking proper backups and establishing an empty destination.
 4. Port and test API routes **against final compiled Render behaviour**, not merely the base `server_v3.js`, using Stripe test mode and no live Printful fulfilment.

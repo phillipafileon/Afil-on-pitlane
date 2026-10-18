@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="uk.co.afileonmotorsport.pitlane.permission.SPARK_CONTROL"/>
+    <uses-permission android:name="uk.co.afileonmotorsport.bookingmanager.permission.SPARK_CONTROL"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries>
+    <queries><package android:name="uk.co.afileonmotorsport.pitlane"/><package android:name="uk.co.afileonmotorsport.bookingmanager"/></queries>
+    <application android:label="SPARK // Afiléon" android:theme="@android:style/Theme.Material.NoActionBar"
+        android:allowBackup="false" android:usesCleartextTraffic="false">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

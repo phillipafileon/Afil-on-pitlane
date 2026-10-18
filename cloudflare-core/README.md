@@ -2,7 +2,7 @@
 
 Prepared on 18 October 2026 from the existing Render and Neon configuration.
 
-**D1 STAGING SCHEMA CREATED AND VERIFIED; WORKER CODE NOT DEPLOYED. NOT A COMPLETED MIGRATION. NOT READY FOR BOOKINGS OR PAYMENTS.**
+**D1 STAGING SCHEMA CREATED AND VERIFIED; STAGING WORKER DEPLOYED AND HEALTH CHECK VERIFIED. NOT A COMPLETED MIGRATION. NOT READY FOR BOOKINGS OR PAYMENTS.**
 The live Render, Neon, Cloudflare Pages website, payment webhooks and Android apps have not been redirected.
 
 ## Verified source
@@ -19,6 +19,7 @@ The live Render, Neon, Cloudflare Pages website, payment webhooks and Android ap
 - All unported paths deliberately return HTTP 503 rather than silently calling Render or accepting Stripe/payment/admin writes.
 - Source schema conversion into initial D1 SQL: `0001_neon_schema_draft.sql`. Staging D1 schema has been installed and independently counted (25 tables / 13 indexes); only structure was installed, not rows.
 - Manual 12-part D1 Console SQL import under `d1-console-batches/`, verified against owner screenshots. No production D1 or website touched.
+- **Staging Worker manually deployed and verified by owner 18 October 2026:** `dashboard-staging-worker.js` deployed in isolated `afileon-core-staging` Worker; live `/__migration/health` screenshot returned `{"ok":true,"service":"Afileon Core staging","database":"D1","tables":25,"indexes":13,"production_ready":false}`. This verifies D1 binding and schema visibility from the Worker only; it is NOT full API or client parity.
 - Optional offline source-data export under `.private/`, which is Git-ignored and intentionally excludes live admin sessions, login challenges, login attempts and email verification records.
 
 ## Not yet ported
@@ -28,7 +29,7 @@ The live Render, Neon, Cloudflare Pages website, payment webhooks and Android ap
 - Stripe event signature verification, webhook event idempotency, retry logic, refunds, and Printful fulfilment and catalogue cache.
 - Email verification, transactional email, scheduled balance reminders and pending deposit/checkout expiry flows.
 - Full route inventory and **production frontend/mobile client behaviour** tests.
-- Staging Worker **code deployment** and functional testing, secrets, domain binding and live DNS/webhook cutover. Cloudflare D1 database creation/binding and its schema installation are complete.
+- Full Worker API implementation and functional testing, secrets, domain binding and live DNS/webhook cutover. The initial staging-only Worker code is deployed, but has only its health check and initial read-only endpoints. Cloudflare D1 database creation/binding and its schema installation are complete.
 
 ## Why this is a port rather than copying the server
 

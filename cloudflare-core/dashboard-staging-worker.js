@@ -109,6 +109,41 @@ async function publicAvailability(env, url, now = new Date()) {
   return { months, busy };
 }
 
+
+/* Compiled from the 2026-10-18 Render Docker patch chain. E46 launch deliberately
+   disabled in staging (source E46_BOOKING_LIVE is an environment variable).
+   These are only BASE prices; D1 override rows take precedence.
+   Do not treat this catalogue as an authorisation to enable booking writes. */
+const COMPILED_SERVICES = Object.freeze([{"id":"pre_track_inspection","name":"Comprehensive Pre-Track-Day Inspection","colour":"#8b5cf6","duration":"full_day","variants":[{"id":"standard","label":"Inspection","price":12000}],"payment":"full","kentOnly":true,"travelMode":"postcode","travelRatePencePerMile":35,"addressRequired":true,"hardstandingRequired":true,"bookable":true,"description":"Mobile pre-track readiness inspection in Kent. Includes underbody access where safe, wheel-off visual checks, brakes, tyres, steering/suspension observations and fluid-level checks. Customer supplies any fluids, parts or consumables required unless agreed otherwise."},{"id":"vehicle_hire_day","name":"BMW E46 Arrive & Drive — Full Day + Trackside Support","colour":"#22d3ee","duration":"full_day","variants":[{"id":"full_day","label":"Full day","price":70000}],"payment":"e46_rule","kentOnly":true,"travelMode":"venue","travelRatePencePerMile":55,"licenceRequired":true,"bookable":false,"description":"Full-day BMW E46 arrive-and-drive package with Afiléon Motorsport present trackside throughout the day. Includes the E46, transport to the selected standard Kent circuit, vehicle preparation and active trackside monitoring/support. One full tank of fuel is included. Circuit entry and additional fuel are excluded unless specifically stated. Afiléon Motorsport may pause or withdraw the vehicle from use for safety, mechanical concerns, circuit instructions or unreasonable abuse."},{"id":"track_day_support","name":"Track-Day & Race-Day Support","colour":"#f59e0b","duration":"full_day","variants":[{"id":"half_day","label":"Half day","price":30000},{"id":"full_day","label":"Full day","price":50000}],"payment":"full","kentOnly":true,"travelMode":"venue","travelRatePencePerMile":55,"bookable":true,"description":"Dedicated track-day or race-day support for your own car, including paddock attendance, routine checks, tyre-pressure adjustments, wheel changes, minor adjustments and basic fault finding. Half-day and full-day options are available. Parts, tyres, fluids, fuel, major repairs and fabrication are extra. Half-day bookings still reserve the calendar day because of travel and setup."},{"id":"vehicle_transport","name":"Vehicle Transport","colour":"#3b82f6","duration":"full_day","variants":[{"id":"quote","label":"Quote required","price":null}],"payment":"quote","kentOnly":true,"travelMode":"postcode","travelRatePencePerMile":55,"addressRequired":true,"bookable":true,"description":"Trailer transport for suitable vehicles. Price is quoted from collection point, destination, vehicle details and timing."}]);
+const COMPILED_VENUES = Object.freeze([
+  {id:"brands_hatch",name:"Brands Hatch",postcode:"TN15 6FS",roundTripMiles:19},
+  {id:"lydden_hill",name:"Lydden Hill",postcode:"CT4 6ET",roundTripMiles:94}
+]);
+async function compiledServiceCatalogue(env) {
+  const [priceRows, travelRows] = await Promise.all([
+    env.DB.prepare("SELECT service_id,variant_id,price_pence FROM service_price_overrides").all(),
+    env.DB.prepare("SELECT service_id,rate_pence_per_mile FROM travel_price_overrides").all()
+  ]);
+  const prices = new Map((priceRows.results || []).map(r => [
+    String(r.service_id)+":"+String(r.variant_id), Number(r.price_pence)
+  ]));
+  const rates = new Map((travelRows.results || []).map(r => [
+    String(r.service_id), Number(r.rate_pence_per_mile)
+  ]));
+  return COMPILED_SERVICES.map(s => ({
+    ...s,
+    // Explicitly fail closed for E46 hire until payment/security/admin parity.
+    bookable: s.id === "vehicle_hire_day" ? false : s.bookable,
+    variants: s.variants.map(v => ({
+      ...v,
+      price: prices.has(s.id+":"+v.id) && v.price !== null
+        ? prices.get(s.id+":"+v.id) : v.price
+    })),
+    ...(s.travelMode && rates.has(s.id)
+      ? {travelRatePencePerMile:rates.get(s.id)} : {})
+  }));
+}
+
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
@@ -174,6 +209,14 @@ export default {
         return reply({ season: season ?? null }, 200, allowedOrigin);
       }
 
+      if (request.method === "GET" && path === "/api/services") {
+        const services = await compiledServiceCatalogue(env);
+        return reply({
+          services,
+          venues: COMPILED_VENUES,
+          operations_base: "Gravesend"
+        }, 200, allowedOrigin);
+      }
       if (request.method === "GET" && path === "/api/shop/products") {
         const results = await env.DB.prepare(
           "SELECT slug,name,description,price,image_url,stock,featured,collection FROM shop_products WHERE active=1 ORDER BY featured DESC,name"

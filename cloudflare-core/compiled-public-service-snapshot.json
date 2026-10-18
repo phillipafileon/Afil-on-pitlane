@@ -1,0 +1,130 @@
+{
+  "generated_by": "compiled-docker-patch-chain",
+  "staging_hire_enabled": false,
+  "services": [
+    {
+      "id": "pre_track_inspection",
+      "name": "Comprehensive Pre-Track-Day Inspection",
+      "colour": "#8b5cf6",
+      "duration": "full_day",
+      "variants": [
+        {
+          "id": "standard",
+          "label": "Inspection",
+          "price": 12000
+        }
+      ],
+      "payment": "full",
+      "kentOnly": true,
+      "travelMode": "postcode",
+      "travelRatePencePerMile": 35,
+      "addressRequired": true,
+      "hardstandingRequired": true,
+      "bookable": true,
+      "description": "Mobile pre-track readiness inspection in Kent. Includes underbody access where safe, wheel-off visual checks, brakes, tyres, steering/suspension observations and fluid-level checks. Customer supplies any fluids, parts or consumables required unless agreed otherwise."
+    },
+    {
+      "id": "vehicle_hire_day",
+      "name": "BMW E46 Arrive & Drive — Full Day + Trackside Support",
+      "colour": "#22d3ee",
+      "duration": "full_day",
+      "variants": [
+        {
+          "id": "full_day",
+          "label": "Full day",
+          "price": 70000
+        }
+      ],
+      "payment": "e46_rule",
+      "kentOnly": true,
+      "travelMode": "venue",
+      "travelRatePencePerMile": 55,
+      "licenceRequired": true,
+      "bookable": false,
+      "description": "Full-day BMW E46 arrive-and-drive package with Afiléon Motorsport present trackside throughout the day. Includes the E46, transport to the selected standard Kent circuit, vehicle preparation and active trackside monitoring/support. One full tank of fuel is included. Circuit entry and additional fuel are excluded unless specifically stated. Afiléon Motorsport may pause or withdraw the vehicle from use for safety, mechanical concerns, circuit instructions or unreasonable abuse."
+    },
+    {
+      "id": "track_day_support",
+      "name": "Track-Day & Race-Day Support",
+      "colour": "#f59e0b",
+      "duration": "full_day",
+      "variants": [
+        {
+          "id": "half_day",
+          "label": "Half day",
+          "price": 30000
+        },
+        {
+          "id": "full_day",
+          "label": "Full day",
+          "price": 50000
+        }
+      ],
+      "payment": "full",
+      "kentOnly": true,
+      "travelMode": "venue",
+      "travelRatePencePerMile": 55,
+      "bookable": true,
+      "description": "Dedicated track-day or race-day support for your own car, including paddock attendance, routine checks, tyre-pressure adjustments, wheel changes, minor adjustments and basic fault finding. Half-day and full-day options are available. Parts, tyres, fluids, fuel, major repairs and fabrication are extra. Half-day bookings still reserve the calendar day because of travel and setup."
+    },
+    {
+      "id": "vehicle_transport",
+      "name": "Vehicle Transport",
+      "colour": "#3b82f6",
+      "duration": "full_day",
+      "variants": [
+        {
+          "id": "quote",
+          "label": "Quote required",
+          "price": null
+        }
+      ],
+      "payment": "quote",
+      "kentOnly": true,
+      "travelMode": "postcode",
+      "travelRatePencePerMile": 55,
+      "addressRequired": true,
+      "bookable": true,
+      "description": "Trailer transport for suitable vehicles. Price is quoted from collection point, destination, vehicle details and timing."
+    }
+  ],
+  "booking_cutoffs": {
+    "vehicle_hire_day": {
+      "payment_cutoff": "11:30",
+      "checkout_start_cutoff": "11:30",
+      "label": "BMW E46 arrive-and-drive"
+    },
+    "pre_track_inspection": {
+      "payment_cutoff": "22:00",
+      "checkout_start_cutoff": "22:00",
+      "label": "Pre-track inspection"
+    },
+    "default": {
+      "payment_cutoff": "20:00",
+      "checkout_start_cutoff": "20:00",
+      "label": "Track-day service"
+    }
+  },
+  "inspection_slots": [
+    "10:00",
+    "12:00",
+    "14:00",
+    "16:00",
+    "18:00"
+  ],
+  "venues": [
+    {
+      "id": "brands_hatch",
+      "name": "Brands Hatch",
+      "postcode": "TN15 6FS",
+      "roundTripMiles": 19
+    },
+    {
+      "id": "lydden_hill",
+      "name": "Lydden Hill",
+      "postcode": "CT4 6ET",
+      "roundTripMiles": 94
+    }
+  ],
+  "operations_base": "Gravesend"
+}

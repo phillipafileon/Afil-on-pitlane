@@ -59,3 +59,13 @@ Before enabling live or staging Stripe traffic, we still require Stripe test-mod
 - [Payment SQL/event tests](https://github.com/phillipafileon/Afil-on-pitlane/actions/runs/39175572480) passed 44 Node.js tests + 19 SQLite tests, including replay suppression, exact Stripe Checkout session matching, double-payment guard, booking expiry, closures, and rollback. These are isolated SQL tests and do NOT constitute a complete signed Stripe webhook handler.
 - `webhooks/apply-verified-booking-payment.sql` and `complete-verified-booking-payment.sql` must be executed as a **single D1 batch** only following signature verification and an event-inbox claim, and only after required policy checks. If the booking update/ack returns zero rows, do NOT acknowledge payment without manual reconciliation/refund handling. These scripts are not deployed.
 - **No user task currently:** Leave remote staging at the last verified schema and deployed Worker. Do NOT ask owner to apply 0002 or publish booking/Stripe processing until the integrated Worker, protected configuration, reconciliation and realistic end-to-end Stripe test cases are complete. Live Render/Neon/Pages/app routing remains unchanged.
+
+### Wrangler local concurrent booking stress (19 October 2026)
+
+- [CI run 39176051066](https://github.com/phillipafileon/Afil-on-pitlane/actions/runs/39176051066) **passed** a local isolated Cloudflare Wrangler Worker connected to D1, using the **exact** `booking/atomic-booking-hold-full.sql` text loaded into the CI-only harness by `tools/generate-local-hold-sql.mjs`.
+- **Ten concurrent requests for the same service date:** exactly 1 successful hold, 9 rejected, with exactly one booking row present.
+- A global block prevented a hold; a vehicle-hire-only block did not prevent an unrelated support-service hold; a second support booking on the occupied date was rejected.
+- The same run reverified GET APIs at the baseline **25/13** and expanded local schema **26/14**; the Node and SQLite test workflows and the schema check also passed on the branch.
+- The harness `tests/harness-booking-worker.mjs` has no real payment/customer integration, uses reserved `.invalid` test email addresses, and is gated by a local CI-only configuration variable. It is **NOT** a customer endpoint and MUST NEVER be deployed.
+- This improves confidence in Cloudflare's **local** D1 execution. It does **not** prove remote D1 timing/concurrency, real customer validation, Stripe capture, discount/voucher flows, cancellation/refund reconciliation, owner-only admin access or production readiness.
+- No change has been made to the live Cloudflare Pages site, Render/Neon or the manually deployed staging Worker. Manual owner action is **not required yet**.

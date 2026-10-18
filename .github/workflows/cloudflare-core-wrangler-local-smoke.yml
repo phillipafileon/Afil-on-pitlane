@@ -18,6 +18,9 @@ on:
       - 'cloudflare-core/tools/generate-local-payment-sql.mjs'
       - 'cloudflare-core/webhooks/**'
       - 'cloudflare-core/stripe-signature.mjs'
+      - 'cloudflare-core/admin/**'
+      - 'cloudflare-core/tests/harness-admin-worker.mjs'
+      - 'cloudflare-core/tests/verify-local-d1-admin.mjs'
       - '.github/workflows/cloudflare-core-wrangler-local-smoke.yml'
   workflow_dispatch:
 permissions:
@@ -122,4 +125,26 @@ jobs:
             exit 1
           fi
           node tests/verify-local-d1-webhook.mjs
+          stop_worker
+          # CI-only private admin proof: hashed owner sessions and revocation.
+          npx wrangler dev ./tests/harness-admin-worker.mjs --config wrangler.jsonc --local --persist-to "$STATE_DIR" --var LOCAL_D1_TEST:only_action_runner --var ADMIN_OWNER_USERNAME:owner@example.invalid --ip 127.0.0.1 --port 8790 > /tmp/afileon-admin-harness.log 2>&1 &
+          WORKER_PID=$!
+          ready=0
+          for i in {1..45}; do
+            if ! kill -0 "$WORKER_PID" 2>/dev/null; then
+              cat /tmp/afileon-admin-harness.log
+              exit 1
+            fi
+            # Unauthenticated request intentionally returns HTTP 401.
+            if [[ "$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8790/__test__/private')" == "401" ]]; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != "1" ]]; then
+            cat /tmp/afileon-admin-harness.log
+            exit 1
+          fi
+          node tests/verify-local-d1-admin.mjs
           stop_worker

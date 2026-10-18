@@ -51,6 +51,7 @@ def test_batch_rollback():
     db=fresh()
     assert put(db,"lease_one_123456789") is not None
     db.execute("CREATE TABLE business_effect (id INTEGER PRIMARY KEY,payment_id TEXT)")
+    db.commit()  # Persist the lease before modelling a separate D1 batch transaction.
     db.execute("BEGIN")
     try:
         db.execute("INSERT INTO business_effect(id,payment_id) VALUES (1,?)",("cs_test_one",))

@@ -10,7 +10,7 @@ The live Render, Neon, Cloudflare Pages website, payment webhooks and Android ap
 - Existing Neon project: `Afileon Motorsport Migration Staging` (PostgreSQL 18).
 - Existing code: `live-services/server_v3.js` plus many Docker build-time patches in `live-services/`.
 - Neon public schema: 25 tables, 314 columns, 13 ordinary indexes plus primary/unique keys.
-- Draft D1 structural schema: `migrations/0001_neon_schema_draft.sql`; includes mapped unique constraints, FK and CHECK constraints, but must be validated with SQLite/D1 and reviewed before production.
+- Draft D1 structural schema: `migrations/0001_neon_schema_draft.sql`; includes mapped unique constraints, FK and CHECK constraints. A credential-free GitHub Actions SQLite test on 18 October 2026 successfully created all 25 tables and counted all 314 columns. It still requires tests against Cloudflare D1, data parity and production query review.
 - Previous Railway PostgreSQL volume has **not** been proved exported. A nearly empty Neon database does not mean there are no historical Railway-only operational records.
 
 ## Implemented in this branch

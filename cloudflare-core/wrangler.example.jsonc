@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "afileon-core-staging",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-18",
+  "vars": { "ENVIRONMENT": "staging" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "afileon-core-staging",
+      "database_id": "REPLACE_WITH_ACTUAL_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+Read-only Cloudflare staging token and database access verification on 2026-10-18.
+No API secret values printed; no modifications to D1.

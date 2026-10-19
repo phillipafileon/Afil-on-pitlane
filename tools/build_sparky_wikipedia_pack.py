@@ -80,6 +80,7 @@ def main():
     titles = titles[: args.max_articles]
 
     entries = []
+    seen_pages = set()
     for start in range(0, len(titles), BATCH):
         pages = fetch_batch(titles[start : start + BATCH], args.user_agent)
         for page in pages:
@@ -87,8 +88,9 @@ def main():
                 continue
             title = str(page.get("title", "")).strip()
             excerpt = str(page.get("extract", "")).strip()
-            if not title or not excerpt:
+            if not title or not excerpt or title.casefold() in seen_pages:
                 continue
+            seen_pages.add(title.casefold())
             excerpt = excerpt.replace("\r", "").split("\n\n")[0].strip()
             excerpt = excerpt[:1300].rsplit(" ", 1)[0].rstrip(" ,.;") + (
                 "…" if len(excerpt) > 1300 else ""

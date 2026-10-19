@@ -35,9 +35,11 @@ import java.util.regex.Pattern;
  */
 public final class MainActivity extends Activity {
     private static final int MODEL_PICK = 905;
+    private static final int KNOWLEDGE_PICK = 906;
     private final ExecutorService inference = Executors.newSingleThreadExecutor();
     private File gguf;
     private SparkyMind mind;
+    private SparkyKnowledge knowledge;
     private SparkyFaceView face;
     private TextView modelStatus;
     private boolean busy = false;
@@ -55,6 +57,7 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         prefs = getSharedPreferences("spark_private_v1", MODE_PRIVATE);
         mind = new SparkyMind(prefs, this);
+        knowledge = new SparkyKnowledge(this);
         if (!prefs.contains("autonomy")) prefs.edit().putString("autonomy", "Balanced").apply();
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
@@ -68,42 +71,50 @@ public final class MainActivity extends Activity {
         subtitle.setText("BALANCED AUTONOMY  •  FAST LOCAL MIND  •  OFFLINE");
         subtitle.setTextColor(Color.rgb(80,210,245));outer.addView(subtitle);
         face = new SparkyFaceView(this);
-        int faceHeight = (int)(getResources().getDisplayMetrics().heightPixels * 0.29f);
+        int faceHeight = (int)(getResources().getDisplayMetrics().heightPixels * 0.38f);
         outer.addView(face, new LinearLayout.LayoutParams(-1, faceHeight));
         gguf=new File(getFilesDir(),"spark-instruct.gguf");
         modelStatus=new TextView(this);
         modelStatus.setTextColor(Color.LTGRAY);
         modelStatus.setText(gguf.isFile()?"Offline AI model installed":"Import a GGUF model once to enable offline conversation");
         outer.addView(modelStatus);
-        Button modelButton=button("IMPORT OFFLINE AI MODEL (GGUF)",outer);
-        modelButton.setOnClickListener(v->selectModel());
-        Button memoryButton=button("WHAT DO YOU REMEMBER?",outer);
-        memoryButton.setOnClickListener(v->respond(mind.listMemories()));
+        TextView hint=new TextView(this);
+        hint.setText("TAP SPARKY TO TALK  •  LONG-PRESS FOR A REACTION");
+        hint.setTextSize(11);hint.setTextColor(Color.rgb(80,210,245));hint.setGravity(android.view.Gravity.CENTER);
+        outer.addView(hint);
         ScrollView scrolling = new ScrollView(this);
         transcript = new TextView(this);
-        transcript.setTextColor(Color.WHITE);transcript.setTextSize(16);transcript.setPadding(0,18,0,10);
-        transcript.setText("SPARKY: Conscious? Doubtful. Fast? Working on it. I can chat, remember what you ask me to, or operate approved offline Pitlane commands. Try: remember that I prefer brief answers.");
+        transcript.setTextColor(Color.WHITE);transcript.setTextSize(16);
+        transcript.setPadding(8,12,8,10);
+        transcript.setText("SPARKY: There you are. Ask me about a car, a race, or absolutely anything else. If I don't have a reference, I'll tell you.");
         scrolling.addView(transcript);
         outer.addView(scrolling,new LinearLayout.LayoutParams(-1,0,1f));
         input = new EditText(this);
         input.setTextColor(Color.WHITE);input.setHintTextColor(Color.LTGRAY);
-        input.setSingleLine(false);input.setHint("Tell SPARK what to do…");
+        input.setSingleLine(false);input.setMaxLines(3);
+        input.setHint("Talk to Sparky…");
         outer.addView(input);
         offlineSpeech=new OfflineSpeech(this,
             heard->{input.setText(heard);runCommand(heard);},
             error->respond(error));
-        Button mic=button("MICROPHONE / OFFLINE LISTEN",outer);
+        face.setOnClickListener(v->offlineSpeech.start());
+        face.setOnLongClickListener(v->{
+            respond("I'm listening. Just don't ask me to rotate your tyres with these little hands.");
+            return true;
+        });
+        Button mic=button("TALK",outer);
         mic.setOnClickListener(v->offlineSpeech.start());
-        Button send = button("TALK / RUN APPROVED COMMAND", outer);
-        send.setOnClickListener(v->{String cmd=input.getText().toString().trim();input.setText("");runCommand(cmd);});
-        Button pendingButton = button("OPEN NEXT BOOKING PROPOSAL",outer);
-        pendingButton.setOnClickListener(v->openNextProposal());
-        Button clearButton = button("DISCARD NEXT PROPOSAL",outer);
-        clearButton.setOnClickListener(v->discardFirst());
-        pending = new TextView(this);
-        pending.setTextColor(Color.LTGRAY);outer.addView(pending);
-        Button mute = button("VOICE ON / OFF",outer);
-        mute.setOnClickListener(v->{muted=!muted;append("SPARK: Voice "+(muted?"muted":"enabled")+".");});
+        Button send=button("SEND MESSAGE",outer);
+        send.setOnClickListener(v->{
+            String cmd=input.getText().toString().trim();
+            input.setText("");runCommand(cmd);
+        });
+        Button tools=button("MODELS · KNOWLEDGE · MEMORY · TOOLS",outer);
+        tools.setOnClickListener(v->showToolsMenu());
+        pending=new TextView(this);
+        pending.setTextColor(Color.LTGRAY);
+        pending.setTextSize(11);
+        outer.addView(pending);
         setContentView(outer);
         renderPending();
         if(gguf.isFile() && LocalLlama.AVAILABLE){
@@ -132,6 +143,38 @@ public final class MainActivity extends Activity {
             }
         });
     }
+    private void showToolsMenu(){
+        String[] options={
+            "Import GGUF AI model",
+            "Import offline knowledge pack (.json)",
+            "View knowledge library ("+knowledge.size()+" entries)",
+            "What do you remember?",
+            "Show queued booking draft",
+            "Discard first queued booking draft",
+            muted?"Turn voice ON":"Turn voice OFF"
+        };
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("SPARKY · SETTINGS AND KNOWLEDGE")
+            .setItems(options,(dialog,which)->{
+                switch(which){
+                    case 0:selectModel();break;
+                    case 1:selectKnowledgePack();break;
+                    case 2:respond("I have "+knowledge.size()+
+                        " offline reference entries. Ask me a question or type: sources for Porsche 924");break;
+                    case 3:respond(mind.listMemories());break;
+                    case 4:openNextProposal();break;
+                    case 5:discardFirst();break;
+                    case 6:muted=!muted;respond(muted?"Voice muted.":"Voice enabled.");break;
+                }
+            }).show();
+    }
+    private void selectKnowledgePack(){
+        Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("application/json");
+        startActivityForResult(i,KNOWLEDGE_PICK);
+    }
+
     private Button button(String label,LinearLayout parent){
         Button b=new Button(this);b.setText(label);b.setTextColor(Color.BLACK);
         b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(255,229,0)));
@@ -202,6 +245,21 @@ public final class MainActivity extends Activity {
         if(command.isEmpty())return;
         append("YOU: "+command);
         String lower=command.toLowerCase(Locale.UK);
+        if(lower.equals("knowledge library") || lower.equals("knowledge status")){
+            respond("There are "+knowledge.size()+" reference articles in my offline library.");
+            return;
+        }
+        if(lower.startsWith("sources for ")){
+            respond(knowledge.references(command.substring("sources for ".length())));return;
+        }
+        Matcher lesson=Pattern.compile("^teach me about\\s+(.{2,100}):\\s+(.{3,600})$",
+                Pattern.CASE_INSENSITIVE).matcher(command);
+        if(lesson.matches()){
+            knowledge.teach(lesson.group(1),lesson.group(2));
+            respond("I've added your explanation to my local library, marked as owner-taught and unverified.");
+            return;
+        }
+
         if(lower.startsWith("remember that ")){
             int n=mind.remember(command.substring("remember that ".length()));
             respond(n>0?"I have saved that as an owner-approved local memory.":"That memory was empty.");
@@ -278,7 +336,23 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int code,int status,Intent data){
         super.onActivityResult(code,status,data);
-        if(code!=MODEL_PICK || status!=RESULT_OK || data==null || data.getData()==null)return;
+        if(status!=RESULT_OK || data==null || data.getData()==null)return;
+        if(code==KNOWLEDGE_PICK){
+            Uri chosen=data.getData();
+            inference.execute(()->{
+                String reply;
+                try(InputStream in=getContentResolver().openInputStream(chosen)){
+                    if(in==null)throw new IllegalStateException("Cannot open file");
+                    int imported=knowledge.importPack(in);
+                    reply="Imported "+imported+" offline knowledge entries. "+
+                          "There are now "+knowledge.size()+" entries available.";
+                }catch(Exception e){reply="Knowledge import failed: "+e.getMessage();}
+                String out=reply;
+                runOnUiThread(()->respond(out));
+            });
+            return;
+        }
+        if(code!=MODEL_PICK)return;
         android.net.Uri uri=data.getData();
         modelStatus.setText("Importing GGUF model into offline phone storage…");
         inference.execute(()->{
@@ -342,7 +416,7 @@ public final class MainActivity extends Activity {
         inference.execute(()->{
             String result;
             try{
-                String prompt=mind.makePrompt(message);
+                String prompt=mind.makePrompt(message,knowledge.contextFor(message));
                 result=LocalLlama.generate(gguf.getAbsolutePath(),prompt,128);
                 if(result==null||result.trim().isEmpty())result="No reply was generated.";
                 result=result.replaceAll("(?s)<think>.*?</think>","").trim();

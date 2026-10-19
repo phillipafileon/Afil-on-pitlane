@@ -21,7 +21,7 @@ do did on by or if up out after happened""".split())
 
 def keywords(text):
     words = []
-    for match in re.findall(r"[^\\W_]{2,}", text.lower(), re.UNICODE):
+    for match in re.findall(r"[^\W_]{2,}", text.lower(), re.UNICODE):
         if match not in STOP and match not in words:
             words.append(match)
         if len(words) == 8:

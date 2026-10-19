@@ -180,6 +180,7 @@ public final class SparkyKnowledge extends SQLiteOpenHelper {
             out.append("\n• ").append(h.title).append(" — ").append(h.category);
             if(!h.source.isEmpty())out.append("\n  ").append(h.source);
             else out.append("\n  Local knowledge, not independently verified.");
+            if(!h.licence.isEmpty())out.append("\n  Credit: ").append(h.licence);
         }
         return out.toString();
     }

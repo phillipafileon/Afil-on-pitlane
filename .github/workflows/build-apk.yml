@@ -223,6 +223,9 @@ jobs:
           path: Afileon-Pitlane.apk
           if-no-files-found: error
 
+      - name: Quality-check SPARKY APK contents and signing
+        run: python tools/qa_sparky_apk.py spark/build/outputs/apk/release/spark-release.apk
+
       - name: Upload SPARK prototype APK (same trusted signer)
         uses: actions/upload-artifact@v4
         with:

@@ -7,18 +7,34 @@
 #include <vector>
 
 static std::once_flag g_backend;
+// Retain model weights between turns. Re-loading hundreds of MB for every reply was
+// SPARK v0.2's largest avoidable source of latency.
+static std::mutex g_infer_mutex;
+static llama_model *g_model = nullptr;
+static std::string g_model_path;
+static void unload_model() {
+    if (g_model) llama_model_free(g_model);
+    g_model = nullptr;
+    g_model_path.clear();
+}
 static std::string infer(const std::string &path,const std::string &prompt,int limit) {
+    std::lock_guard<std::mutex> lock(g_infer_mutex);
     std::call_once(g_backend,[]{llama_backend_init();});
-    llama_model_params mp=llama_model_default_params();
-    mp.n_gpu_layers=0;
-    llama_model *model=llama_model_load_from_file(path.c_str(),mp);
-    if(!model)return "Couldn't load this GGUF model. Try a smaller instruction-tuned one.";
+    if (!g_model || g_model_path != path) {
+        unload_model();
+        llama_model_params mp=llama_model_default_params();
+        mp.n_gpu_layers=0; // works offline without GPU drivers
+        g_model=llama_model_load_from_file(path.c_str(),mp);
+        if (!g_model) return "Couldn't load this GGUF model. Try the recommended Qwen3 0.6B Q4_0.";
+        g_model_path=path;
+    }
+    llama_model *model=g_model;
     const llama_vocab *vocab=llama_model_get_vocab(model);
     int size=-llama_tokenize(vocab,prompt.c_str(),(int)prompt.size(),nullptr,0,true,true);
-    if(size<1||size>1800){llama_model_free(model);return "Prompt too long for the phone model.";}
+    if(size<1||size>1800){return "Prompt too long for the phone model.";}
     std::vector<llama_token> tokens(size);
     if(llama_tokenize(vocab,prompt.c_str(),(int)prompt.size(),tokens.data(),size,true,true)<0){
-        llama_model_free(model);return "Model cannot tokenize this prompt.";
+        return "Model cannot tokenize this prompt.";
     }
     int budget=std::clamp(limit,1,160);
     llama_context_params cp=llama_context_default_params();
@@ -26,9 +42,13 @@ static std::string infer(const std::string &path,const std::string &prompt,int l
     cp.n_batch=cp.n_ctx;
     cp.n_threads=std::min(4,(int)std::max(1u,std::thread::hardware_concurrency()));
     llama_context *ctx=llama_init_from_model(model,cp);
-    if(!ctx){llama_model_free(model);return "Not enough free memory to run this GGUF model.";}
+    if(!ctx){return "Not enough free memory to run this GGUF model.";}
     llama_sampler *sampler=llama_sampler_chain_init(llama_sampler_chain_default_params());
-    llama_sampler_chain_add(sampler,llama_sampler_init_greedy());
+    // Qwen3 non-thinking recommendations; less repetitive than greedy sampling.
+    llama_sampler_chain_add(sampler,llama_sampler_init_top_k(20));
+    llama_sampler_chain_add(sampler,llama_sampler_init_top_p(0.8f,1));
+    llama_sampler_chain_add(sampler,llama_sampler_init_temp(0.7f));
+    llama_sampler_chain_add(sampler,llama_sampler_init_dist(77));
     llama_batch_ext *batch=llama_batch_ext_init(ctx);
     llama_batch_ext_clear(batch);
     for(int i=0;i<size;i++){
@@ -53,7 +73,6 @@ static std::string infer(const std::string &path,const std::string &prompt,int l
     llama_batch_ext_free(batch);
     llama_sampler_free(sampler);
     llama_free(ctx);
-    llama_model_free(model);
     return answer;
 }
 extern "C" JNIEXPORT jstring JNICALL
@@ -66,4 +85,10 @@ Java_uk_co_afileonmotorsport_spark_LocalLlama_generate(JNIEnv *env,jclass,jstrin
     env->ReleaseStringUTFChars(prompt,q);
     std::string output=infer(filename,question,tokens);
     return env->NewStringUTF(output.c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_uk_co_afileonmotorsport_spark_LocalLlama_unload(JNIEnv *,jclass){
+    std::lock_guard<std::mutex> lock(g_infer_mutex);
+    unload_model();
 }

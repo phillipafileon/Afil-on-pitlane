@@ -16,6 +16,7 @@ REQUIRED = {
     "classes.dex",
     "assets/sparky-character-v2.json",
     "assets/sparky-starter-knowledge.json",
+    "assets/sparky-wikipedia-intros.json",
     "assets/OPEN_SOURCE_NOTICES.txt",
     "lib/arm64-v8a/libllama.so",
     "lib/arm64-v8a/libggml.so",
@@ -92,6 +93,19 @@ def run(apk):
         for title in ("Porsche 924", "1979 24 Hours of Le Mans", "GT3 racing", "Electricity"):
             if title not in titles:
                 raise ValueError("Important reference absent: " + title)
+        wiki = json.loads(archive.read("assets/sparky-wikipedia-intros.json"))
+        wiki_entries = wiki.get("entries", [])
+        attribution = wiki.get("attribution", {})
+        if not (250 <= len(wiki_entries) <= 3000):
+            raise ValueError("Expected the attributed offline encyclopedia pack")
+        if attribution.get("license") != "Creative Commons Attribution-ShareAlike 4.0":
+            raise ValueError("Bundled Wikipedia pack lacks CC BY-SA attribution")
+        titles = [a.get("title", "").lower() for a in wiki_entries]
+        if len(titles) != len(set(titles)):
+            raise ValueError("Wikipedia pack contains duplicate article titles")
+        if not all(e.get("source","").startswith("https://en.wikipedia.org/")
+                   and e.get("summary","") for e in wiki_entries):
+            raise ValueError("Invalid Wikipedia reference entry")
         for fact in facts:
             if not fact.get("title") or not fact.get("summary"):
                 raise ValueError("Empty article heading/body")
@@ -107,7 +121,7 @@ def run(apk):
     if fingerprint != EXPECTED_SIGNER:
         raise ValueError("Unexpected APK certificate. Refusing incompatible update.")
     print("SPARKY APK QA PASSED: ZIP, signer, model engine, avatar, memory, knowledge pack")
-    print("Articles:", len(facts), "Signer SHA-256:", fingerprint)
+    print("Articles:", len(facts), "+", len(wiki_entries), "Wikipedia introductions; signer SHA-256:", fingerprint)
     print("STILL REQUIRED: model import, first/second reply timing, voice, animations,")
     print("offline mode, signed Pitlane bridge and data retention on an Android device.")
 

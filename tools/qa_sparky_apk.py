@@ -16,6 +16,7 @@ REQUIRED = {
     "classes.dex",
     "assets/sparky-character-v2.json",
     "assets/sparky-starter-knowledge.json",
+    "assets/OPEN_SOURCE_NOTICES.txt",
     "lib/arm64-v8a/libllama.so",
     "lib/arm64-v8a/libggml.so",
     "lib/arm64-v8a/libggml-base.so",
@@ -75,6 +76,9 @@ def run(apk):
             raise ValueError("Missing essential APK files: " + ", ".join(sorted(missing)))
         if any(name.endswith(".gguf") for name in names):
             raise ValueError("The large GGUF model must remain an optional separate import")
+        notices = archive.read("assets/OPEN_SOURCE_NOTICES.txt").decode("utf-8")
+        if "MIT License" not in notices or "Copyright" not in notices:
+            raise ValueError("Missing mandatory open-source license notice")
         character = json.loads(archive.read("assets/sparky-character-v2.json"))
         if character.get("spec") != "chara_card_v2":
             raise ValueError("Sparky personality card missing or invalid")

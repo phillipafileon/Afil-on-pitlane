@@ -31,7 +31,11 @@ public final class SparkyKnowledge extends SQLiteOpenHelper {
     private static final Set<String> STOP = new HashSet<>(java.util.Arrays.asList(
         "what","when","where","which","about","tell","please","could","would","should","whose",
         "have","does","with","from","that","this","they","them","were","cars","car","race",
-        "racing","winner","won","history","know","explain","give","some","more","there"));
+        "racing","winner","won","history","know","explain","give","some","more","there",
+        "what","who","why","how","the","and","for","are","was","were","has","had",
+        "his","her","our","its","your","you","me","my","we","us","can","will",
+        "into","not","but","this","here","about","in","is","it","as","of","at",
+        "to","be","an","do","did","on","by","or","if","up","out","after","happened"));
     private final Context app;
 
     public SparkyKnowledge(Context context) {
@@ -160,14 +164,19 @@ public final class SparkyKnowledge extends SQLiteOpenHelper {
             while(c.moveToNext()){
                 String title=c.getString(0),category=c.getString(1),summary=c.getString(2);
                 String source=c.getString(3),licence=c.getString(4);
-                String name=title.toLowerCase(Locale.ROOT);
-                String body=summary.toLowerCase(Locale.ROOT);
-                String incoming=query.toLowerCase(Locale.ROOT);
-                int score=name.contains(incoming)?50:0;
+                // Rank token matches, never arbitrary substrings:
+                // "is" in "photosynthesis" must not match a question about GT3.
+                Set<String> titleTerms = new HashSet<>(keywords(title));
+                Set<String> bodyTerms = new HashSet<>(keywords(summary));
+                int score=0, titleMatches=0;
                 for(String word:words){
-                    if(name.contains(word))score+=12;
-                    if(body.contains(word))score+=2;
+                    if(titleTerms.contains(word)){
+                        score+=12;titleMatches++;
+                    }else if(bodyTerms.contains(word))score+=2;
                 }
+                // Discard peripheral text mentions if we have no subject match.
+                if(titleMatches==0)continue;
+                if(titleMatches==words.size())score+=10;
                 if(score>0)results.add(new Hit(title,category,summary,source,licence,score));
             }
         } catch(Exception ignored) { /* avoid returning speculative matches */ }

@@ -83,6 +83,8 @@ public final class MainActivity extends Activity {
         hint.setText("TAP SPARKY TO TALK  •  LONG-PRESS FOR SETTINGS");
         hint.setTextSize(11);hint.setTextColor(Color.rgb(80,210,245));hint.setGravity(android.view.Gravity.CENTER);
         outer.addView(hint);
+        Button customise=button("CUSTOMISE SPARKY — VOICE & AVATAR",outer);
+        customise.setOnClickListener(v->showCustomiseMenu());
         ScrollView scrolling = new ScrollView(this);
         transcript = new TextView(this);
         transcript.setTextColor(Color.WHITE);transcript.setTextSize(16);
@@ -171,6 +173,35 @@ public final class MainActivity extends Activity {
                 }
             }
         });
+    }
+    private void showCustomiseMenu(){
+        final String[] options={
+            "1. Import Kenney robot character ZIP",
+            "2. Choose my offline voice engine",
+            "3. Hear a voice test",
+            "4. Download open-source robot artwork",
+            "5. Download VoxSherpa voice engine",
+            "6. Show active avatar"
+        };
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("CUSTOMISE SPARKY • VOICE & AVATAR")
+            .setItems(options,(dialog,which)->{
+                switch(which){
+                    case 0:selectAvatarPack();break;
+                    case 1:openSpeechSettings();break;
+                    case 2:testVoice();break;
+                    case 3:openExternalAssetUrl("https://kenney.nl/assets/robot-pack");break;
+                    case 4:openExternalAssetUrl("https://github.com/CodeBySonu95/VoxSherpa-TTS/releases");break;
+                    case 5:respond("I'm wearing my "+face.currentSkinName()+" artwork.");break;
+                }
+            }).show();
+    }
+    private void openExternalAssetUrl(String url){
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        }catch(Exception error){
+            respond("No browser is available. You can download the open-source resources from their official websites.");
+        }
     }
     private void showToolsMenu(){
         String[] options={

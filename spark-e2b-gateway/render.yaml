@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: afileon-spark-e2b-gateway
+    runtime: node
+    plan: free
+    rootDir: spark-e2b-gateway
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: E2B_API_KEY
+        sync: false
+      - key: SPARK_GATEWAY_TOKEN_SHA256
+        sync: false

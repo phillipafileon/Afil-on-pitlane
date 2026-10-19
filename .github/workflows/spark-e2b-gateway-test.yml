@@ -1,0 +1,29 @@
+name: Test SPARK E2B gateway
+on:
+  pull_request:
+    paths:
+      - 'spark-e2b-gateway/**'
+      - '.github/workflows/spark-e2b-gateway-test.yml'
+  push:
+    branches: [ feature/spark-e2b-hybrid ]
+    paths:
+      - 'spark-e2b-gateway/**'
+      - '.github/workflows/spark-e2b-gateway-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gateway-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate gateway syntax and run offline protocol tests
+        working-directory: spark-e2b-gateway
+        env:
+          NODE_ENV: test
+        run: |
+          node --check server.mjs
+          node --test

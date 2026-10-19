@@ -5,10 +5,21 @@ on:
     branches: [ main ]
     paths:
       - 'app/**'
+      - 'spark/**'
+      - 'bookingmanager/**'
+      - 'bookingmanager/**'
       - 'build.gradle'
       - 'settings.gradle'
       - 'gradle.properties'
       - 'BUILD_TRIGGER.txt'
+      - '.github/workflows/build-apk.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'spark/**'
+      - 'build.gradle'
+      - 'settings.gradle'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
   schedule:
@@ -97,8 +108,31 @@ jobs:
               path.write_text(text, encoding='utf-8')
           PY
 
+      - name: Set up Android SDK tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android native toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1"
+
+      - name: Fetch pinned llama.cpp source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p spark/src/main/cpp/vendor/llama.cpp
+          git -C spark/src/main/cpp/vendor/llama.cpp init
+          git -C spark/src/main/cpp/vendor/llama.cpp remote add origin https://github.com/ggml-org/llama.cpp.git
+          git -C spark/src/main/cpp/vendor/llama.cpp fetch --depth 1 origin 9d1878a4354e743529fbe09e7350a957f5e39e9a
+          git -C spark/src/main/cpp/vendor/llama.cpp checkout --detach FETCH_HEAD
+
       - name: Build release APK
-        run: gradle --no-daemon assembleRelease
+        run: gradle --no-daemon :app:assembleRelease :spark:assembleRelease :bookingmanager:assembleRelease
 
       - name: Verify finished APK signing identity
         shell: bash
@@ -187,6 +221,20 @@ jobs:
         with:
           name: Afileon-Pitlane-APK
           path: Afileon-Pitlane.apk
+          if-no-files-found: error
+
+      - name: Upload SPARK prototype APK (same trusted signer)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SPARK-Balanced-APK
+          path: spark/build/outputs/apk/release/spark-release.apk
+          if-no-files-found: error
+
+      - name: Upload Booking Manager test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Afileon-BookingManager-APK
+          path: bookingmanager/build/outputs/apk/release/bookingmanager-release.apk
           if-no-files-found: error
 
       - name: Publish automatic updater files to main

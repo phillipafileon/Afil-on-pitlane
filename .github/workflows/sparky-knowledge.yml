@@ -1,16 +1,10 @@
-name: Prepare Sparky Offline Encyclopedia (Development)
+name: Refresh Sparky Offline Encyclopedia (Manual)
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [ main ]
-    paths:
-      - '.github/workflows/sparky-knowledge.yml'
-      - 'tools/build_sparky_wikipedia_pack.py'
-      - 'tools/sparky_wikipedia_topics.txt'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   knowledge:
@@ -18,13 +12,11 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Fetch properly attributed Wikipedia introduction pack
+      - name: Fetch attributed Wikipedia introduction pack
         shell: bash
         run: |
           set -euo pipefail
@@ -33,36 +25,22 @@ jobs:
             --titles tools/sparky_wikipedia_topics.txt \
             --output build/sparky-wikipedia-intros.json \
             --user-agent 'SparkyOfflineKnowledge/0.3 (https://github.com/phillipafileon/Afil-on-pitlane/issues)'
-      - name: Check pack size, copyright credit and article count
+      - name: Check sources, size and licence
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           path = Path('build/sparky-wikipedia-intros.json')
           info = json.loads(path.read_text(encoding='utf-8'))
-          count = len(info['entries'])
-          print('Wikipedia intro articles:', count)
-          assert 150 <= count <= 3000, 'Pack too small or too large; investigate the fetch'
-          assert path.stat().st_size < 5_000_000, 'Over Android importer cap'
+          entries = info['entries']
+          assert 250 <= len(entries) <= 3000, 'Check missing introductions'
+          assert len({x['title'].lower() for x in entries}) == len(entries), 'Duplicates'
+          assert path.stat().st_size < 5_000_000, 'Too large for Android import'
           assert info['attribution']['license'] == 'Creative Commons Attribution-ShareAlike 4.0'
-          assert all(e.get('source','').startswith('https://en.wikipedia.org/') for e in info['entries'])
+          assert all(x['source'].startswith('https://en.wikipedia.org/') for x in entries)
+          print('Verified encyclopedia entries:', len(entries))
           PY
-      - name: Stage attributed encyclopedia for the draft branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          TARGET_BRANCH: ${{ github.head_ref }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp build/sparky-wikipedia-intros.json spark/src/main/assets/sparky-wikipedia-intros.json
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add spark/src/main/assets/sparky-wikipedia-intros.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'Add attributed offline encyclopedia introductions (development)'
-            git push origin HEAD:"$TARGET_BRANCH"
-          fi
-      - name: Publish knowledge pack as development artifact
+      - name: Export updated knowledge pack for manual review
         uses: actions/upload-artifact@v4
         with:
           name: Sparky-Optional-Wikipedia-Introductions

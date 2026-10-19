@@ -302,11 +302,27 @@ public final class MainActivity extends Activity {
                     if(in.read(magic)!=4 || magic[0]!='G'||magic[1]!='G'||magic[2]!='U'||magic[3]!='F')
                         throw new IllegalStateException("File is not a GGUF model");
                 }
-                if(LocalLlama.AVAILABLE)LocalLlama.unload();
-                if(gguf.exists()&&!gguf.delete())throw new IllegalStateException("Cannot replace existing model");
-                if(!part.renameTo(gguf))throw new IllegalStateException("Cannot complete import");
-                if(LocalLlama.AVAILABLE&&!LocalLlama.preload(gguf.getAbsolutePath()))
-                    throw new IllegalStateException("Imported GGUF is not compatible with this runtime");
+                // Validate new weights before touching the last known-working model.
+                if(LocalLlama.AVAILABLE){
+                    LocalLlama.unload();
+                    if(!LocalLlama.preload(part.getAbsolutePath()))
+                        throw new IllegalStateException("New GGUF is incompatible with this runtime");
+                    LocalLlama.unload();
+                }
+                File backup=new File(getFilesDir(),"spark-instruct.gguf.previous");
+                if(backup.exists()&&!backup.delete())throw new IllegalStateException("Cannot clear old backup");
+                if(gguf.exists()&&!gguf.renameTo(backup))
+                    throw new IllegalStateException("Cannot back up previous model");
+                if(!part.renameTo(gguf)){
+                    if(backup.exists())backup.renameTo(gguf);
+                    throw new IllegalStateException("Cannot complete import");
+                }
+                if(LocalLlama.AVAILABLE&&!LocalLlama.preload(gguf.getAbsolutePath())){
+                    gguf.delete();
+                    if(backup.exists())backup.renameTo(gguf);
+                    throw new IllegalStateException("New model failed to load; previous model restored");
+                }
+                if(backup.exists())backup.delete();
                 runOnUiThread(()->{
                     modelStatus.setText("Offline AI model installed • "+(gguf.length()/1000000)+" MB");
                     respond("Model imported. I can now converse without Wi-Fi or mobile data.");

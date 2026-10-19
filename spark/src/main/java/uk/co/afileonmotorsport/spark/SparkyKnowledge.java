@@ -223,7 +223,13 @@ public final class SparkyKnowledge extends SQLiteOpenHelper {
     }
 
     public String contextFor(String query){
-        List<Hit> hits=search(query,2);
+        // A focused question should receive one authoritative excerpt, not an
+        // unrelated second article (e.g. Le Mans 2000 in a 1979 question).
+        String lower=query.toLowerCase(Locale.ROOT);
+        boolean compare=lower.contains("compare") || lower.contains(" versus ")
+            || lower.contains(" vs ") || lower.contains("difference between")
+            || lower.contains(" both ") || lower.contains(" and ");
+        List<Hit> hits=search(query,compare?2:1);
         if(hits.isEmpty())return "";
         StringBuilder out=new StringBuilder(
             "\nOFFLINE REFERENCE EXCERPTS (short summaries; not live updates). "+

@@ -119,6 +119,12 @@ public final class MainActivity extends Activity {
         outer.addView(pending);
         setContentView(outer);
         renderPending();
+        // Import new bundled reference packs without stalling the UI thread.
+        inference.execute(()->{
+            int added=knowledge.installBundledEncyclopediaIfAvailable();
+            if(added>0)runOnUiThread(()->append("SPARKY: "+added+
+                " more offline encyclopedia entries are now available."));
+        });
         if(gguf.isFile() && LocalLlama.AVAILABLE){
             modelStatus.setText("SPARKY • preparing local AI in background…");
             inference.execute(()->{

@@ -25,6 +25,7 @@ or that it is faster on older tablets, until it is compiled and benchmarked.
 
 ## Personality, memory and character
 
+- A portable, original Character Card V2 personality is bundled as `assets/sparky-character-v2.json` and loaded at startup. The open-format card keeps his identity separate from model weights.
 - Original Sparky personality: eccentric, composed, sometimes dryly funny,
   consistent across turns, but not a fixed joke script.
 - Local owner-approved memories: `remember that ...`, `what do you remember`,
@@ -54,6 +55,8 @@ or that it is faster on older tablets, until it is compiled and benchmarked.
    Record latency, tokens/sec, peak RAM, thermals and whether the model remains loaded.
 5. Verify Android signature protection, all booking approval gates and that no
    customer data leaves the phone without an explicit approved integration.
+
+Future open-source modules to evaluate: sherpa-onnx for fully local Android speech/wake-word/voice, and an offline indexed knowledge base for vetted motorsport manuals. Neither is implemented in this version.
 
 This is source development, **not** a verified installable APK until CI
 and device-level testing pass.

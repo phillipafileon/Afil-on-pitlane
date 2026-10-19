@@ -29,13 +29,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * SPARK Balanced prototype: deterministic offline command controller.
- * Not yet an on-device generative AI or offline voice recognizer.
+ * SPARKY 2.0: offline conversational companion plus an independently
+ * authorised deterministic command controller. No model-generated text can
+ * silently execute a booking or device operation.
  */
 public final class MainActivity extends Activity {
     private static final int MODEL_PICK = 905;
     private final ExecutorService inference = Executors.newSingleThreadExecutor();
     private File gguf;
+    private SparkyMind mind;
+    private SparkyFaceView face;
     private TextView modelStatus;
     private boolean busy = false;
     private static final String ADMIN = "https://afileonmotorsport.co.uk/admin.html";
@@ -51,6 +54,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("spark_private_v1", MODE_PRIVATE);
+        mind = new SparkyMind(prefs);
         if (!prefs.contains("autonomy")) prefs.edit().putString("autonomy", "Balanced").apply();
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
@@ -61,8 +65,11 @@ public final class MainActivity extends Activity {
         title.setTextSize(22);title.setTextColor(Color.rgb(255,229,0));
         outer.addView(title);
         TextView subtitle = new TextView(this);
-        subtitle.setText("BALANCED AUTONOMY  •  OFFLINE COMMANDS");
+        subtitle.setText("BALANCED AUTONOMY  •  FAST LOCAL MIND  •  OFFLINE");
         subtitle.setTextColor(Color.rgb(80,210,245));outer.addView(subtitle);
+        face = new SparkyFaceView(this);
+        int faceHeight = (int)(getResources().getDisplayMetrics().heightPixels * 0.29f);
+        outer.addView(face, new LinearLayout.LayoutParams(-1, faceHeight));
         gguf=new File(getFilesDir(),"spark-instruct.gguf");
         modelStatus=new TextView(this);
         modelStatus.setTextColor(Color.LTGRAY);
@@ -70,10 +77,12 @@ public final class MainActivity extends Activity {
         outer.addView(modelStatus);
         Button modelButton=button("IMPORT OFFLINE AI MODEL (GGUF)",outer);
         modelButton.setOnClickListener(v->selectModel());
+        Button memoryButton=button("WHAT DO YOU REMEMBER?",outer);
+        memoryButton.setOnClickListener(v->respond(mind.listMemories()));
         ScrollView scrolling = new ScrollView(this);
         transcript = new TextView(this);
         transcript.setTextColor(Color.WHITE);transcript.setTextSize(16);transcript.setPadding(0,18,0,10);
-        transcript.setText("SPARK: Online or offline, boss. Give me a job. Try: open garage, prepare Brands Hatch | Indy, note Check the Porsche brakes, dashboard, block 2026-11-01.");
+        transcript.setText("SPARKY: Conscious? Doubtful. Fast? Working on it. I can chat, remember what you ask me to, or operate approved offline Pitlane commands. Try: remember that I prefer brief answers.");
         scrolling.addView(transcript);
         outer.addView(scrolling,new LinearLayout.LayoutParams(-1,0,1f));
         input = new EditText(this);
@@ -85,7 +94,7 @@ public final class MainActivity extends Activity {
             error->respond(error));
         Button mic=button("MICROPHONE / OFFLINE LISTEN",outer);
         mic.setOnClickListener(v->offlineSpeech.start());
-        Button send = button("RUN COMMAND", outer);
+        Button send = button("TALK / RUN APPROVED COMMAND", outer);
         send.setOnClickListener(v->{String cmd=input.getText().toString().trim();input.setText("");runCommand(cmd);});
         Button pendingButton = button("OPEN NEXT BOOKING PROPOSAL",outer);
         pendingButton.setOnClickListener(v->openNextProposal());
@@ -100,6 +109,11 @@ public final class MainActivity extends Activity {
         speech=new TextToSpeech(this,status->{
             if(status==TextToSpeech.SUCCESS){
                 speech.setLanguage(Locale.UK);
+                speech.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener(){
+                    @Override public void onStart(String id){}
+                    @Override public void onDone(String id){runOnUiThread(()->{if(face!=null)face.setTalking(false);});}
+                    @Override public void onError(String id){runOnUiThread(()->{if(face!=null)face.setTalking(false);});}
+                });
                 // Only select an on-device voice. Never require a network TTS engine.
                 if(speech.getVoices()!=null)for(android.speech.tts.Voice v:speech.getVoices()){
                     if(!v.isNetworkConnectionRequired() && v.getLocale().getLanguage().equals("en")){
@@ -116,7 +130,8 @@ public final class MainActivity extends Activity {
     }
     private void append(String value){transcript.append("\n\n"+value);}
     private void respond(String value){
-        append("SPARK: "+value);
+        append("SPARKY: "+value);
+        if(face != null){face.setThinking(false);face.setTalking(voiceReady && !muted);}
         if(voiceReady&&!muted)speech.speak(value,TextToSpeech.QUEUE_FLUSH,null,"sparkReply");
     }
     private void sendPitlane(String op,String value){
@@ -178,6 +193,20 @@ public final class MainActivity extends Activity {
         if(command.isEmpty())return;
         append("YOU: "+command);
         String lower=command.toLowerCase(Locale.UK);
+        if(lower.startsWith("remember that ")){
+            int n=mind.remember(command.substring("remember that ".length()));
+            respond(n>0?"I have saved that as an owner-approved local memory.":"That memory was empty.");
+            return;
+        }
+        if(lower.equals("my memories")||lower.equals("what do you remember")){
+            respond(mind.listMemories());return;
+        }
+        Matcher forget=Pattern.compile("^forget memory ([0-9]{1,2})$",Pattern.CASE_INSENSITIVE).matcher(command);
+        if(forget.matches()){
+            boolean removed=mind.forget(Integer.parseInt(forget.group(1)));
+            respond(removed?"That local memory has been erased.":"I couldn't find that memory number.");
+            return;
+        }
         if(lower.equals("booking manager")||lower.contains("open booking manager")){
             sendBookingManager("open_jobs","");return;
         }
@@ -264,6 +293,7 @@ public final class MainActivity extends Activity {
                     if(in.read(magic)!=4 || magic[0]!='G'||magic[1]!='G'||magic[2]!='U'||magic[3]!='F')
                         throw new IllegalStateException("File is not a GGUF model");
                 }
+                if(LocalLlama.AVAILABLE)LocalLlama.unload();
                 if(gguf.exists()&&!gguf.delete())throw new IllegalStateException("Cannot replace existing model");
                 if(!part.renameTo(gguf))throw new IllegalStateException("Cannot complete import");
                 runOnUiThread(()->{
@@ -277,23 +307,30 @@ public final class MainActivity extends Activity {
         });
     }
     private void chatOffline(String message){
-        if(busy){respond("Already thinking, boss. This isn't a server farm.");return;}
+        if(busy){respond("Already thinking. My circuits do have limits.");return;}
         if(!LocalLlama.AVAILABLE){respond("The local AI runtime isn't installed in this build.");return;}
         busy=true;
-        modelStatus.setText("SPARK thinking • entirely on phone");
+        if(face!=null){face.setTalking(false);face.setThinking(true);}
+        modelStatus.setText("SPARKY thinking • locally • model stays loaded");
         inference.execute(()->{
             String result;
             try{
-                String system="You are SPARK, a sarcastic but reliable racing-team companion for Afiléon Motorsport. "
-                  +"The team races a Porsche 924. Be brief, energetic and helpful. Never falsely claim you performed "
-                  +"any booking, payment or app action. Do not invent mechanical torque figures. Safety matters.";
-                String prompt="<|im_start|>system\n"+system+"\n<|im_end|>\n<|im_start|>user\n"+
-                    message.substring(0,Math.min(message.length(),1500))+"\n<|im_end|>\n<|im_start|>assistant\n";
-                result=LocalLlama.generate(gguf.getAbsolutePath(),prompt,140);
+                String prompt=mind.makePrompt(message);
+                result=LocalLlama.generate(gguf.getAbsolutePath(),prompt,128);
                 if(result==null||result.trim().isEmpty())result="No reply was generated.";
+                result=result.replaceAll("(?s)<think>.*?</think>","").trim();
+                if(result.length()>1800)result=result.substring(0,1800);
+                if(!result.isEmpty() && !result.startsWith("Couldn't")
+                        && !result.startsWith("Not enough") && !result.startsWith("Prompt too long")) {
+                    mind.record(message,result);
+                }
             }catch(Throwable e){result="The local model couldn't run: "+e.getMessage();}
             String answer=result;
-            runOnUiThread(()->{busy=false;modelStatus.setText("SPARK • local model ready");respond(answer);});
+            runOnUiThread(()->{
+                busy=false;
+                modelStatus.setText("SPARKY • local model ready");
+                respond(answer);
+            });
         });
     }
 

@@ -146,11 +146,28 @@ public final class MainActivity extends Activity {
                     @Override public void onDone(String id){runOnUiThread(()->{if(face!=null)face.setTalking(false);});}
                     @Override public void onError(String id){runOnUiThread(()->{if(face!=null)face.setTalking(false);});}
                 });
-                // Only select an on-device voice. Never require a network TTS engine.
-                if(speech.getVoices()!=null)for(android.speech.tts.Voice v:speech.getVoices()){
-                    if(!v.isNetworkConnectionRequired() && v.getLocale().getLanguage().equals("en")){
-                        speech.setVoice(v);voiceReady=true;break;
+                // Use the owner's selected Android TTS engine (e.g. VoxSherpa)
+                // and its selected OFFLINE voice; never silently use cloud TTS.
+                android.speech.tts.Voice preferred=speech.getDefaultVoice();
+                if(preferred!=null && !preferred.isNetworkConnectionRequired()
+                   && "en".equals(preferred.getLocale().getLanguage())){
+                    voiceReady=speech.setVoice(preferred)==TextToSpeech.SUCCESS;
+                }
+                if(!voiceReady && speech.getVoices()!=null){
+                    android.speech.tts.Voice candidate=null;
+                    for(android.speech.tts.Voice v:speech.getVoices()){
+                        if(v.isNetworkConnectionRequired() || 
+                           !"en".equals(v.getLocale().getLanguage()))continue;
+                        if(candidate==null)candidate=v;
+                        if(Locale.UK.getCountry().equals(v.getLocale().getCountry())){
+                            candidate=v;break;
+                        }
                     }
+                    if(candidate!=null)voiceReady=speech.setVoice(candidate)==TextToSpeech.SUCCESS;
+                }
+                if(!voiceReady){
+                    runOnUiThread(()->modelStatus.setText(
+                        "Local model ready • no offline voice selected; check TTS settings"));
                 }
             }
         });

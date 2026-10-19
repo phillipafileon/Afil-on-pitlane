@@ -17,17 +17,21 @@ static void unload_model() {
     g_model = nullptr;
     g_model_path.clear();
 }
+static bool load_model_if_needed(const std::string &path) {
+    if (g_model && g_model_path == path) return true;
+    unload_model();
+    llama_model_params mp=llama_model_default_params();
+    mp.n_gpu_layers=0; // offline CPU execution without GPU driver dependency
+    g_model=llama_model_load_from_file(path.c_str(),mp);
+    if (!g_model) return false;
+    g_model_path=path;
+    return true;
+}
 static std::string infer(const std::string &path,const std::string &prompt,int limit) {
     std::lock_guard<std::mutex> lock(g_infer_mutex);
     std::call_once(g_backend,[]{llama_backend_init();});
-    if (!g_model || g_model_path != path) {
-        unload_model();
-        llama_model_params mp=llama_model_default_params();
-        mp.n_gpu_layers=0; // works offline without GPU drivers
-        g_model=llama_model_load_from_file(path.c_str(),mp);
-        if (!g_model) return "Couldn't load this GGUF model. Try the recommended Qwen3 0.6B Q4_0.";
-        g_model_path=path;
-    }
+    if (!load_model_if_needed(path))
+        return "Couldn't load this GGUF model. Try the recommended Qwen3 0.6B Q4_0.";
     llama_model *model=g_model;
     const llama_vocab *vocab=llama_model_get_vocab(model);
     int size=-llama_tokenize(vocab,prompt.c_str(),(int)prompt.size(),nullptr,0,true,true);
@@ -91,4 +95,15 @@ extern "C" JNIEXPORT void JNICALL
 Java_uk_co_afileonmotorsport_spark_LocalLlama_unload(JNIEnv *,jclass){
     std::lock_guard<std::mutex> lock(g_infer_mutex);
     unload_model();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_uk_co_afileonmotorsport_spark_LocalLlama_preload(JNIEnv *env,jclass,jstring path){
+    if (!path) return JNI_FALSE;
+    const char *p=env->GetStringUTFChars(path,nullptr);
+    std::string filename(p);
+    env->ReleaseStringUTFChars(path,p);
+    std::lock_guard<std::mutex> lock(g_infer_mutex);
+    std::call_once(g_backend,[]{llama_backend_init();});
+    return load_model_if_needed(filename) ? JNI_TRUE : JNI_FALSE;
 }

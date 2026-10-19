@@ -11,4 +11,5 @@ public final class LocalLlama {
     }
     private LocalLlama(){}
     public static native String generate(String modelPath,String prompt,int tokens);
+    public static native void unload();
 }

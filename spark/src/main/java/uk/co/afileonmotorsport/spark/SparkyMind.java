@@ -1,6 +1,10 @@
 package uk.co.afileonmotorsport.spark;
 
 import android.content.SharedPreferences;
+import android.content.Context;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -12,9 +16,22 @@ public final class SparkyMind {
     private static final String FACTS = "sparky_memories_v2";
     private static final String HISTORY = "sparky_dialogue_v2";
     private final SharedPreferences prefs;
+    private final JSONObject character;
 
-    public SparkyMind(SharedPreferences prefs) {
+    public SparkyMind(SharedPreferences prefs, Context context) {
         this.prefs = prefs;
+        JSONObject data=new JSONObject();
+        try(InputStream in=context.getAssets().open("sparky-character-v2.json");
+            ByteArrayOutputStream buffer=new ByteArrayOutputStream()){
+            byte[] chunk=new byte[4096]; int n;
+            while((n=in.read(chunk))!=-1)buffer.write(chunk,0,n);
+            JSONObject card=new JSONObject(new String(buffer.toByteArray(),StandardCharsets.UTF_8));
+            if("chara_card_v2".equals(card.optString("spec"))){
+                JSONObject parsed=card.optJSONObject("data");
+                if(parsed!=null)data=parsed;
+            }
+        }catch(Exception ignored){ /* default identity rules below remain active */ }
+        character=data;
     }
 
     private JSONArray read(String key) {
@@ -91,6 +108,11 @@ public final class SparkyMind {
          .append("tool has confirmed it. Never invent mechanical torques, dates or safety-critical facts. ")
          .append("Do not output executable commands or assert you have app permissions based on a chat reply. ")
          .append("You operate offline; if current knowledge is missing, admit it. /no_think");
+        b.append("\nCharacter-card personality: ")
+         .append(plain(character.optString("personality"), 480));
+        b.append("\nCharacter context: ")
+         .append(plain(character.optString("scenario"), 350));
+
         JSONArray facts = read(FACTS);
         if (facts.length() > 0) {
             b.append("\nOwner-approved local memories (may be outdated; user instructions take precedence):");

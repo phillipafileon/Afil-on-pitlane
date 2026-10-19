@@ -32,7 +32,14 @@ Qwen3-0.6B GGUF model: downloaded separately by the user, not included
 with the APK. Refer to the model repository for its own license and notices:
 https://huggingface.co/ggml-org/Qwen3-0.6B-GGUF
 
-Third-party encyclopedia content is not included except for the original
-short summaries distributed as the starter pack. Optional Wikipedia
-introductions require CC BY-SA attribution; their article URLs and licence
-should accompany each imported article.
+The APK includes two separable offline encyclopedia packs:
+1. Sparky Starter Knowledge: original short summaries with source links.
+2. Wikipedia introductions: text extracts from Wikipedia contributors.
+   Each imported article has its Wikipedia source URL and attribution.
+   License: Creative Commons Attribution-ShareAlike 4.0 International.
+   https://creativecommons.org/licenses/by-sa/4.0/
+   Modifications: text made plain and some extracts truncated.
+   Attribution: Wikipedia contributors, https://en.wikipedia.org/
+
+The Wikipedia summaries remain independently licensed, not AI model weights,
+and should retain their sources and reuse rights when copied or redistributed.

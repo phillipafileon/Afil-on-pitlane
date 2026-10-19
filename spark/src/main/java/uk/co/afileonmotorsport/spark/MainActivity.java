@@ -106,6 +106,15 @@ public final class MainActivity extends Activity {
         mute.setOnClickListener(v->{muted=!muted;append("SPARK: Voice "+(muted?"muted":"enabled")+".");});
         setContentView(outer);
         renderPending();
+        if(gguf.isFile() && LocalLlama.AVAILABLE){
+            modelStatus.setText("SPARKY • preparing local AI in background…");
+            inference.execute(()->{
+                boolean ready=LocalLlama.preload(gguf.getAbsolutePath());
+                runOnUiThread(()->modelStatus.setText(ready?
+                    "SPARKY • local model preloaded and ready":
+                    "Model could not be loaded. Import a compatible Qwen3 GGUF."));
+            });
+        }
         speech=new TextToSpeech(this,status->{
             if(status==TextToSpeech.SUCCESS){
                 speech.setLanguage(Locale.UK);
@@ -296,6 +305,8 @@ public final class MainActivity extends Activity {
                 if(LocalLlama.AVAILABLE)LocalLlama.unload();
                 if(gguf.exists()&&!gguf.delete())throw new IllegalStateException("Cannot replace existing model");
                 if(!part.renameTo(gguf))throw new IllegalStateException("Cannot complete import");
+                if(LocalLlama.AVAILABLE&&!LocalLlama.preload(gguf.getAbsolutePath()))
+                    throw new IllegalStateException("Imported GGUF is not compatible with this runtime");
                 runOnUiThread(()->{
                     modelStatus.setText("Offline AI model installed • "+(gguf.length()/1000000)+" MB");
                     respond("Model imported. I can now converse without Wi-Fi or mobile data.");

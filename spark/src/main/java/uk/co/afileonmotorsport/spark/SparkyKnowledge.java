@@ -148,7 +148,7 @@ public final class SparkyKnowledge extends SQLiteOpenHelper {
         StringBuilder fts=new StringBuilder();
         for(String token:words){
             if(fts.length()>0)fts.append(" OR ");
-            fts.append('"').append(token).append("*\"");
+            fts.append(token).append('*');
         }
         // FTS4 prefix search retrieves candidates; local ranking favours title hits.
         try(Cursor c=getReadableDatabase().rawQuery(

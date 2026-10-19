@@ -156,6 +156,9 @@ public final class MainActivity extends Activity {
             "What do you remember?",
             "Show queued booking draft",
             "Discard first queued booking draft",
+            "Good answer — learn from this",
+            "Not quite right — reduce confidence",
+            "How are you learning?",
             muted?"Turn voice ON":"Turn voice OFF"
         };
         new android.app.AlertDialog.Builder(this)
@@ -169,7 +172,10 @@ public final class MainActivity extends Activity {
                     case 3:respond(mind.listMemories());break;
                     case 4:openNextProposal();break;
                     case 5:discardFirst();break;
-                    case 6:muted=!muted;respond(muted?"Voice muted.":"Voice enabled.");break;
+                    case 6:mind.feedback(true);respond("Noted. I'll keep that in mind.");break;
+                    case 7:mind.feedback(false);respond("Fair criticism. I'll be more careful; teach me the correction if needed.");break;
+                    case 8:respond(mind.learningStatus());break;
+                    case 9:muted=!muted;respond(muted?"Voice muted.":"Voice enabled.");break;
                 }
             }).show();
     }

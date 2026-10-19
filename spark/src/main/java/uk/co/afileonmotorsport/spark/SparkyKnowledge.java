@@ -97,11 +97,14 @@ public final class SparkyKnowledge extends SQLiteOpenHelper {
                     throw new IllegalArgumentException("Reference URLs must use HTTPS");
                 ContentValues fields=new ContentValues();
                 fields.put("title",title);
-                fields.put("category",safe(item.optString("category"),80));
+                String category=safe(item.optString("category"),80);
+                fields.put("category",category);
                 fields.put("summary",summary);
                 fields.put("tags",safe(item.optString("tags"),400));
                 fields.put("source",source);
                 fields.put("licence",safe(item.optString("license"),180));
+                // Re-importing a pack updates the article instead of duplicating it.
+                db.delete("knowledge","title = ? AND category = ?",new String[]{title,category});
                 if(db.insert("knowledge",null,fields)>=0) count++;
             }
             db.setTransactionSuccessful();

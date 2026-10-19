@@ -50,6 +50,23 @@ public final class SparkyKnowledge extends SQLiteOpenHelper {
         }
     }
 
+    /**
+     * Background-only first-run/upgrade installer. A previously installed user
+     * keeps their private database; the supplementary encyclopedia is added once.
+     */
+    public int installBundledEncyclopediaIfAvailable() {
+        android.content.SharedPreferences meta=app.getSharedPreferences(
+            "sparky_knowledge_meta_v1",Context.MODE_PRIVATE);
+        if(meta.getBoolean("wikipedia_intro_pack_installed",false))return 0;
+        try(InputStream input=app.getAssets().open("sparky-wikipedia-intros.json")){
+            int imported=importPack(input);
+            meta.edit().putBoolean("wikipedia_intro_pack_installed",true).apply();
+            return imported;
+        }catch(java.io.FileNotFoundException missing){return 0;
+        }catch(java.io.IOException missing){return 0;
+        }catch(Exception invalid){return 0;}
+    }
+
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE VIRTUAL TABLE knowledge USING fts4("+
                 "title, category, summary, tags, source, licence, tokenize=unicode61)");
@@ -181,7 +198,15 @@ public final class SparkyKnowledge extends SQLiteOpenHelper {
             }
         } catch(Exception ignored) { /* avoid returning speculative matches */ }
         results.sort(Comparator.comparingInt((Hit h)->h.score).reversed());
-        return results.subList(0,Math.min(Math.max(0,maximum),results.size()));
+        // Prefer a single article per title even if another reference pack
+        // contains the same subject under a different category.
+        ArrayList<Hit> unique=new ArrayList<>();
+        Set<String> seen=new HashSet<>();
+        for(Hit hit:results){
+            if(seen.add(hit.title.toLowerCase(Locale.ROOT)))unique.add(hit);
+            if(unique.size()>=Math.max(0,maximum))break;
+        }
+        return unique;
     }
 
     public String references(String query){

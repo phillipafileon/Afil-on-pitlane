@@ -1,0 +1,282 @@
+# Optional seed subjects for offline Wikipedia introduction extracts.
+Porsche
+Porsche 924
+Porsche 944
+Porsche 928
+Porsche 911
+Porsche 356
+Porsche 914
+Porsche 959
+Porsche 917
+Porsche 962
+Porsche 935
+Porsche 936
+Porsche Boxster
+Porsche Cayman
+Porsche Taycan
+BMW
+BMW 3 Series (E46)
+BMW 3 Series (E36)
+BMW 3 Series (E30)
+BMW M3
+BMW M5
+BMW 5 Series
+Mercedes-Benz
+Mercedes-Benz S-Class
+Mercedes-AMG
+Audi
+Audi R8 (LMP)
+Audi Quattro
+Audi Sport Quattro
+Audi RS 6
+Volkswagen
+Volkswagen Golf
+Volkswagen Beetle
+Ford Motor Company
+Ford Mustang
+Ford Escort (Europe)
+Ford Transit
+Ford GT
+Land Rover
+Land Rover Series
+Land Rover Defender
+Land Rover Discovery
+Range Rover
+Jaguar Cars
+Jaguar E-Type
+Jaguar XJ
+Aston Martin
+Aston Martin DB5
+Aston Martin Vantage
+Bentley
+Rolls-Royce Motor Cars
+Lotus Cars
+Lotus Seven
+Caterham Cars
+Caterham Seven
+Morgan Motor Company
+McLaren Automotive
+McLaren F1
+Ferrari
+Ferrari F40
+Ferrari 250 GTO
+Lamborghini
+Lamborghini Miura
+Lamborghini Countach
+Maserati
+Alfa Romeo
+Fiat
+Lancia
+Lancia Delta
+Peugeot
+Renault
+Alpine (automobile)
+Citroën
+Toyota
+Toyota Supra
+Toyota Corolla
+Honda
+Honda Civic Type R
+Honda NSX
+Nissan
+Nissan Skyline GT-R
+Nissan GT-R
+Subaru
+Subaru Impreza
+Mitsubishi Lancer Evolution
+Mazda
+Mazda MX-5
+Mazda RX-7
+Mazda 787B
+Suzuki
+Hyundai Motor Company
+Kia
+Chevrolet Corvette
+Dodge Viper
+Shelby Cobra
+Tesla, Inc.
+Tesla Model S
+Bugatti
+Bugatti Veyron
+Koenigsegg
+24 Hours of Le Mans
+1979 24 Hours of Le Mans
+2000 24 Hours of Le Mans
+24 Hours of Daytona
+24 Hours Nürburgring
+12 Hours of Sebring
+Bathurst 1000
+Indianapolis 500
+Monaco Grand Prix
+Formula One
+Formula Two
+Formula Three
+Formula E
+FIA World Endurance Championship
+FIA GT3
+Group 5 (racing)
+Group C
+Le Mans Prototype
+Hypercar (FIA World Endurance Championship)
+Grand tourer
+Touring car racing
+British Touring Car Championship
+World Rally Championship
+Rallying
+Rallycross
+Endurance racing (motorsport)
+Autocross
+Hillclimbing
+Time attack
+Kart racing
+Goodwood Festival of Speed
+Brands Hatch
+Lydden Hill Race Circuit
+Silverstone Circuit
+Circuit de la Sarthe
+Nürburgring
+Circuit de Spa-Francorchamps
+Suzuka International Racing Course
+Circuit de Monaco
+Mount Panorama Circuit
+Circuit of the Americas
+Klaus Ludwig
+Tom Kristensen
+Jacky Ickx
+Derek Bell (racing driver)
+Ayrton Senna
+Michael Schumacher
+Lewis Hamilton
+Jim Clark
+Stirling Moss
+Niki Lauda
+Richard Petty
+Ken Block
+Colin McRae
+Sébastien Loeb
+Walter Röhrl
+Dale Earnhardt
+Car
+Sports car
+Race car
+Internal combustion engine
+Four-stroke engine
+Two-stroke engine
+Diesel engine
+Gasoline engine
+Boxer engine
+Inline-four engine
+V6 engine
+V8 engine
+Crankshaft
+Camshaft
+Valve timing
+Turbocharger
+Supercharger
+Fuel injection
+Carburetor
+Ignition system
+Clutch
+Manual transmission
+Automatic transmission
+Transaxle
+Differential (mechanical device)
+Limited-slip differential
+Rear-wheel drive
+Front-wheel drive
+Four-wheel drive
+All-wheel drive
+Suspension (vehicle)
+MacPherson strut
+Double wishbone suspension
+Steering
+Vehicle dynamics
+Wheel alignment
+Camber angle
+Tire
+Brake
+Disc brake
+Brake fade
+Anti-lock braking system
+Traction control system
+Aerodynamics
+Downforce
+Drag (physics)
+Power (physics)
+Torque
+Horsepower
+Thermodynamics
+Electricity
+Electromagnetism
+Physics
+Chemistry
+Biology
+Mathematics
+Computer science
+Computer
+Artificial intelligence
+Machine learning
+Large language model
+Neural network (machine learning)
+Internet
+Android (operating system)
+Linux
+Python (programming language)
+C++
+Java (programming language)
+Earth
+Moon
+Sun
+Solar System
+Milky Way
+Universe
+Big Bang
+Evolution
+Natural selection
+Photosynthesis
+Cell (biology)
+Human body
+First aid
+United Kingdom
+England
+Scotland
+Wales
+Northern Ireland
+France
+Germany
+Italy
+Japan
+United States
+China
+India
+Brazil
+Australia
+Africa
+Europe
+Asia
+Industrial Revolution
+World War I
+World War II
+Roman Empire
+Ancient Greece
+Renaissance
+Middle Ages
+British Empire
+Space exploration
+Apollo 11
+International Space Station
+Rail transport
+Steam engine
+Aircraft
+Flight
+Ship
+Maritime history
+Geography
+History
+Music
+Art
+Literature
+Engineering
+Mechanical engineering
+Motorsport
+Automobile racing

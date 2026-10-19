@@ -1,0 +1,67 @@
+SPARKY / Afiléon Motorsport — Open-source notices
+
+Native AI runtime: llama.cpp and ggml
+Upstream: https://github.com/ggml-org/llama.cpp
+Revision: 9d1878a4354e743529fbe09e7350a957f5e39e9a
+License: MIT
+
+MIT License
+
+Copyright (c) 2023-2026 The ggml authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+Qwen3-0.6B GGUF model: downloaded separately by the user, not included
+with the APK. Refer to the model repository for its own license and notices:
+https://huggingface.co/ggml-org/Qwen3-0.6B-GGUF
+
+The APK includes two separable offline encyclopedia packs:
+1. Sparky Starter Knowledge: original short summaries with source links.
+2. Wikipedia introductions: text extracts from Wikipedia contributors.
+   Each imported article has its Wikipedia source URL and attribution.
+   License: Creative Commons Attribution-ShareAlike 4.0 International.
+   https://creativecommons.org/licenses/by-sa/4.0/
+   Modifications: text made plain and some extracts truncated.
+   Attribution: Wikipedia contributors, https://en.wikipedia.org/
+
+The Wikipedia summaries remain independently licensed, not AI model weights,
+and should retain their sources and reuse rights when copied or redistributed.
+
+OPTIONAL OPEN-SOURCE AND CC0 EXTENSIONS (not bundled with the APK)
+
+Kenney Robot Pack — CC0-1.0, by Kenney
+https://kenney.nl/assets/robot-pack
+https://creativecommons.org/publicdomain/zero/1.0/
+Sparky can import selected yellow robot PNG poses from the author's ZIP.
+The included Sprites/PNG pack stays an independent asset. Attribution is
+appreciated but is not required under CC0.
+
+VoxSherpa Android TTS — GPL-3.0, by CodeBySonu95
+https://github.com/CodeBySonu95/VoxSherpa-TTS
+Sparky can request speech from a separately installed Android TTS engine
+using Android's public speech-service interface. VoxSherpa binaries and source
+are not incorporated into this APK. See the upstream license for reuse.
+
+Piper UK English voice models (separate optional downloads):
+https://huggingface.co/rhasspy/piper-voices
+Individual model cards identify upstream dataset licences; for example the
+northern_english_male training dataset is listed as CC BY-SA 4.0.
+Speech models are NOT bundled with this app and must be selected/imported
+through a compatible Android speech engine.

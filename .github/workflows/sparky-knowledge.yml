@@ -1,0 +1,48 @@
+name: Refresh Sparky Offline Encyclopedia (Manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  knowledge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch attributed Wikipedia introduction pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          python tools/build_sparky_wikipedia_pack.py \
+            --titles tools/sparky_wikipedia_topics.txt \
+            --output build/sparky-wikipedia-intros.json \
+            --user-agent 'SparkyOfflineKnowledge/0.3 (https://github.com/phillipafileon/Afil-on-pitlane/issues)'
+      - name: Check sources, size and licence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('build/sparky-wikipedia-intros.json')
+          info = json.loads(path.read_text(encoding='utf-8'))
+          entries = info['entries']
+          assert 250 <= len(entries) <= 3000, 'Check missing introductions'
+          assert len({x['title'].lower() for x in entries}) == len(entries), 'Duplicates'
+          assert path.stat().st_size < 5_000_000, 'Too large for Android import'
+          assert info['attribution']['license'] == 'Creative Commons Attribution-ShareAlike 4.0'
+          assert all(x['source'].startswith('https://en.wikipedia.org/') for x in entries)
+          print('Verified encyclopedia entries:', len(entries))
+          PY
+      - name: Export updated knowledge pack for manual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sparky-Optional-Wikipedia-Introductions
+          path: build/sparky-wikipedia-intros.json
+          if-no-files-found: error

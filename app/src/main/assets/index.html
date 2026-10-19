@@ -160,6 +160,7 @@ details{border-top:1px solid #1d2a37;padding:10px 0}summary{cursor:pointer;font-
     <button id="addCar" class="btn">Add car</button>
   </div>
   <div id="cars"></div>
+  <div class="panel" style="margin-top:12px"><h2>SPARK / OFFLINE NOTES</h2><div id="sparkNotes"></div></div>
 </section>
 
 <section id="team" class="view">
@@ -523,6 +524,41 @@ $('#manualClose').onclick=()=>{
  }
  manualRunning=false;$('#manualOverlay').classList.remove('show');
 };
+
+
+const SPARK_NOTE_KEY='afileon-spark-pitlane-notes-v1';
+function sparkNotes(){try{const v=JSON.parse(localStorage.getItem(SPARK_NOTE_KEY));return Array.isArray(v)?v:[]}catch{return []}}
+function renderSparkNotes(){
+  const root=$('#sparkNotes');
+  if(!root)return;
+  const notes=sparkNotes();
+  root.innerHTML=notes.length?notes.slice(0,20).map(n=>'<p class="muted">'+escapeHtml(n.at)+' • '+escapeHtml(n.text)+'</p>').join(''):'<p class="muted">No SPARK notes recorded yet.</p>';
+}
+window.AfileonSparkControl=Object.freeze({
+  dispatch(input){
+    const op=String(input?.operation||''), value=String(input?.value||'').trim();
+    if(op==='open_home'){nav('home');toast('SPARK opened Pitlane');return true}
+    if(op==='open_track'){nav('track');toast('SPARK opened track mode');return true}
+    if(op==='open_garage'){nav('garage');toast('SPARK opened garage');return true}
+    if(op==='prepare_session'){
+      const parts=value.split('|'),track=(parts[0]||'').slice(0,100),layout=(parts[1]||'').slice(0,80);
+      if(!track){toast('SPARK needs a track name');return false}
+      $('#trackName').value=track;refreshLayouts();
+      const options=Array.from($('#layoutSelect').options);
+      const option=options.find(o=>o.value.toLowerCase()===layout.toLowerCase());
+      if(option)$('#layoutSelect').value=option.value;
+      nav('track');toast('SPARK prepared session — start timing yourself when safe');return true;
+    }
+    if(op==='add_note'){
+      if(!value||value.length>250){toast('SPARK note must be 1–250 characters');return false}
+      const notes=sparkNotes();notes.unshift({at:new Date().toISOString(),text:value});
+      localStorage.setItem(SPARK_NOTE_KEY,JSON.stringify(notes.slice(0,100)));
+      renderSparkNotes();nav('garage');toast('SPARK note saved offline');return true;
+    }
+    toast('SPARK operation not permitted');return false;
+  }
+});
+renderSparkNotes();
 
 renderLaps();renderCars();home();refreshPB();refreshProfileState();
 })();

@@ -77,6 +77,31 @@ public class MainActivity extends AppCompatActivity {
             "/phillipafileon/Afil-on-pitlane/main/dist/Afileon-Pitlane.apk";
     private static final long UPDATE_RECHECK_MS = 60_000L;
 
+    // Only the signature-protected SparkBridgeActivity may enqueue these commands.
+    private static String pendingSparkOp;
+    private static String pendingSparkValue;
+    static synchronized void enqueueSpark(String operation, String value) {
+        pendingSparkOp = operation;
+        pendingSparkValue = value;
+    }
+    private void dispatchPendingSpark() {
+        if (webView == null) return;
+        final String op, value;
+        synchronized (MainActivity.class) {
+            op = pendingSparkOp;
+            value = pendingSparkValue;
+            pendingSparkOp = null;
+            pendingSparkValue = null;
+        }
+        if (op == null) return;
+        try {
+            JSONObject command = new JSONObject();
+            command.put("operation", op);
+            command.put("value", value == null ? "" : value);
+            webView.evaluateJavascript("window.AfileonSparkControl && window.AfileonSparkControl.dispatch(" + command.toString() + ");", null);
+        } catch (Exception ignored) { }
+    }
+
     private WebView webView;
     private String pendingOrigin;
     private GeolocationPermissions.Callback pendingGeoCallback;
@@ -223,6 +248,7 @@ public class MainActivity extends AppCompatActivity {
                         "})()",
                         null);
 
+                dispatchPendingSpark();
                 ensureUpdateStatusUi();
                 checkForUpdates(true, false);
             }
@@ -253,6 +279,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (webView != null) webView.post(this::dispatchPendingSpark);
     }
 
     private boolean handleExternalUri(Uri uri) {

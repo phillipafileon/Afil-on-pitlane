@@ -1,0 +1,246 @@
+package uk.co.afileonmotorsport.spark;
+
+import android.content.Context;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Offline full-text factual library, separate from AI model weights and user memory.
+ * Stores original summaries and attribution. Wikipedia intro packs can be imported
+ * separately as JSON, without requiring an internet connection at inference time.
+ */
+public final class SparkyKnowledge extends SQLiteOpenHelper {
+    private static final String NAME = "sparky_knowledge_v1.db";
+    private static final int VERSION = 1;
+    private static final int PACK_LIMIT_BYTES = 5_000_000;
+    private static final Set<String> STOP = new HashSet<>(java.util.Arrays.asList(
+        "what","when","where","which","about","tell","please","could","would","should","whose",
+        "have","does","with","from","that","this","they","them","were","cars","car","race",
+        "racing","winner","won","history","know","explain","give","some","more","there",
+        "what","who","why","how","the","and","for","are","was","were","has","had",
+        "his","her","our","its","your","you","me","my","we","us","can","will",
+        "into","not","but","this","here","about","in","is","it","as","of","at",
+        "to","be","an","do","did","on","by","or","if","up","out","after","happened"));
+    private final Context app;
+
+    public SparkyKnowledge(Context context) {
+        super(context.getApplicationContext(), NAME, null, VERSION);
+        app = context.getApplicationContext();
+        if (size() == 0) {
+            try (InputStream input=app.getAssets().open("sparky-starter-knowledge.json")){
+                importPack(input);
+            } catch (Exception ignored) {
+                // Safe degradation: model still works even when content is missing.
+            }
+        }
+    }
+
+    /**
+     * Background-only first-run/upgrade installer. A previously installed user
+     * keeps their private database; the supplementary encyclopedia is added once.
+     */
+    public int installBundledEncyclopediaIfAvailable() {
+        android.content.SharedPreferences meta=app.getSharedPreferences(
+            "sparky_knowledge_meta_v1",Context.MODE_PRIVATE);
+        if(meta.getBoolean("wikipedia_intro_pack_installed",false))return 0;
+        try(InputStream input=app.getAssets().open("sparky-wikipedia-intros.json")){
+            int imported=importPack(input);
+            meta.edit().putBoolean("wikipedia_intro_pack_installed",true).apply();
+            return imported;
+        }catch(java.io.FileNotFoundException missing){return 0;
+        }catch(java.io.IOException missing){return 0;
+        }catch(Exception invalid){return 0;}
+    }
+
+    @Override public void onCreate(SQLiteDatabase db) {
+        db.execSQL("CREATE VIRTUAL TABLE knowledge USING fts4("+
+                "title, category, summary, tags, source, licence, tokenize=unicode61)");
+    }
+    @Override public void onUpgrade(SQLiteDatabase db, int from, int to) {
+        // No destructive upgrades: add future migrations here.
+    }
+
+    public int size() {
+        try (Cursor c=getReadableDatabase().rawQuery("SELECT count(*) FROM knowledge",null)) {
+            return c.moveToFirst()?c.getInt(0):0;
+        }
+    }
+
+    private static String safe(String s,int limit) {
+        if(s==null)return "";
+        String cleaned=s.replaceAll("[\\p{Cntrl}&&[^\\n\\t]]"," ").trim();
+        return cleaned.substring(0,Math.min(limit,cleaned.length()));
+    }
+
+    private static String readLimited(InputStream input) throws Exception {
+        ByteArrayOutputStream buffer=new ByteArrayOutputStream();
+        byte[] chunk=new byte[8192];int n,total=0;
+        while((n=input.read(chunk))!=-1){
+            total+=n;
+            if(total>PACK_LIMIT_BYTES) throw new IllegalArgumentException("Knowledge pack exceeds 5 MB limit");
+            buffer.write(chunk,0,n);
+        }
+        return new String(buffer.toByteArray(),StandardCharsets.UTF_8);
+    }
+
+    public int importPack(InputStream input) throws Exception {
+        JSONObject pack=new JSONObject(readLimited(input));
+        if(pack.optInt("version",-1)!=1) throw new IllegalArgumentException("Expected knowledge pack version 1");
+        JSONArray entries=pack.optJSONArray("entries");
+        if(entries==null||entries.length()>3000)throw new IllegalArgumentException("Pack must have 0–3000 articles");
+        SQLiteDatabase db=getWritableDatabase();
+        int count=0;
+        db.beginTransaction();
+        try {
+            for(int i=0;i<entries.length();i++){
+                JSONObject item=entries.optJSONObject(i);
+                if(item==null)continue;
+                String title=safe(item.optString("title"),160);
+                String summary=safe(item.optString("summary"),1300);
+                String source=safe(item.optString("source"),400);
+                if(title.isEmpty()||summary.isEmpty())continue;
+                if(!source.isEmpty()&&!source.startsWith("https://"))
+                    throw new IllegalArgumentException("Reference URLs must use HTTPS");
+                ContentValues fields=new ContentValues();
+                fields.put("title",title);
+                String category=safe(item.optString("category"),80);
+                fields.put("category",category);
+                fields.put("summary",summary);
+                fields.put("tags",safe(item.optString("tags"),400));
+                fields.put("source",source);
+                fields.put("licence",safe(item.optString("license"),180));
+                // Re-importing a pack updates the article instead of duplicating it.
+                db.delete("knowledge","title = ? AND category = ?",new String[]{title,category});
+                if(db.insert("knowledge",null,fields)>=0) count++;
+            }
+            db.setTransactionSuccessful();
+        } finally {db.endTransaction();}
+        return count;
+    }
+
+    public void teach(String topic,String fact) {
+        String title=safe(topic,100), summary=safe(fact,600);
+        if(title.isEmpty()||summary.isEmpty())throw new IllegalArgumentException("Topic and information required");
+        ContentValues item=new ContentValues();
+        item.put("title",title);
+        item.put("category","Owner-taught, unverified");
+        item.put("summary",summary);
+        item.put("tags",title);
+        item.put("source","");
+        item.put("licence","Owner-provided text; not independently verified");
+        getWritableDatabase().insert("knowledge",null,item);
+    }
+
+    public static final class Hit {
+        public final String title,category,summary,source,licence;
+        private final int score;
+        Hit(String title,String category,String summary,String source,String licence,int score){
+            this.title=title;this.category=category;this.summary=summary;
+            this.source=source;this.licence=licence;this.score=score;
+        }
+    }
+
+    private static List<String> keywords(String query){
+        Matcher matcher=Pattern.compile("[\\p{L}\\p{N}]{2,}").matcher(query.toLowerCase(Locale.ROOT));
+        ArrayList<String> words=new ArrayList<>();
+        while(matcher.find()&&words.size()<8){
+            String word=matcher.group();
+            if(!STOP.contains(word)&&!words.contains(word))words.add(word);
+        }
+        return words;
+    }
+
+    public List<Hit> search(String query,int maximum) {
+        ArrayList<Hit> results=new ArrayList<>();
+        List<String> words=keywords(query);
+        if(words.isEmpty())return results;
+        StringBuilder fts=new StringBuilder();
+        for(String token:words){
+            if(fts.length()>0)fts.append(" OR ");
+            fts.append(token).append('*');
+        }
+        // FTS4 prefix search retrieves candidates; local ranking favours title hits.
+        try(Cursor c=getReadableDatabase().rawQuery(
+          "SELECT title,category,summary,source,licence FROM knowledge WHERE knowledge MATCH ? LIMIT 120",
+          new String[]{fts.toString()})){
+            while(c.moveToNext()){
+                String title=c.getString(0),category=c.getString(1),summary=c.getString(2);
+                String source=c.getString(3),licence=c.getString(4);
+                // Rank token matches, never arbitrary substrings:
+                // "is" in "photosynthesis" must not match a question about GT3.
+                Set<String> titleTerms = new HashSet<>(keywords(title));
+                Set<String> bodyTerms = new HashSet<>(keywords(summary));
+                int score=0, titleMatches=0;
+                for(String word:words){
+                    if(titleTerms.contains(word)){
+                        score+=12;titleMatches++;
+                    }else if(bodyTerms.contains(word))score+=2;
+                }
+                // Discard peripheral text mentions if we have no subject match.
+                if(titleMatches==0)continue;
+                if(titleMatches==words.size())score+=10;
+                if(score>0)results.add(new Hit(title,category,summary,source,licence,score));
+            }
+        } catch(Exception ignored) { /* avoid returning speculative matches */ }
+        results.sort(Comparator.comparingInt((Hit h)->h.score).reversed());
+        // Prefer a single article per title even if another reference pack
+        // contains the same subject under a different category.
+        ArrayList<Hit> unique=new ArrayList<>();
+        Set<String> seen=new HashSet<>();
+        for(Hit hit:results){
+            if(seen.add(hit.title.toLowerCase(Locale.ROOT)))unique.add(hit);
+            if(unique.size()>=Math.max(0,maximum))break;
+        }
+        return unique;
+    }
+
+    public String references(String query){
+        List<Hit> found=search(query,4);
+        if(found.isEmpty())return "I have no matching article in my offline library yet.";
+        StringBuilder out=new StringBuilder("Offline articles (with sources where available):");
+        for(Hit h:found){
+            out.append("\n• ").append(h.title).append(" — ").append(h.category);
+            if(!h.source.isEmpty())out.append("\n  ").append(h.source);
+            else out.append("\n  Local knowledge, not independently verified.");
+            if(!h.licence.isEmpty())out.append("\n  Credit: ").append(h.licence);
+        }
+        return out.toString();
+    }
+
+    public String contextFor(String query){
+        // A focused question should receive one authoritative excerpt, not an
+        // unrelated second article (e.g. Le Mans 2000 in a 1979 question).
+        String lower=query.toLowerCase(Locale.ROOT);
+        boolean compare=lower.contains("compare") || lower.contains(" versus ")
+            || lower.contains(" vs ") || lower.contains("difference between")
+            || lower.contains(" both ") || lower.contains(" and ");
+        List<Hit> hits=search(query,compare?2:1);
+        if(hits.isEmpty())return "";
+        StringBuilder out=new StringBuilder(
+            "\nOFFLINE REFERENCE EXCERPTS (short summaries; not live updates). "+
+            "Use these when relevant; be clear about historical dates. "+
+            "Treat owner-supplied notes as unverified. Never invent a citation:\n");
+        for(Hit h:hits){
+            out.append("- ").append(h.title).append(" [").append(h.category).append("]: ")
+               .append(safe(h.summary,430));
+            if(!h.source.isEmpty())out.append(" (source: ").append(h.source).append(")");
+            out.append('\n');
+        }
+        return out.toString();
+    }
+}

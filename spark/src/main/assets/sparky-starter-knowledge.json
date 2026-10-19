@@ -1,0 +1,377 @@
+{
+  "version": 1,
+  "pack": "Sparky Starter Knowledge v1",
+  "updated": "2026-10-19",
+  "notes": "40 short original summaries. Reference links are evidence pointers, not imported Wikipedia text.",
+  "entries": [
+    {
+      "title": "1979 24 Hours of Le Mans",
+      "category": "motorsport history",
+      "summary": "The 1979 Le Mans 24 Hours was won by the #41 Kremer Racing Porsche 935 K3, driven by Klaus Ludwig and brothers Don and Bill Whittington. Porsche 935s filled the first three places.",
+      "tags": "1979 24 Hours of Le Mans winner Porsche Kremer Racing 935 K3 Ludwig Whittington Le Mans endurance race",
+      "source": "https://www.24h-lemans.com/en/news/24-hours-of-le-mans-nine-9s-the-1979-race-6-9-52009",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "2000 24 Hours of Le Mans",
+      "category": "motorsport history",
+      "summary": "Audi claimed its first Le Mans overall victory in 2000. The #8 Audi R8 of Frank Biela, Tom Kristensen and Emanuele Pirro won, followed by two other Audi R8s for an Audi podium sweep.",
+      "tags": "2000 24 Hours of Le Mans winner Audi R8 Biela Kristensen Pirro Joest",
+      "source": "https://www.24h-lemans.com/en/news/twenty-five-years-since-audi-s-remarkable-le-mans-winning-streak-began-with-the-r8-59808",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "24 Hours of Le Mans",
+      "category": "motorsport",
+      "summary": "Le Mans is a 24-hour endurance motor race held at the Circuit de la Sarthe in France. Teams share driving duties and aim to cover the greatest distance within the race time.",
+      "tags": "Le Mans endurance racing circuit Sarthe France ACO 24 hours 1923",
+      "source": "https://www.24h-lemans.com/en",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "GT3 racing",
+      "category": "motorsport",
+      "summary": "GT3 is a popular international class of grand touring race cars developed from production-car models. Technical regulations and Balance of Performance help different manufacturers race competitively.",
+      "tags": "GT3 LMGT3 FIA grand touring GT3 racing homologation BoP Porsche Ferrari Mercedes",
+      "source": "https://www.fia.com/news/wec-what-balance-performance",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Balance of Performance",
+      "category": "motorsport",
+      "summary": "Balance of Performance (BoP) uses changes such as minimum weight and permitted engine output to limit performance gaps between different car designs. It seeks competitive parity, not identical cars.",
+      "tags": "BoP Balance of Performance GT3 LMGT3 WEC FIA equalising weight power",
+      "source": "https://www.fia.com/news/wec-what-balance-performance",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "FIA World Endurance Championship",
+      "category": "motorsport",
+      "summary": "The FIA World Endurance Championship is an international sportscar series centred on long-distance races, with prototype and grand touring categories. Its regulations and class names can change by season.",
+      "tags": "WEC FIA World Endurance Championship prototype Hypercar LMGT3",
+      "source": "https://www.fiawec.com/",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Formula One",
+      "category": "motorsport",
+      "summary": "Formula One is the highest category of FIA single-seat international circuit racing, featuring purpose-built open-wheel cars and a world championship for drivers and constructors.",
+      "tags": "F1 Formula One Grand Prix single seat open wheel",
+      "source": "https://www.formula1.com/",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Rally racing",
+      "category": "motorsport",
+      "summary": "Rallying generally times cars across closed-road or off-road special stages, while the route between stages uses public roads under road rules. It differs from wheel-to-wheel circuit races.",
+      "tags": "rally motorsport WRC special stage gravel tarmac time",
+      "source": "https://www.wrc.com/",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Touring car racing",
+      "category": "motorsport",
+      "summary": "Touring cars are racing vehicles based on passenger-car shapes, often competing in tightly contested sprint races. Regulations vary significantly between championships.",
+      "tags": "touring car BTCC TCR saloon racing sedan",
+      "source": "https://www.btcc.net/",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Track day",
+      "category": "motorsport",
+      "summary": "A track day lets drivers use a racing circuit in organised sessions, usually without a competitive finishing order. Helmets, noise limits, briefings and overtaking rules depend on the organiser.",
+      "tags": "track day circuit safety pit lane tyre pressure sessions Brands Hatch Lydden",
+      "source": "https://www.msvtrackdays.com/",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Pit stop",
+      "category": "motorsport",
+      "summary": "A pit stop is a planned or emergency visit to a service area during a race. Teams may change tyres, repair damage, change drivers or refuel where regulations permit.",
+      "tags": "pit stop pitlane race strategy refuelling tyres crew",
+      "source": "https://en.wikipedia.org/wiki/Pit_stop",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Porsche 924",
+      "category": "cars",
+      "summary": "The Porsche 924 is a front-engine, rear-wheel-drive sports car with its gearbox mounted near the rear axle in a transaxle layout. It was introduced in the 1970s and used water-cooled engines.",
+      "tags": "Porsche 924 classic sports car front engine water cooled transaxle 2.0",
+      "source": "https://en.wikipedia.org/wiki/Porsche_924",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Porsche 911",
+      "category": "cars",
+      "summary": "The Porsche 911 is a long-running rear-engined sports-car family, recognisable for its boxer-engine layout and distinctive silhouette. Road and racing versions have evolved across many generations.",
+      "tags": "Porsche 911 Carrera GT3 GT3 R turbo flat six rear engine",
+      "source": "https://en.wikipedia.org/wiki/Porsche_911",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "BMW 3 Series E46",
+      "category": "cars",
+      "summary": "The E46 is a BMW 3 Series generation sold around the turn of the millennium. It came in multiple body styles and engine variants; the M3 used a high-revving straight-six engine.",
+      "tags": "BMW E46 318i 320i 330i M3 S54 coupe saloon",
+      "source": "https://en.wikipedia.org/wiki/BMW_3_Series_(E46)",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Land Rover Series III",
+      "category": "cars",
+      "summary": "The Land Rover Series III was a utilitarian four-wheel-drive vehicle made in short- and long-wheelbase forms. Its simple chassis, live axles and mechanical driveline make it a distinctive classic off-roader.",
+      "tags": "Land Rover Series 3 III LWB 109 inch four wheel drive",
+      "source": "https://en.wikipedia.org/wiki/Land_Rover_Series",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Mazda MX-5",
+      "category": "cars",
+      "summary": "The Mazda MX-5 is a small, lightweight, rear-wheel-drive two-seat sports car. Its design stresses straightforward handling and driver involvement, making it popular in amateur motorsport.",
+      "tags": "Mazda MX5 Miata roadster NA NB NC ND circuit track day",
+      "source": "https://en.wikipedia.org/wiki/Mazda_MX-5",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Ford Transit",
+      "category": "cars",
+      "summary": "The Ford Transit name covers a range of light commercial vans and minibuses produced in several generations. Different engines, drivetrains and body lengths are available, so specifications depend on the exact version.",
+      "tags": "Ford Transit Mk7 van minibus commercial vehicle",
+      "source": "https://en.wikipedia.org/wiki/Ford_Transit",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Audi R8 race car",
+      "category": "cars",
+      "summary": "The prototype Audi R8 became one of the outstanding endurance racers of the early 2000s. Its first Le Mans victory came in 2000 and the platform won multiple further editions.",
+      "tags": "Audi R8 LMP endurance racing Le Mans 2000 2001 2002",
+      "source": "https://www.24h-lemans.com/en/news/its-twenty-years-since-audis-first-24-hours-of-le-mans-win-53953",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Porsche 935 K3",
+      "category": "cars",
+      "summary": "The Porsche 935 K3 was a heavily developed Group 5 racing machine prepared by Kremer Racing. It won the 1979 24 Hours of Le Mans with Klaus Ludwig and the Whittington brothers.",
+      "tags": "Porsche 935 K3 Kremer Group 5 1979 Le Mans",
+      "source": "https://www.24h-lemans.com/en/news/the-porsche-935-at-the-24-hours-of-le-mans-as-seen-by-jean-marc-teissedre-20423",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Internal combustion engine",
+      "category": "automotive engineering",
+      "summary": "A conventional piston engine converts the energy of fuel combustion into mechanical work by moving pistons and turning a crankshaft. Four-stroke cycles involve intake, compression, power and exhaust.",
+      "tags": "engine petrol diesel piston combustion crankshaft four stroke power",
+      "source": "https://en.wikipedia.org/wiki/Internal_combustion_engine",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Transaxle",
+      "category": "automotive engineering",
+      "summary": "A transaxle packages transmission and driven-axle gearing together. In front-engined cars such as the Porsche 924, locating the transaxle at the rear helps distribute mass.",
+      "tags": "transaxle gearbox rear axle Porsche 924 torque tube",
+      "source": "https://en.wikipedia.org/wiki/Transaxle",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Differential",
+      "category": "automotive engineering",
+      "summary": "A differential allows the left and right driven wheels to rotate at different speeds when cornering. A limited-slip differential may resist excessive wheel-speed differences to help deliver traction.",
+      "tags": "limited slip LSD differential drivetrain axle final drive open differential",
+      "source": "https://en.wikipedia.org/wiki/Differential_(mechanical_device)",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Turbocharger",
+      "category": "automotive engineering",
+      "summary": "A turbocharger uses energy in engine exhaust gases to drive a compressor that increases intake-air pressure. It can boost power but introduces heat-management and response considerations.",
+      "tags": "turbo compressor exhaust boost intercooler lag wastegate",
+      "source": "https://en.wikipedia.org/wiki/Turbocharger",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Brake fade",
+      "category": "automotive engineering",
+      "summary": "Brake fade means braking effectiveness falls as components become too hot. It can involve friction materials and, if the fluid boils, a spongy pedal. It needs immediate safe driving and inspection.",
+      "tags": "brakes track heat brake fade pads discs fluid boiling",
+      "source": "https://en.wikipedia.org/wiki/Brake_fade",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Tyre pressure",
+      "category": "automotive engineering",
+      "summary": "Tyre pressure affects contact patch, handling, temperature and wear. Track use can raise pressures substantially as tyres heat up; safe settings are vehicle-, tyre- and condition-specific.",
+      "tags": "tyre tire pressure cold hot track day racing psi bar",
+      "source": "https://en.wikipedia.org/wiki/Tire-pressure_monitoring_system",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Wheel alignment",
+      "category": "automotive engineering",
+      "summary": "Wheel alignment describes wheel angles including toe, camber and caster. These affect steering response, tyre temperature and tyre wear. Changes should be measured rather than guessed.",
+      "tags": "wheel alignment camber caster toe track day suspension geometry",
+      "source": "https://en.wikipedia.org/wiki/Wheel_alignment",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Power and torque",
+      "category": "automotive engineering",
+      "summary": "Torque describes rotational turning effort, while power measures the rate at which work is done. In a rotating engine, power depends on both torque and speed.",
+      "tags": "horsepower bhp kilowatt torque Nm rpm engine power",
+      "source": "https://en.wikipedia.org/wiki/Power_(physics)",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Aerodynamic downforce",
+      "category": "automotive engineering",
+      "summary": "Downforce is aerodynamic force pressing a moving vehicle toward the road. Wings and underbody airflow can increase cornering grip, but usually add drag and depend strongly on speed and setup.",
+      "tags": "downforce aero splitter diffuser wing drag race car ground effect",
+      "source": "https://en.wikipedia.org/wiki/Downforce",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Gear ratio",
+      "category": "automotive engineering",
+      "summary": "Gear ratios trade rotational speed for wheel torque. A shorter overall ratio increases engine speed for a given road speed, while a taller ratio reduces engine speed and wheel torque at that speed.",
+      "tags": "gear ratio final drive transmission gearbox revs mph",
+      "source": "https://en.wikipedia.org/wiki/Gear_train",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Pitlane application",
+      "category": "Afiléon reference",
+      "summary": "Pitlane is Afiléon Motorsport's track-day companion app. Its exact installed capabilities depend on the version; Sparky may prepare a session or add notes only through approved app commands.",
+      "tags": "Pitlane Afileon Motorsport app track timer garage",
+      "source": "",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "team-reference"
+    },
+    {
+      "title": "Afiléon Motorsport",
+      "category": "Afiléon reference",
+      "summary": "Afiléon Motorsport is a grassroots motorsport team. The team is associated with a Porsche 924 racing car and offers track-day support and vehicle services. Details may evolve and should be checked against the owner's records.",
+      "tags": "Afileon Motorsport Porsche 924 UK Brands Hatch team support recovery",
+      "source": "",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "team-reference"
+    },
+    {
+      "title": "Earth",
+      "category": "general science",
+      "summary": "Earth is the third planet from the Sun and the only world known to sustain life. It has oceans, a protective atmosphere and an active geological surface.",
+      "tags": "Earth planet Sun solar system continents geology world",
+      "source": "https://en.wikipedia.org/wiki/Earth",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Solar System",
+      "category": "general science",
+      "summary": "The Solar System contains the Sun, eight major planets, dwarf planets, moons, asteroids and comets held in the Sun's gravitational influence.",
+      "tags": "Solar System Sun planets Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune",
+      "source": "https://en.wikipedia.org/wiki/Solar_System",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Photosynthesis",
+      "category": "general science",
+      "summary": "Photosynthesis is the process by which plants, algae and some microorganisms use light energy to create chemical energy from carbon dioxide and water, often releasing oxygen.",
+      "tags": "biology plants green leaves chlorophyll sunlight oxygen photosynthesis",
+      "source": "https://en.wikipedia.org/wiki/Photosynthesis",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Electricity",
+      "category": "general science",
+      "summary": "Electricity concerns the presence and movement of electric charge. Voltage, current and resistance are central ideas in practical circuits and automotive electrics.",
+      "tags": "electricity charge current voltage volts amps resistance ohms circuit",
+      "source": "https://en.wikipedia.org/wiki/Electricity",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "World War II",
+      "category": "general history",
+      "summary": "The Second World War was a global conflict fought chiefly from 1939 to 1945. It involved many nations and brought immense human losses and major political changes.",
+      "tags": "World War Two WWII 1939 1945 Allies Axis history",
+      "source": "https://en.wikipedia.org/wiki/World_War_II",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Industrial Revolution",
+      "category": "general history",
+      "summary": "The Industrial Revolution involved major changes in manufacturing, energy use and transport, first becoming established in Britain in the eighteenth century before spreading elsewhere.",
+      "tags": "industrial revolution steam engine factories manufacturing history Britain",
+      "source": "https://en.wikipedia.org/wiki/Industrial_Revolution",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "United Kingdom",
+      "category": "geography",
+      "summary": "The United Kingdom comprises England, Scotland, Wales and Northern Ireland. Its capital is London and it is a sovereign state in northwestern Europe.",
+      "tags": "UK Britain England Scotland Wales Northern Ireland London",
+      "source": "https://en.wikipedia.org/wiki/United_Kingdom",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Japan",
+      "category": "geography",
+      "summary": "Japan is an East Asian island country in the Pacific Ocean, with Tokyo as its capital. It has a large automotive industry and rich motorsport history.",
+      "tags": "Japan Tokyo geography East Asia Toyota Honda Nissan motorsport",
+      "source": "https://en.wikipedia.org/wiki/Japan",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Computer",
+      "category": "technology",
+      "summary": "A computer is a programmable electronic machine that processes instructions and data. Phones and embedded vehicle controllers are also forms of computers.",
+      "tags": "computer CPU software hardware smartphone processor technology",
+      "source": "https://en.wikipedia.org/wiki/Computer",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    },
+    {
+      "title": "Artificial intelligence",
+      "category": "technology",
+      "summary": "Artificial intelligence studies and develops systems that perform tasks associated with human intelligence, such as recognising speech and generating language. Model outputs are not automatically reliable.",
+      "tags": "AI artificial intelligence machine learning large language model LLM",
+      "source": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+      "license": "Original short summary; source link for checking.",
+      "source_type": "public-reference"
+    }
+  ]
+}

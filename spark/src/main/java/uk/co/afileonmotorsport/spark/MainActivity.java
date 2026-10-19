@@ -95,19 +95,16 @@ public final class MainActivity extends Activity {
         input.setHint("Talk to Sparky…");
         outer.addView(input);
         offlineSpeech=new OfflineSpeech(this,
-            heard->{input.setText(heard);runCommand(heard);},
-            error->respond(error));
-        face.setOnClickListener(v->offlineSpeech.start());
-        face.setOnLongClickListener(v->{
-            respond("I'm listening. Just don't ask me to rotate your tyres with these little hands.");
-            return true;
-        });
+            heard->{face.setListening(false);input.setText(heard);runCommand(heard);},
+            error->{face.setListening(false);respond(error);});
+        face.setOnClickListener(v->startListening());
+        face.setOnLongClickListener(v->{showToolsMenu();return true;});
         LinearLayout actions=new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         outer.addView(actions);
         Button mic=button("TALK",actions);
         mic.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1f));
-        mic.setOnClickListener(v->offlineSpeech.start());
+        mic.setOnClickListener(v->startListening());
         Button send=button("SEND",actions);
         send.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1f));
         send.setOnClickListener(v->{
@@ -203,6 +200,11 @@ public final class MainActivity extends Activity {
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType("application/json");
         startActivityForResult(i,KNOWLEDGE_PICK);
+    }
+
+    private void startListening(){
+        if(face!=null)face.setListening(true);
+        if(offlineSpeech!=null)offlineSpeech.start();
     }
 
     private Button button(String label,LinearLayout parent){
@@ -355,7 +357,7 @@ public final class MainActivity extends Activity {
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
         super.onRequestPermissionsResult(requestCode,permissions,results);
         if(requestCode==904 && results.length>0 && results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED
-                && offlineSpeech!=null)offlineSpeech.start();
+                && offlineSpeech!=null)startListening();
     }
 
     private void selectModel(){

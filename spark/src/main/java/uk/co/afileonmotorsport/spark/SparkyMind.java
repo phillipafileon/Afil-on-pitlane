@@ -82,6 +82,24 @@ public final class SparkyMind {
         return true;
     }
 
+
+    /**
+     * Slowly adapts response style from owner feedback without retraining weights,
+     * uploading conversations or letting chat text change safety permissions.
+     */
+    public void feedback(boolean useful) {
+        int count=Math.min(40,prefs.getInt("feedback_count_v2",0)+1);
+        int balance=Math.max(-12,Math.min(12,
+            prefs.getInt("feedback_balance_v2",0)+(useful?1:-2)));
+        prefs.edit().putInt("feedback_count_v2",count)
+            .putInt("feedback_balance_v2",balance).apply();
+    }
+    public String learningStatus(){
+        return "Local feedback received: "+prefs.getInt("feedback_count_v2",0)
+            +" reactions. Approved memories: "+read(FACTS).length()
+            +". This adapts my communication style, not my AI weights.";
+    }
+
     public void record(String user, String answer) {
         JSONArray history = read(HISTORY), next = new JSONArray();
         for (int i = Math.max(0, history.length() - 3); i < history.length(); i++)
@@ -114,6 +132,12 @@ public final class SparkyMind {
          .append(plain(character.optString("personality"), 480));
         b.append("\nCharacter context: ")
          .append(plain(character.optString("scenario"), 350));
+        int feedbackBalance=prefs.getInt("feedback_balance_v2",0);
+        if (feedbackBalance <= -4)
+            b.append("\nRecent owner feedback suggests being extra precise, calm, concise and sparing with humour.");
+        else if(feedbackBalance>=6)
+            b.append("\nThe owner tends to appreciate a little more warmth and occasional playful humour.");
+
 
         JSONArray facts = read(FACTS);
         if (facts.length() > 0) {

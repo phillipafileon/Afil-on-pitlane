@@ -34,7 +34,7 @@ def audit(zip_path, worker_source):
                 scanned[name] = z.read(name).decode("utf-8", errors="replace")
     render_files = sorted(name for name, content in scanned.items() if RENDER_ORIGIN in content)
     render_occurrences = sum(content.count(RENDER_ORIGIN) for content in scanned.values())
-    worker_routes = set(re.findall(r'path\\s*===\\s*["\\\'](/api/[a-z0-9/-]+)["\\\']', worker_source))
+    worker_routes = set(re.findall(r"""path\s*===\s*["'](/api/[a-z0-9/-]+)["']""", worker_source))
     client_paths = set()
     for content in scanned.values():
         client_paths.update(re.findall(r"/api/[a-z0-9/-]+", content))

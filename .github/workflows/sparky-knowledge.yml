@@ -10,7 +10,7 @@ on:
       - 'tools/sparky_wikipedia_topics.txt'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   knowledge:
@@ -45,6 +45,21 @@ jobs:
           assert info['attribution']['license'] == 'Creative Commons Attribution-ShareAlike 4.0'
           assert all(e.get('source','').startswith('https://en.wikipedia.org/') for e in info['entries'])
           PY
+      - name: Stage attributed encyclopedia for the draft branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TARGET_BRANCH: ${{ github.head_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp build/sparky-wikipedia-intros.json spark/src/main/assets/sparky-wikipedia-intros.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add spark/src/main/assets/sparky-wikipedia-intros.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Add attributed offline encyclopedia introductions (development)'
+            git push origin HEAD:"$TARGET_BRANCH"
+          fi
       - name: Publish knowledge pack as development artifact
         uses: actions/upload-artifact@v4
         with:

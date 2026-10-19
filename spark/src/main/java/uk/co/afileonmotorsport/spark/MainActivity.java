@@ -125,7 +125,10 @@ public final class MainActivity extends Activity {
         if(gguf.isFile() && LocalLlama.AVAILABLE){
             modelStatus.setText("SPARKY • preparing local AI in background…");
             inference.execute(()->{
+                long prewarmStart=android.os.SystemClock.elapsedRealtime();
                 boolean ready=LocalLlama.preload(gguf.getAbsolutePath());
+                if(ready)prefs.edit().putLong("last_preload_ms_v3",
+                    android.os.SystemClock.elapsedRealtime()-prewarmStart).apply();
                 runOnUiThread(()->modelStatus.setText(ready?
                     "SPARKY • local model preloaded and ready":
                     "Model could not be loaded. Import a compatible Qwen3 GGUF."));
@@ -159,6 +162,7 @@ public final class MainActivity extends Activity {
             "Good answer — learn from this",
             "Not quite right — reduce confidence",
             "How are you learning?",
+            "Local model performance",
             muted?"Turn voice ON":"Turn voice OFF"
         };
         new android.app.AlertDialog.Builder(this)
@@ -175,10 +179,25 @@ public final class MainActivity extends Activity {
                     case 6:mind.feedback(true);respond("Noted. I'll keep that in mind.");break;
                     case 7:mind.feedback(false);respond("Fair criticism. I'll be more careful; teach me the correction if needed.");break;
                     case 8:respond(mind.learningStatus());break;
-                    case 9:muted=!muted;respond(muted?"Voice muted.":"Voice enabled.");break;
+                    case 9:respond(performanceSummary());break;
+                    case 10:muted=!muted;respond(muted?"Voice muted.":"Voice enabled.");break;
                 }
             }).show();
     }
+    private String performanceSummary(){
+        long warm=prefs.getLong("last_preload_ms_v3",-1);
+        long generate=prefs.getLong("last_generation_ms_v3",-1);
+        int chars=prefs.getInt("last_generation_chars_v3",0);
+        int turns=prefs.getInt("generation_count_v3",0);
+        return "LOCAL SPARKY DIAGNOSTICS\\n"
+            +"Model ready: "+(gguf.isFile()?"imported":"not imported")+"\\n"
+            +"Last model pre-load: "+(warm<0?"not measured":warm+" ms")+"\\n"
+            +"Last completed reply: "+(generate<0?"not measured":generate+" ms")+"\\n"
+            +"Last reply size: "+chars+" characters\\n"
+            +"Total measured replies: "+turns+"\\n"
+            +"Diagnostics are private and never uploaded. Values vary with device temperature and battery mode.";
+    }
+
     private void selectKnowledgePack(){
         Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
@@ -425,6 +444,7 @@ public final class MainActivity extends Activity {
         if(face!=null){face.setTalking(false);face.setThinking(true);}
         modelStatus.setText("SPARKY thinking • locally • model stays loaded");
         inference.execute(()->{
+            long begin=android.os.SystemClock.elapsedRealtime();
             String result;
             try{
                 String prompt=mind.makePrompt(message,knowledge.contextFor(message));
@@ -437,6 +457,12 @@ public final class MainActivity extends Activity {
                     mind.record(message,result);
                 }
             }catch(Throwable e){result="The local model couldn't run: "+e.getMessage();}
+            long elapsed=android.os.SystemClock.elapsedRealtime()-begin;
+            prefs.edit().putLong("last_generation_ms_v3",elapsed)
+                .putInt("last_generation_chars_v3",result.length())
+                .putInt("generation_count_v3",
+                    Math.min(1000000,prefs.getInt("generation_count_v3",0)+1))
+                .apply();
             String answer=result;
             runOnUiThread(()->{
                 busy=false;

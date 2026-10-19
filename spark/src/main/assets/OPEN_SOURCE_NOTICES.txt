@@ -43,3 +43,25 @@ The APK includes two separable offline encyclopedia packs:
 
 The Wikipedia summaries remain independently licensed, not AI model weights,
 and should retain their sources and reuse rights when copied or redistributed.
+
+OPTIONAL OPEN-SOURCE AND CC0 EXTENSIONS (not bundled with the APK)
+
+Kenney Robot Pack — CC0-1.0, by Kenney
+https://kenney.nl/assets/robot-pack
+https://creativecommons.org/publicdomain/zero/1.0/
+Sparky can import selected yellow robot PNG poses from the author's ZIP.
+The included Sprites/PNG pack stays an independent asset. Attribution is
+appreciated but is not required under CC0.
+
+VoxSherpa Android TTS — GPL-3.0, by CodeBySonu95
+https://github.com/CodeBySonu95/VoxSherpa-TTS
+Sparky can request speech from a separately installed Android TTS engine
+using Android's public speech-service interface. VoxSherpa binaries and source
+are not incorporated into this APK. See the upstream license for reuse.
+
+Piper UK English voice models (separate optional downloads):
+https://huggingface.co/rhasspy/piper-voices
+Individual model cards identify upstream dataset licences; for example the
+northern_english_male training dataset is listed as CC BY-SA 4.0.
+Speech models are NOT bundled with this app and must be selected/imported
+through a compatible Android speech engine.

@@ -12,6 +12,9 @@
         </intent>
     </queries>
 
+    <permission android:name="uk.co.afileonmotorsport.pitlane.permission.SPARK_CONTROL"
+        android:protectionLevel="signature" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/afileon_icon"
@@ -30,6 +33,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <activity android:name=".SparkBridgeActivity"
+            android:exported="true"
+            android:permission="uk.co.afileonmotorsport.pitlane.permission.SPARK_CONTROL" />
 
         <activity
             android:name=".MainActivity"

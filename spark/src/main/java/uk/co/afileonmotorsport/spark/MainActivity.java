@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 public final class MainActivity extends Activity {
     private static final int MODEL_PICK = 905;
     private static final int KNOWLEDGE_PICK = 906;
+    private static final int AVATAR_PICK = 907;
     private final ExecutorService inference = Executors.newSingleThreadExecutor();
     private File gguf;
     private SparkyMind mind;
@@ -79,7 +80,7 @@ public final class MainActivity extends Activity {
         modelStatus.setText(gguf.isFile()?"Offline AI model installed":"Import a GGUF model once to enable offline conversation");
         outer.addView(modelStatus);
         TextView hint=new TextView(this);
-        hint.setText("TAP SPARKY TO TALK  •  LONG-PRESS FOR A REACTION");
+        hint.setText("TAP SPARKY TO TALK  •  LONG-PRESS FOR SETTINGS");
         hint.setTextSize(11);hint.setTextColor(Color.rgb(80,210,245));hint.setGravity(android.view.Gravity.CENTER);
         outer.addView(hint);
         ScrollView scrolling = new ScrollView(this);
@@ -166,6 +167,10 @@ public final class MainActivity extends Activity {
             "Not quite right — reduce confidence",
             "How are you learning?",
             "Local model performance",
+            "Import Kenney CC0 Robot Pack (.zip)",
+            "Open Android voice engine settings",
+            "Test my current voice",
+            "Avatar artwork status",
             muted?"Turn voice ON":"Turn voice OFF"
         };
         new android.app.AlertDialog.Builder(this)
@@ -183,7 +188,11 @@ public final class MainActivity extends Activity {
                     case 7:mind.feedback(false);respond("Fair criticism. I'll be more careful; teach me the correction if needed.");break;
                     case 8:respond(mind.learningStatus());break;
                     case 9:respond(performanceSummary());break;
-                    case 10:muted=!muted;respond(muted?"Voice muted.":"Voice enabled.");break;
+                    case 10:selectAvatarPack();break;
+                    case 11:openSpeechSettings();break;
+                    case 12:testVoice();break;
+                    case 13:respond("Avatar artwork: "+face.currentSkinName());break;
+                    case 14:muted=!muted;respond(muted?"Voice muted.":"Voice enabled.");break;
                 }
             }).show();
     }
@@ -199,6 +208,27 @@ public final class MainActivity extends Activity {
             +"Last reply size: "+chars+" characters\n"
             +"Total measured replies: "+turns+"\n"
             +"Diagnostics are private and never uploaded. Values vary with device temperature and battery mode.";
+    }
+
+    private void selectAvatarPack(){
+        Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        startActivityForResult(i,AVATAR_PICK);
+    }
+    private void openSpeechSettings(){
+        try {
+            startActivity(new Intent("com.android.settings.TTS_SETTINGS"));
+        } catch(Exception error){
+            respond("Open Android Settings → General management → Text-to-speech output, then choose your installed offline voice engine.");
+        }
+    }
+    private void testVoice(){
+        if(speech!=null && voiceReady){
+            face.setTalking(true);
+            int result=speech.speak("Ah. There you are. Sparky, reporting from the pit lane. I'd call this a voice test, not a performance review.",TextToSpeech.QUEUE_FLUSH,null,"sparkTest");
+            if(result==TextToSpeech.ERROR){face.setTalking(false);respond("The selected voice engine could not speak. Check Android text-to-speech settings.");}
+        } else respond("No offline voice ready. Install an offline Android speech engine, select it in Android text-to-speech settings, then reopen Sparky.");
     }
 
     private void selectKnowledgePack(){
@@ -283,6 +313,16 @@ public final class MainActivity extends Activity {
         if(command.isEmpty())return;
         append("YOU: "+command);
         String lower=command.toLowerCase(Locale.UK);
+        if(lower.equals("do a flip") || lower.equals("flip") ||
+                lower.equals("wave") || lower.equals("wave hello") ||
+                lower.equals("nod") || lower.equals("look shocked") ||
+                lower.equals("look surprised")){
+            String gesture=lower.contains("flip")?"flip":
+                lower.contains("wave")?"wave":lower.contains("nod")?"nod":"surprised";
+            face.react(gesture);
+            respond("Right. "+(gesture.equals("flip")?"One highly unnecessary somersault, coming up.":"There you go."));
+            return;
+        }
         if(lower.equals("knowledge library") || lower.equals("knowledge status")){
             respond("There are "+knowledge.size()+" reference articles in my offline library.");
             return;
@@ -375,6 +415,20 @@ public final class MainActivity extends Activity {
     @Override protected void onActivityResult(int code,int status,Intent data){
         super.onActivityResult(code,status,data);
         if(status!=RESULT_OK || data==null || data.getData()==null)return;
+        if(code==AVATAR_PICK){
+            Uri chosen=data.getData();
+            inference.execute(()->{
+                String reply;
+                try(InputStream in=getContentResolver().openInputStream(chosen)){
+                    if(in==null)throw new IllegalStateException("Cannot open selected ZIP file");
+                    int poses=SparkyOpenAssets.importKenneyRobotZip(this,in);
+                    reply="Imported "+poses+" Kenney CC0 avatar poses. Try: do a flip, wave, nod.";
+                }catch(Exception ex){reply="Avatar import failed: "+ex.getMessage();}
+                String done=reply;
+                runOnUiThread(()->{face.loadOpenSourceSkin();respond(done);});
+            });
+            return;
+        }
         if(code==KNOWLEDGE_PICK){
             Uri chosen=data.getData();
             inference.execute(()->{

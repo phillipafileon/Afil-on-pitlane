@@ -460,10 +460,15 @@ public final class MainActivity extends Activity {
                 if(result==null||result.trim().isEmpty())result="No reply was generated.";
                 result=result.replaceAll("(?s)<think>.*?</think>","").trim();
                 if(result.length()>1800)result=result.substring(0,1800);
-                if(!result.isEmpty() && !result.startsWith("Couldn't")
-                        && !result.startsWith("Not enough") && !result.startsWith("Prompt too long")) {
-                    mind.record(message,result);
-                }
+                // Failed inference must not be remembered as an actual conversation.
+                boolean valid=!result.isEmpty()
+                    && !result.equals("No reply was generated.")
+                    && !result.startsWith("Couldn't")
+                    && !result.startsWith("Not enough")
+                    && !result.startsWith("Prompt too long")
+                    && !result.startsWith("Model cannot tokenize")
+                    && !result.startsWith("Invalid input");
+                if(valid)mind.record(message,result);
             }catch(Throwable e){result="The local model couldn't run: "+e.getMessage();}
             long elapsed=android.os.SystemClock.elapsedRealtime()-begin;
             prefs.edit().putLong("last_generation_ms_v3",elapsed)

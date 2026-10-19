@@ -102,14 +102,19 @@ public final class MainActivity extends Activity {
             respond("I'm listening. Just don't ask me to rotate your tyres with these little hands.");
             return true;
         });
-        Button mic=button("TALK",outer);
+        LinearLayout actions=new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        outer.addView(actions);
+        Button mic=button("TALK",actions);
+        mic.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1f));
         mic.setOnClickListener(v->offlineSpeech.start());
-        Button send=button("SEND MESSAGE",outer);
+        Button send=button("SEND",actions);
+        send.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1f));
         send.setOnClickListener(v->{
             String cmd=input.getText().toString().trim();
             input.setText("");runCommand(cmd);
         });
-        Button tools=button("MODELS · KNOWLEDGE · MEMORY · TOOLS",outer);
+        Button tools=button("SETTINGS · MODELS · KNOWLEDGE",outer);
         tools.setOnClickListener(v->showToolsMenu());
         pending=new TextView(this);
         pending.setTextColor(Color.LTGRAY);

@@ -2,6 +2,10 @@ package uk.co.afileonmotorsport.spark;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.RectF;
+import java.io.File;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -14,11 +18,16 @@ public final class SparkyFaceView extends View {
     private boolean thinking;
     private boolean talking;
     private boolean listening;
+    private Bitmap idlePose, jumpPose, drivePose, hurtPose;
+    private String reaction="";
+    private long reactionStarted;
+    private static final long REACTION_MS=1200;
 
     public SparkyFaceView(Context context) {
         super(context);
         setContentDescription("Sparky. Tap to talk. Long press to open settings.");
         setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        loadOpenSourceSkin();
     }
     public void setThinking(boolean value) {
         thinking=value; if(value){talking=false;listening=false;} invalidate();
@@ -28,6 +37,30 @@ public final class SparkyFaceView extends View {
     }
     public void setListening(boolean value) {
         listening=value; if(value){thinking=false;talking=false;} invalidate();
+    }
+    public void loadOpenSourceSkin(){
+        File root=SparkyOpenAssets.directory(getContext());
+        idlePose=load(new File(root,"idle.png"));
+        jumpPose=load(new File(root,"jump.png"));
+        drivePose=load(new File(root,"drive.png"));
+        hurtPose=load(new File(root,"hurt.png"));
+        invalidate();
+    }
+    private Bitmap load(File file){
+        if(!file.isFile() || file.length()>400000)return null;
+        return BitmapFactory.decodeFile(file.getAbsolutePath());
+    }
+    public void react(String action){
+        reaction=action;
+        reactionStarted=SystemClock.uptimeMillis();
+        invalidate();
+    }
+    public String currentSkinName(){
+        return idlePose==null?"original expressive vector":"Kenney Robot Pack • CC0";
+    }
+    private void keepAnimating(){
+        if(getWindowToken()!=null && hasWindowFocus() && getVisibility()==View.VISIBLE)
+            postInvalidateDelayed(50);
     }
     private void circle(Canvas canvas,float x,float y,float r,int colour) {
         p.setColor(colour);p.setStyle(Paint.Style.FILL);
@@ -43,6 +76,41 @@ public final class SparkyFaceView extends View {
         float bob=(float)Math.sin(secs*2.0f)*unit*0.026f;
         int yellow=Color.rgb(255,229,0), cyan=Color.rgb(69,224,242);
         y+=bob;
+        long age=SystemClock.uptimeMillis()-reactionStarted;
+        boolean active=!reaction.isEmpty() && age<REACTION_MS;
+        if(!active)reaction="";
+        // Optional imported Kenney CC0 sprite. Fallback is our original vector.
+        if(idlePose!=null){
+            canvas.save();
+            if(active&&reaction.equals("flip"))
+                canvas.rotate(360f*age/REACTION_MS,x,y);
+            else if(active&&reaction.equals("wave"))
+                canvas.rotate(9f*(float)Math.sin(age/90f),x,y);
+            else if(active&&reaction.equals("nod"))
+                canvas.translate(0,unit*.1f*(float)Math.sin(age/80f));
+            Bitmap pose=active&&reaction.equals("flip")&&jumpPose!=null?jumpPose:
+                active&&reaction.equals("wave")&&drivePose!=null?drivePose:
+                active&&reaction.equals("surprised")&&hurtPose!=null?hurtPose:idlePose;
+            p.setStyle(Paint.Style.FILL);p.setColor(Color.WHITE);p.setFilterBitmap(true);
+            RectF rect=new RectF(x-unit*1.38f,y-unit*1.05f,
+                                 x+unit*1.38f,y+unit*1.05f);
+            canvas.drawBitmap(pose,null,rect,p);
+            if(listening){
+                p.setColor(cyan);p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(unit*.045f);
+                canvas.drawCircle(x,y,unit*1.5f,p);
+            }
+            if(thinking)circle(canvas,x+unit,y-unit*.95f,unit*.11f,cyan);
+            canvas.restore();
+            keepAnimating();
+            return;
+        }
+        if(active){
+            canvas.save();
+            if(reaction.equals("flip"))canvas.rotate(360f*age/REACTION_MS,x,y);
+            else if(reaction.equals("wave"))canvas.rotate(9f*(float)Math.sin(age/90f),x,y);
+            else if(reaction.equals("nod"))canvas.translate(0,unit*.1f*(float)Math.sin(age/80f));
+        }
         // Glowing, jagged personality silhouette
         p.setColor(Color.rgb(24,35,46));p.setStyle(Paint.Style.FILL);
         canvas.drawRoundRect(x-unit*1.16f,y-unit*1.00f,
@@ -92,7 +160,7 @@ public final class SparkyFaceView extends View {
         if(thinking){
             circle(canvas,x+unit*0.87f,y-unit*0.96f,unit*0.085f,cyan);
         }
-        if(getWindowToken()!=null && hasWindowFocus() && getVisibility()==View.VISIBLE)
-            postInvalidateDelayed(110);
+        if(active)canvas.restore();
+        keepAnimating();
     }
 }

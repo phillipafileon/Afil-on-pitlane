@@ -54,7 +54,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("spark_private_v1", MODE_PRIVATE);
-        mind = new SparkyMind(prefs);
+        mind = new SparkyMind(prefs, this);
         if (!prefs.contains("autonomy")) prefs.edit().putString("autonomy", "Balanced").apply();
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);

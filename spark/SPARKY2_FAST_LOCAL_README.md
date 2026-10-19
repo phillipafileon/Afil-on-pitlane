@@ -60,3 +60,47 @@ Future open-source modules to evaluate: sherpa-onnx for fully local Android spee
 
 This is source development, **not** a verified installable APK until CI
 and device-level testing pass.
+
+## Sparky's first offline encyclopedia (in development)
+
+The bundled `sparky-starter-knowledge.json` contains **41 original short entries**
+across motorsport, automotive engineering and general reference, with links to
+independent sources where possible (e.g. ACO Le Mans results and FIA BoP).
+
+A new on-device SQLite FTS4 library retrieves relevant summaries before the model
+answers, without sending any prompt to Wikipedia or the internet. Entries can be
+shown with their original source links using `sources for <subject>`.
+
+From the main UI:
+- Tap Sparky's face or tap TALK to start the Android on-device recogniser.
+- Select **SETTINGS · MODELS · KNOWLEDGE** for model and JSON knowledge-pack imports.
+- Ask **knowledge status** for the number of available offline entries.
+- Say `teach me about <topic>: <fact>` to add an explicit owner-taught, **unverified**
+  reference (it does not automatically become factually verified).
+- Say `remember that ...` for personal preferences; `my memories` and
+  `forget memory 1` control that independent memory store.
+- In settings, tap the feedback options to make small, bounded changes to Sparky's
+  response style over time. This is **not** fine-tuning or weight training.
+- No live Wikipedia requests occur from the app.
+
+### Optional Wikipedia introductions
+
+A maintainer may use `tools/build_sparky_wikipedia_pack.py` on a connected
+development computer, with a valid descriptive User-Agent, to extract introductory
+text for the 281 curated titles in `tools/sparky_wikipedia_topics.txt`. It
+preserves page/source links and credits Wikipedia contributors under CC BY-SA 4.0.
+Import the resulting JSON from Settings. Imported text may be truncated; cite its
+original page and mark changes. This builder was added to the repository but is
+**not** run automatically and no Wikipedia pack is bundled in the APK.
+
+The whole English Wikipedia introductions collection is many gigabytes, so a
+full-size offline repository will require a ZIM/SQLite index adapter and a separately
+downloaded archive. Kiwix's Wikipedia `mini` edition is the closest practical
+ready-made source, but the APK does **not currently read .zim files**.
+
+### What is still missing
+
+The avatar is now tappable, blinks and has basic speaking/thinking animation, but
+detailed gestures, accurate lip-sync, continuous listening and full device control
+are future stages. The factual library is not yet comprehensive; an AI can still
+make mistakes. Online sync between Sparky phone/tablet instances is not implemented.

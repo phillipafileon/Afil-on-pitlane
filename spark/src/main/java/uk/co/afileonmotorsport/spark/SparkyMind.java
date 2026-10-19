@@ -25,9 +25,9 @@ public final class SparkyMind {
     private static String plain(String text, int max) {
         if (text == null) return "";
         // Prevent a saved memory or a message from forging new chat roles.
-        return text.replace("<|", "< |").replace("|>", "| >")
-                .replaceAll("[\\p{Cntrl}&&[^\n\\t]]", " ")
-                .trim().substring(0, Math.min(max, text.trim().length()));
+        String clean = text.replace("<|", "< |").replace("|>", "| >")
+                .replaceAll("\\p{Cntrl}", " ").trim();
+        return clean.substring(0, Math.min(max, clean.length()));
     }
 
     public int remember(String fact) {

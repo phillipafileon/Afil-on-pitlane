@@ -12,6 +12,7 @@ import sqlite3
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PACK = ROOT / "spark/src/main/assets/sparky-starter-knowledge.json"
+WIKIPEDIA = ROOT / "spark/src/main/assets/sparky-wikipedia-intros.json"
 STOP = set("""what when where which about tell please could would should whose have does
 with from that this they them were cars car race racing winner won history know
 explain give some more there who why how the and for are was has had his her our
@@ -59,6 +60,10 @@ def main():
     assert data["version"] == 1
     articles = data["entries"]
     assert len(articles) >= 40
+    wikipedia = json.loads(WIKIPEDIA.read_text(encoding="utf-8"))["entries"]
+    assert len(wikipedia) >= 250
+    assert len({x["title"].lower() for x in wikipedia}) == len(wikipedia)
+    articles = articles + wikipedia
     for a in articles:
         assert a["title"] and a["summary"], "Every reference needs a subject and text"
         assert not a["source"] or a["source"].startswith("https://")
@@ -73,6 +78,9 @@ def main():
         "Tell me about our Porsche 924": "Porsche 924",
         "Explain a differential": "Differential",
         "What is photosynthesis?": "Photosynthesis",
+        "Who was Stirling Moss?": "Stirling Moss",
+        "Tell me about Jaguar E-Type": "Jaguar E-Type",
+        "What is the Ford Mustang?": "Ford Mustang",
     }
     for question, expected in expectations.items():
         hits = rank(con, question)

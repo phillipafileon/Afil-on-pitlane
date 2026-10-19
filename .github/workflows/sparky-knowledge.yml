@@ -1,0 +1,53 @@
+name: Prepare Sparky Offline Encyclopedia (Development)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/sparky-knowledge.yml'
+      - 'tools/build_sparky_wikipedia_pack.py'
+      - 'tools/sparky_wikipedia_topics.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  knowledge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch properly attributed Wikipedia introduction pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          python tools/build_sparky_wikipedia_pack.py \
+            --titles tools/sparky_wikipedia_topics.txt \
+            --output build/sparky-wikipedia-intros.json \
+            --user-agent 'SparkyOfflineKnowledge/0.3 (https://github.com/phillipafileon/Afil-on-pitlane/issues)'
+      - name: Check pack size, copyright credit and article count
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('build/sparky-wikipedia-intros.json')
+          info = json.loads(path.read_text(encoding='utf-8'))
+          count = len(info['entries'])
+          print('Wikipedia intro articles:', count)
+          assert 150 <= count <= 3000, 'Pack too small or too large; investigate the fetch'
+          assert path.stat().st_size < 5_000_000, 'Over Android importer cap'
+          assert info['attribution']['license'] == 'Creative Commons Attribution-ShareAlike 4.0'
+          assert all(e.get('source','').startswith('https://en.wikipedia.org/') for e in info['entries'])
+          PY
+      - name: Publish knowledge pack as development artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sparky-Optional-Wikipedia-Introductions
+          path: build/sparky-wikipedia-intros.json
+          if-no-files-found: error

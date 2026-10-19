@@ -189,12 +189,12 @@ public final class MainActivity extends Activity {
         long generate=prefs.getLong("last_generation_ms_v3",-1);
         int chars=prefs.getInt("last_generation_chars_v3",0);
         int turns=prefs.getInt("generation_count_v3",0);
-        return "LOCAL SPARKY DIAGNOSTICS\\n"
-            +"Model ready: "+(gguf.isFile()?"imported":"not imported")+"\\n"
-            +"Last model pre-load: "+(warm<0?"not measured":warm+" ms")+"\\n"
-            +"Last completed reply: "+(generate<0?"not measured":generate+" ms")+"\\n"
-            +"Last reply size: "+chars+" characters\\n"
-            +"Total measured replies: "+turns+"\\n"
+        return "LOCAL SPARKY DIAGNOSTICS\n"
+            +"Model ready: "+(gguf.isFile()?"imported":"not imported")+"\n"
+            +"Last model pre-load: "+(warm<0?"not measured":warm+" ms")+"\n"
+            +"Last completed reply: "+(generate<0?"not measured":generate+" ms")+"\n"
+            +"Last reply size: "+chars+" characters\n"
+            +"Total measured replies: "+turns+"\n"
             +"Diagnostics are private and never uploaded. Values vary with device temperature and battery mode.";
     }
 

@@ -1,0 +1,26 @@
+name: Verify Afiléon Checkout Cancellation
+
+on:
+  push:
+    branches:
+      - fix/booking-checkout-failure-release-2026-10-20
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build complete production Docker image without deploying
+        run: docker build --pull -t afileon-booking-check -f live-services/Dockerfile live-services
+      - name: Extract fully patched runtime and run cancellation tests
+        run: |
+          cid=$(docker create afileon-booking-check)
+          docker cp "$cid:/app/server_v3.js" /tmp/afileon-runtime-server.js
+          docker rm "$cid"
+          node --check /tmp/afileon-runtime-server.js
+          node live-services/tests/checkout-cancellation-smoke.cjs /tmp/afileon-runtime-server.js

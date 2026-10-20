@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private static final long UPDATE_RECHECK_MS = 60_000L;
 
     private WebView webView;
+    private PitlaneBluetooth bluetooth;
     private String pendingOrigin;
     private GeolocationPermissions.Callback pendingGeoCallback;
 
@@ -179,6 +180,8 @@ public class MainActivity extends AppCompatActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.addJavascriptInterface(new UpdateBridge(), "PitlaneNative");
+        bluetooth = new PitlaneBluetooth(this, webView);
+        webView.addJavascriptInterface(bluetooth, "PitlaneBT");
 
         WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -222,6 +225,8 @@ public class MainActivity extends AppCompatActivity {
                         "if(!document.getElementById('pitlane-lb-v036-guard')){var g=document.createElement('script');g.id='pitlane-lb-v036-guard';g.src='https://appassets.androidplatform.net/assets/leaderboard_guard_v036.js';g.onload=loadLb;document.body.appendChild(g);}else{loadLb();}" +
                         "})()",
                         null);
+
+                view.evaluateJavascript(PitlaneProBundle.script(), null);
 
                 ensureUpdateStatusUi();
                 checkForUpdates(true, false);
@@ -659,6 +664,7 @@ public class MainActivity extends AppCompatActivity {
                 File readyFile = target;
                 runOnUiThread(() -> {
                     if (downloadDialog != null && downloadDialog.isShowing()) downloadDialog.dismiss();
+        if (bluetooth != null) bluetooth.shutdown();
                     updateDownloadRunning = false;
                     pendingUpdateFile = readyFile;
                     setUpdateUi(
@@ -800,6 +806,7 @@ public class MainActivity extends AppCompatActivity {
             @NonNull String[] permissions,
             @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (bluetooth != null && bluetooth.onRequestPermissionsResult(requestCode, permissions, grantResults)) return;
         if (requestCode == LOCATION_REQUEST && pendingGeoCallback != null && pendingOrigin != null) {
             boolean granted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                     == PackageManager.PERMISSION_GRANTED;
@@ -818,6 +825,7 @@ public class MainActivity extends AppCompatActivity {
         updateExecutor.shutdownNow();
         if (webView != null) {
             webView.removeJavascriptInterface("PitlaneNative");
+            webView.removeJavascriptInterface("PitlaneBT");
             webView.destroy();
         }
         super.onDestroy();

@@ -1,0 +1,20 @@
+#proOverlay{position:fixed;inset:0;z-index:250;background:#020711;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#proOverlay.show{display:block}
+#proOverlay .proWrap{max-width:900px;margin:auto;padding:12px 14px calc(40px + env(safe-area-inset-bottom,0px))}
+.proHead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0 12px;border-bottom:1px solid #3a3f22;position:sticky;top:0;background:#020711;z-index:2}
+.proHead h1{margin:0;font-size:22px}
+.proSec{margin-top:12px}
+.proSec .btn{margin-top:6px}
+.proRow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.proCanvas{width:100%;display:block;background:#040b13;border:1px solid var(--line,#223345);margin-top:8px;touch-action:pan-y}
+.proLegend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--muted,#aab5c9);margin-top:6px}
+.proLegend i{display:inline-block;width:18px;height:4px;vertical-align:middle;margin-right:5px}
+.proSwitch{display:flex;align-items:center;gap:12px;justify-content:space-between;margin:8px 0}
+.proSwitch input{width:auto;margin:0;transform:scale(1.5)}
+.proList{margin:8px 0 0;padding:0;list-style:none;font-size:13px}
+.proList li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #172431;font-variant-numeric:tabular-nums}
+.proLoss{color:#ff9aa8}.proGain{color:#58e6a9}
+#proBackupText{min-height:90px;font-size:12px}
+.proCard{display:block;width:100%;text-align:left;color:var(--text,#f7f9ff)}
+.proModal{position:fixed;inset:0;z-index:260;background:#01050bf7;display:none;align-items:center;justify-content:center;padding:18px}
+.proModal.show{display:flex}

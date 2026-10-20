@@ -85,12 +85,14 @@ const route=`app.post('/api/bookings/:id/checkout', async (req, res) => {
   }
 
   if (!stripe) {
-    if (voucherNewlyApplied) await restoreVoucherForBooking(b.public_id).catch(()=>{});
-    if(discount_code)await releaseDiscountCode('booking',b.public_id).catch(()=>{});
+    await pool.query("UPDATE bookings SET status='expired',hold_expires_at=now(),updated_at=now() WHERE public_id=$1 AND status='hold'",[b.public_id]).catch(e=>console.error('Unable to release unavailable-payment booking',e));
+    if (voucherApplied > 0) await restoreVoucherForBooking(b.public_id).catch(e=>console.error('Voucher restoration failed',e));
+    if(discount_code)await releaseDiscountCode('booking',b.public_id).catch(e=>console.error('Discount restoration failed',e));
     return res.status(503).json({ error:'stripe_not_configured' });
   }
+  let session = null;
   try {
-    const session = await stripe.checkout.sessions.create({
+    session = await stripe.checkout.sessions.create({
       mode:'payment',
       customer_email:b.customer_email||undefined,
       customer_creation:'always',
@@ -103,17 +105,26 @@ const route=`app.post('/api/bookings/:id/checkout', async (req, res) => {
       line_items:[{quantity:1,price_data:{currency:'gbp',unit_amount:cardDue,tax_behavior:'exclusive',product_data:{name:label,description:desc}}}],
       metadata:{kind:'service_booking',booking_id:b.public_id,service_id:b.service_id,variant_id:b.variant_id,booking_date:isoDate(b.booking_date),appointment_time:b.appointment_time||'',terms_version:TERMS_VERSION,gift_voucher_amount:String(voucherApplied||0),discount_amount:String(discountTotal||0),discount_code:discount?.code||''},
       payment_intent_data:{metadata:{kind:'service_booking',booking_id:b.public_id,discount_code:discount?.code||''}},
-      consent_collection:{terms_of_service:'required'},
+      // Terms were explicitly accepted and recorded by /api/bookings/hold.
       custom_text:{submit:{message:service.licenceRequired?\`After payment, email a clear photo of the driver's valid driving licence to ${LICENCE_EMAIL}. Booking remains subject to the hire terms and eligibility checks.\`:'Your date is confirmed after payment succeeds.'}}
     }, { idempotencyKey:\`checkout_${b.public_id}\` });
     await pool.query(\`UPDATE bookings SET stripe_checkout_session_id=$1,updated_at=now() WHERE public_id=$2\`, [session.id,b.public_id]);
     if(discount_code)await attachDiscountSession('booking',b.public_id,session.id);
     res.json({ checkout_url:session.url, session_id:session.id, gift_voucher_applied:voucherApplied, gift_voucher_remaining:voucherRemaining, discount_applied:discountTotal, card_due:cardDue });
   } catch (e) {
-    console.error(e);
-    if (voucherNewlyApplied) await restoreVoucherForBooking(b.public_id).catch(()=>{});
-    if(discount_code)await releaseDiscountCode('booking',b.public_id).catch(()=>{});
-    res.status(500).json({ error:'checkout_creation_failed' });
+    console.error('Booking checkout failed', e);
+    // Release the booking only if no Stripe Session was created, or if its expiry is confirmed.
+    let safeToRelease = !session;
+    if (session) {
+      try { await stripe.checkout.sessions.expire(session.id); safeToRelease = true; }
+      catch (expireError) { console.error('Could not expire partially created Stripe session', expireError); }
+    }
+    if (safeToRelease) {
+      await pool.query("UPDATE bookings SET status='expired',hold_expires_at=now(),updated_at=now() WHERE public_id=$1 AND status='hold'",[b.public_id]).catch(err=>console.error('Failed checkout: could not release booking hold',err));
+      if (voucherApplied > 0) await restoreVoucherForBooking(b.public_id).catch(err=>console.error('Failed checkout: voucher restoration failed',err));
+      if(discount_code)await releaseDiscountCode('booking',b.public_id).catch(err=>console.error('Failed checkout: promo restoration failed',err));
+    }
+    res.status(502).json({ error:'checkout_creation_failed', detail:'Secure payment could not be started. No booking has been confirmed. Please try again or contact Afiléon Motorsport.' });
   }
 });
 

@@ -18,7 +18,7 @@ const PRINTFUL_WEBHOOK_KEY = process.env.PRINTFUL_WEBHOOK_KEY || '';
 const PRINTFUL_FULFILMENT_LIVE = String(process.env.PRINTFUL_FULFILMENT_LIVE || 'false').toLowerCase() === 'true';
 const SHOP_CHECKOUT_REQUESTED = String(process.env.SHOP_CHECKOUT_LIVE || 'false').toLowerCase() === 'true';
 const STRIPE_LIVE_KEY = String(process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_');
-const SHOP_CHECKOUT_LIVE = SHOP_CHECKOUT_REQUESTED && STRIPE_LIVE_KEY && !!PRINTFUL_API_TOKEN;
+const SHOP_CHECKOUT_LIVE = SHOP_CHECKOUT_REQUESTED && PRINTFUL_FULFILMENT_LIVE && STRIPE_LIVE_KEY && !!PRINTFUL_API_TOKEN;
 const SHOP_DELIVERY_GBP = 499;
 const SHOP_CATALOG = [
   { slug:'embroidered-tshirt', name:'Afiléon Motorsport Embroidered T-Shirt', description:'Black embroidered Afiléon Motorsport T-shirt.', price:2499, image_url:null, variants:[

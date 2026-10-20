@@ -8,7 +8,7 @@ if (!s.includes('async function ensureStripeWebhookEvents()')) {
 
   const replacement = `async function ensureStripeWebhookEvents() {
   if (!stripe || !String(process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_')) return;
-  const url = 'https://afileon-live-api-production.up.railway.app/api/stripe/webhook';
+  const url = (process.env.API_PUBLIC_URL || 'https://afileon-api-migration-staging.onrender.com') + '/api/stripe/webhook';
   const wanted = [
     'checkout.session.completed',
     'checkout.session.expired',

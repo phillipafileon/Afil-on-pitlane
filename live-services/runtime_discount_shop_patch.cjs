@@ -10,15 +10,18 @@ const route=`app.post('/api/shop/checkout', async (req,res,next) => {
   if (!stripe) return res.status(503).json({ error:'stripe_not_configured' });
   if (!SHOP_CHECKOUT_LIVE) return res.status(503).json({ error:'shop_not_live', detail: STRIPE_LIVE_KEY ? 'Merchandise checkout is not enabled yet.' : 'Merchandise checkout is ready but live Stripe payments have not been enabled yet.' });
   let items;
-  try { items = normaliseShopItems(req.body.items); }
-  catch (e) { return res.status(400).json({ error:e.message==='empty_basket'?'empty_basket':'invalid_product_variant' }); }
+  try { items = await normaliseShopItems(req.body.items); }
+  catch (e) { if(e.message==='catalogue_refresh_required')return res.status(503).json({error:'catalogue_refresh_required',detail:'Printful shop prices are refreshing. Try again shortly.'});return res.status(400).json({ error:e.message==='empty_basket'?'empty_basket':'invalid_product_variant' }); }
 
   const originalTotal = items.reduce((n,x)=>n+x.unit_price*x.quantity,0);
   const id = token('ord');
   const discountCode=normaliseDiscountCode(req.body?.discount_code||'');
   let discount=null,discountAmount=0,total=originalTotal;
   if(discountCode){
-    discount=await reserveDiscountCode(discountCode,'shop',id,originalTotal);
+    const candidate=await getDiscountCode(discountCode,originalTotal);
+    const eligibleTotal=candidate?discountEligibleShopAmount(candidate,items):0;
+    if(!candidate||eligibleTotal<=0)return res.status(400).json({error:'discount_code_invalid',detail:'This promo code does not apply to the items in your basket.'});
+    discount=await reserveDiscountCode(discountCode,'shop',id,eligibleTotal);
     if(!discount)return res.status(400).json({error:'discount_code_invalid',detail:'Promo code not recognised, not active, expired or fully used.'});
     discountAmount=Number(discount.discount_amount||0);
     total=Math.max(0,originalTotal-discountAmount);

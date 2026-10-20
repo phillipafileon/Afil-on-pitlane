@@ -125,7 +125,7 @@ if(!s.includes(bookingNew)){if(!s.includes(bookingOld))throw new Error('booking 
 
 const shopOld="  if(discountCode){\n    discount=await reserveDiscountCode(discountCode,'shop',id,originalTotal);\n    if(!discount)return res.status(400).json({error:'discount_code_invalid',detail:'Promo code not recognised, not active, expired or fully used.'});\n    discountAmount=Number(discount.discount_amount||0);";
 const shopNew="  if(discountCode){\n    const candidate=await getDiscountCode(discountCode,originalTotal);\n    const eligibleTotal=candidate?discountEligibleShopAmount(candidate,items):0;\n    if(!candidate||eligibleTotal<=0)return res.status(400).json({error:'discount_code_invalid',detail:'This promo code does not apply to the items in your basket, is expired or has been fully used.'});\n    discount=await reserveDiscountCode(discountCode,'shop',id,eligibleTotal);\n    if(!discount)return res.status(400).json({error:'discount_code_invalid',detail:'Promo code not recognised, not active, expired or fully used.'});\n    discountAmount=Number(discount.discount_amount||0);";
-if(!s.includes(shopNew)){if(!s.includes(shopOld))throw new Error('shop scope marker missing');s=s.replace(shopOld,shopNew);}
+if(!s.includes(shopNew) && !s.includes('const eligibleTotal=candidate?discountEligibleShopAmount(candidate,items):0;')){if(!s.includes(shopOld))throw new Error('shop scope marker missing');s=s.replace(shopOld,shopNew);}
 
 fs.writeFileSync(path,s);
 console.log('Applied discount scope and shop margin admin patch');

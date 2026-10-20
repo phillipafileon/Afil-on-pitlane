@@ -128,6 +128,34 @@ const route=`app.post('/api/bookings/:id/checkout', async (req, res) => {
   }
 });
 
+app.post('/api/bookings/:id/cancel-pending', async (req,res) => {
+  try {
+    const result = await pool.query("SELECT public_id,status,stripe_checkout_session_id,COALESCE(amount_paid,0) AS amount_paid FROM bookings WHERE public_id=$1 LIMIT 1", [req.params.id]);
+    const b = result.rows[0];
+    if (!b) return res.status(404).json({ error:'booking_not_found' });
+    if (b.status==='expired' || b.status==='cancelled') return res.json({cancelled:true,already_released:true});
+    if (b.status!=='hold' || Number(b.amount_paid)>0) return res.status(409).json({error:'booking_already_confirmed_or_changed'});
+    if (b.stripe_checkout_session_id) {
+      if (!stripe) return res.status(503).json({error:'payment_provider_unavailable'});
+      const session = await stripe.checkout.sessions.retrieve(b.stripe_checkout_session_id);
+      if (session.status==='complete' || session.payment_status==='paid' || session.payment_status==='no_payment_required') {
+        return res.status(409).json({error:'payment_may_be_complete',detail:'We are checking payment status. Please do not place another booking yet.'});
+      }
+      if (session.status==='open') await stripe.checkout.sessions.expire(session.id);
+      else if (session.status!=='expired') return res.status(409).json({error:'checkout_cannot_be_cancelled'});
+    }
+    const released=await pool.query("UPDATE bookings SET status='expired',hold_expires_at=now(),updated_at=now() WHERE public_id=$1 AND status='hold' AND COALESCE(amount_paid,0)=0 RETURNING public_id", [b.public_id]);
+    if (released.rowCount) {
+      await restoreVoucherForBooking(b.public_id).catch(e=>console.error('Cancelled booking voucher restoration failed',e));
+      await releaseDiscountCode('booking',b.public_id).catch(e=>console.error('Cancelled booking discount restoration failed',e));
+    }
+    return res.json({cancelled:true});
+  } catch (e) {
+    console.error('Cancellation of unpaid Stripe checkout failed', e);
+    return res.status(503).json({error:'pending_checkout_cancel_failed',detail:'Unable to verify the payment status yet. Please contact Afiléon Motorsport if the date remains held.'});
+  }
+});
+
 `;
 
 s=s.slice(0,start)+route+s.slice(end);

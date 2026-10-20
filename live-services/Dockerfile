@@ -79,6 +79,10 @@ RUN node runtime_e46_payment_options_patch.cjs
 RUN node runtime_availability_enforcement_patch.cjs
 RUN node runtime_admin_booking_reset_patch.cjs
 RUN node runtime_manual_offline_booking_patch.cjs
+# Restore discount-aware checkout after dynamic shop patches replace that route.
+RUN node runtime_discount_shop_patch.cjs
+# Check fully assembled server, not just the individual patch scripts.
+RUN node --check server_v3.js
 ENV NODE_ENV=production
 EXPOSE 3000
 # Afiléon transactional email, promo codes, secure password admin and Printful integrations

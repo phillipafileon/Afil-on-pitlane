@@ -24,6 +24,10 @@ jobs:
           gradle-version: '8.10.2'
       - name: Compile Android Java integration (no signing, no release)
         run: gradle --no-daemon :app:compileDebugJavaWithJavac
+      - name: Generate temporary CI debug keystore (NEVER the release key)
+        run: |
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair -noprompt -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android -alias androiddebugkey -dname "CN=Pitlane CI Test Only,O=Afileon,C=GB" -keyalg RSA -keysize 2048 -validity 365
       - name: Build debug APK without publishing
         run: gradle --no-daemon :app:assembleDebug
       - name: Upload native integration test APK

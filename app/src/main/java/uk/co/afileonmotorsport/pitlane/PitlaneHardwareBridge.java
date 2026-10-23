@@ -271,6 +271,12 @@ public final class PitlaneHardwareBridge {
             }catch(Exception e){status("Cannot export journal: "+e.getMessage());}
         });
     }
+    @JavascriptInterface public void exportReportPdf(String reportJson){
+        activity.runOnUiThread(()->{
+            try{PitlanePdfReport.share(activity,reportJson);}
+            catch(Exception e){status("PDF export failed: "+e.getMessage());}
+        });
+    }
     @JavascriptInterface public void disconnectDevices(){
         obdRunning=false;gpsRunning=false;close(obdSocket);close(gpsSocket);status("Devices disconnected");
     }

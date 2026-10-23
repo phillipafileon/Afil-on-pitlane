@@ -36,6 +36,14 @@ jobs:
           name: pitlane-native-test-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Build non-debuggable release candidate (temporary CI signer)
+        run: gradle --no-daemon :app:assembleRelease
+      - name: Upload non-debuggable release candidate for controlled re-signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitlane-native-ci-release-unsigned-for-production
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
       - name: Check expected sources
         run: |
           test -f app/src/main/java/uk/co/afileonmotorsport/pitlane/PitlaneHardwareBridge.java

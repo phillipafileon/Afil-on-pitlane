@@ -2,4 +2,6 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <external-files-path name="pitlane_updates" path="Download/" />
     <cache-path name="pitlane_update_cache" path="." />
+    <files-path name="pitlane_gnss_journals" path="pitlane-session-journals/" />
+    <cache-path name="pitlane_reports" path="pitlane-reports/" />
 </paths>

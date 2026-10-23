@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private static final long UPDATE_RECHECK_MS = 60_000L;
 
     private WebView webView;
+    private PitlaneHardwareBridge hardwareBridge;
     private String pendingOrigin;
     private GeolocationPermissions.Callback pendingGeoCallback;
 
@@ -179,6 +180,8 @@ public class MainActivity extends AppCompatActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.addJavascriptInterface(new UpdateBridge(), "PitlaneNative");
+        hardwareBridge = new PitlaneHardwareBridge(this, webView);
+        webView.addJavascriptInterface(hardwareBridge, "PitlaneHardwareNative");
 
         WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -816,7 +819,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         if (downloadDialog != null && downloadDialog.isShowing()) downloadDialog.dismiss();
         updateExecutor.shutdownNow();
+        if (hardwareBridge != null) hardwareBridge.shutdown();
         if (webView != null) {
+            webView.removeJavascriptInterface("PitlaneHardwareNative");
             webView.removeJavascriptInterface("PitlaneNative");
             webView.destroy();
         }

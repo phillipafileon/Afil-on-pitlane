@@ -1,0 +1,30 @@
+name: Pitlane native-bridge compile check
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - '.github/workflows/native-pr-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Compile Android Java integration (no signing, no release)
+        run: gradle --no-daemon :app:compileDebugJavaWithJavac
+      - name: Check expected sources
+        run: |
+          test -f app/src/main/java/uk/co/afileonmotorsport/pitlane/PitlaneHardwareBridge.java
+          test -f app/src/main/java/uk/co/afileonmotorsport/pitlane/PitlaneReminderReceiver.java

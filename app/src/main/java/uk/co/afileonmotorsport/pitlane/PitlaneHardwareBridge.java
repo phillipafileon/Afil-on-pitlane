@@ -2,6 +2,14 @@ package uk.co.afileonmotorsport.pitlane;
 
 import android.Manifest;
 import android.app.Activity;
+import android.Manifest;
+import android.content.Intent;
+import android.net.Uri;
+import android.content.pm.PackageManager;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.util.Arrays;
+import java.util.Comparator;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -200,6 +208,68 @@ public final class PitlaneHardwareBridge {
             JSONObject j=new JSONObject();j.put("kind","gps");j.put("valid",true);
             j.put("lat",lat);j.put("lon",lon);j.put("speedMph",mph);j.put("source","NMEA-RMC");emit(j);
         }catch(Exception ignored){}
+    }
+    @JavascriptInterface public void startGnssJournal(){
+        activity.runOnUiThread(()->{
+            if(ContextCompat.checkSelfPermission(activity,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){
+                ActivityCompat.requestPermissions(activity,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},1105);
+                status("Precise GPS location permission required. Grant and tap Start again.");
+                return;
+            }
+            try{
+                Intent intent=new Intent(activity,PitlaneRecorderService.class);
+                intent.setAction(PitlaneRecorderService.START);
+                ContextCompat.startForegroundService(activity,intent);
+                status("Starting native GPS recording with ongoing system notification.");
+            }catch(Exception e){status("Could not start recording: "+e.getMessage());}
+        });
+    }
+    @JavascriptInterface public void stopGnssJournal(){
+        activity.runOnUiThread(()->{
+            Intent stop=new Intent(activity,PitlaneRecorderService.class);
+            stop.setAction(PitlaneRecorderService.STOP);
+            activity.startService(stop);
+            status("Stopping recording and closing journal.");
+        });
+    }
+    @JavascriptInterface public String getGnssJournalStatus(){
+        try{
+            JSONObject data=new JSONObject();
+            data.put("recording",PitlaneRecorderService.recording);
+            data.put("samples",PitlaneRecorderService.samples);
+            data.put("activeFile",PitlaneRecorderService.activeFile);
+            data.put("accuracyM",Float.isFinite(PitlaneRecorderService.lastAccuracy)?PitlaneRecorderService.lastAccuracy:JSONObject.NULL);
+            data.put("lastGpsUtcMs",PitlaneRecorderService.lastGpsUtcMs);
+            data.put("error",PitlaneRecorderService.lastError);
+            File dir=PitlaneRecorderService.directory(activity);
+            File[] files=dir.listFiles((d,n)->n.endsWith(".jsonl")&&n.startsWith("pitlane-gnss-"));
+            JSONArray logs=new JSONArray();
+            if(files!=null){
+                Arrays.sort(files,Comparator.comparingLong(File::lastModified).reversed());
+                for(int i=0;i<Math.min(files.length,50);i++){
+                    JSONObject f=new JSONObject();
+                    f.put("name",files[i].getName());
+                    f.put("sizeBytes",files[i].length());
+                    logs.put(f);
+                }
+            }
+            data.put("logs",logs);return data.toString();
+        }catch(Exception e){return "{\\"recording\\":false,\\"error\\":\\"Could not read recording status\\"}";}
+    }
+    @JavascriptInterface public void shareGnssJournal(String name){
+        if(name==null||!name.matches("pitlane-gnss-[0-9-]{10,30}\\.jsonl")){status("Invalid journal name.");return;}
+        File file=new File(PitlaneRecorderService.directory(activity),name);
+        if(!file.isFile()||file.length()<5){status("Recording journal unavailable.");return;}
+        activity.runOnUiThread(()->{
+            try{
+                Uri uri=FileProvider.getUriForFile(activity,activity.getPackageName()+".fileprovider",file);
+                Intent share=new Intent(Intent.ACTION_SEND);
+                share.setType("application/x-ndjson");
+                share.putExtra(Intent.EXTRA_STREAM,uri);
+                share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                activity.startActivity(Intent.createChooser(share,"Export Pitlane telemetry journal"));
+            }catch(Exception e){status("Cannot export journal: "+e.getMessage());}
+        });
     }
     @JavascriptInterface public void disconnectDevices(){
         obdRunning=false;gpsRunning=false;close(obdSocket);close(gpsSocket);status("Devices disconnected");

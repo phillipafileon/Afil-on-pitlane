@@ -97,14 +97,21 @@ public final class PitlaneHardwareBridge {
                 obdSocket=connect(address);obdRunning=true;status("OBD adapter connected, initializing");
                 InputStream in=obdSocket.getInputStream();OutputStream out=obdSocket.getOutputStream();
                 for(String cmd:new String[]{"ATZ","ATE0","ATL0","ATS0","ATH0","ATSP0"})elm(in,out,cmd,4000);
+                int cycle=0;
                 while(obdRunning && !Thread.currentThread().isInterrupted()){
+                    // Each sensor has its own acquisition time: do not pretend different PIDs are simultaneous.
                     Integer rpm=decodeRpm(elm(in,out,"010C",2200));
-                    Integer coolant=decodeCoolant(elm(in,out,"0105",2200));
-                    JSONObject j=new JSONObject();j.put("kind","obd");
-                    if(rpm!=null)j.put("rpm",rpm);
-                    if(coolant!=null)j.put("coolantC",coolant);
-                    if(rpm!=null||coolant!=null)emit(j);
-                    Thread.sleep(400);
+                    if(rpm!=null)emitObdReading("rpm",rpm);
+                    Integer speedKmh=decodeSpeed(elm(in,out,"010D",2200));
+                    if(speedKmh!=null)emitObdReading("speedMph",speedKmh*0.621371192);
+                    Integer throttle=decodeThrottle(elm(in,out,"0111",2200));
+                    if(throttle!=null)emitObdReading("throttlePct",throttle*100.0/255.0);
+                    // Slow-changing temperature is queried less frequently.
+                    if((cycle++ % 4)==0){
+                        Integer coolant=decodeCoolant(elm(in,out,"0105",2200));
+                        if(coolant!=null)emitObdReading("coolantC",coolant);
+                    }
+                    Thread.sleep(120);
                 }
             } catch(Exception e){status("OBD stopped: "+e.getMessage());}
             finally{obdRunning=false;close(obdSocket);obdSocket=null;}
@@ -136,6 +143,22 @@ public final class PitlaneHardwareBridge {
     }
     private static Integer decodeCoolant(String raw){
         Integer[] d=response(raw,"05");return d==null?null:d[0]-40;
+    }
+        private static Integer decodeSpeed(String raw) {
+        Integer[] d=response(raw,"0D");return d==null?null:d[0];
+    }
+    private static Integer decodeThrottle(String raw) {
+        Integer[] d=response(raw,"11");return d==null?null:d[0];
+    }
+    private void emitObdReading(String channel,double reading) {
+        try {
+            JSONObject j=new JSONObject();
+            j.put("kind","obd");
+            j.put("timestampMs",System.currentTimeMillis());
+            j.put(channel,reading);
+            // No standard brake switch or brake-pressure measurement is claimed here.
+            emit(j);
+        }catch(Exception ignored){}
     }
     @JavascriptInterface public void connectGps(String address){
         if(!permission())return;

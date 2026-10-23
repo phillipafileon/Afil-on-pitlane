@@ -254,7 +254,7 @@ public final class PitlaneHardwareBridge {
                 }
             }
             data.put("logs",logs);return data.toString();
-        }catch(Exception e){return "{\\"recording\\":false,\\"error\\":\\"Could not read recording status\\"}";}
+        }catch(Exception e){return "{\"recording\":false,\"error\":\"Could not read recording status\"}";}
     }
     @JavascriptInterface public void shareGnssJournal(String name){
         if(name==null||!name.matches("pitlane-gnss-[0-9-]{10,30}\\.jsonl")){status("Invalid journal name.");return;}

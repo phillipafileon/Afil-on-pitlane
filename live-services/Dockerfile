@@ -81,6 +81,8 @@ RUN node runtime_availability_enforcement_patch.cjs
 RUN node runtime_admin_booking_reset_patch.cjs
 RUN node runtime_manual_offline_booking_patch.cjs
 RUN node runtime_printful_gallery_library_patch.cjs
+COPY runtime_essential_trackside_patch.cjs ./
+RUN node runtime_essential_trackside_patch.cjs
 RUN node --check server_v3.js
 ENV NODE_ENV=production
 EXPOSE 3000

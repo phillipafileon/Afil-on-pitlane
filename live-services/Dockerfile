@@ -82,6 +82,8 @@ RUN node runtime_manual_offline_booking_patch.cjs
 # Restore discount-aware checkout after dynamic shop patches replace that route.
 RUN node runtime_discount_shop_patch.cjs
 # Check fully assembled server, not just the individual patch scripts.
+COPY runtime_essential_trackside_patch.cjs ./
+RUN node runtime_essential_trackside_patch.cjs
 RUN node --check server_v3.js
 ENV NODE_ENV=production
 EXPOSE 3000
